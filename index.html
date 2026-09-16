@@ -1254,9 +1254,10 @@ window.receiptFormatter = receiptFormatter;
 // =============================================================
 // PERMISSION SYSTEM
 // =============================================================
-function isAdmin() { return currentUser && currentUser.role === 'admin'; }
+function isAdmin() { return currentUser && (currentUser.role === 'admin' || currentUser.role === 'developer'); }
+function isDeveloper() { return currentUser && currentUser.role === 'developer'; }
 function isDemo() { return currentUser && currentUser.role === 'demo'; }
-function isEditor() { return currentUser && (currentUser.role === 'admin' || currentUser.role === 'demo'); }
+function isEditor() { return currentUser && (currentUser.role === 'admin' || currentUser.role === 'developer' || currentUser.role === 'demo'); }
 
 // Actions that only administrators may perform (blocked for demo users)
 var ADMIN_ONLY_ACTIONS = [
@@ -1291,7 +1292,7 @@ function togglePassword(inputId, btn) {
     else { input.type = 'password'; btn.innerHTML = '<i class="fas fa-eye"></i>'; }
 }
 
-const SINGLE_USER = { id: 'user_imoelvis', fullName: 'IMOELVIS', username: 'IMOELVIS', password: 'IMOELVIS99', email: 'imoelvis@yetupharmcare.com', phone: '0740289362', role: 'admin', status: 'active', pharmacy: 'Dawa Smart', verified: true };
+const SINGLE_USER = { id: 'user_rashidjuma', fullName: 'Rashid Juma', username: 'RASHID', password: 'RASHID2026', email: 'rashidjuma@dawasmartz.co.ke', phone: '0759324463', role: 'developer', status: 'active', pharmacy: 'Dawa Smart', verified: true };
 const DEMO_USER = { id: 'user_demo', fullName: 'Dawa Smart Demo', username: 'DEMO', password: 'DEMO2026', role: 'demo', status: 'active', pharmacy: 'Dawa Smart', verified: true };
 let users = [SINGLE_USER, DEMO_USER];
 let currentUser = null;
@@ -1500,11 +1501,10 @@ function handleLogin(){
     if(!user){ loginAttempts++; errorEl.textContent='❌ Wrong username or password. Attempt '+loginAttempts+'/5'; errorEl.className='error-msg show'; if(loginAttempts>=5){ errorEl.textContent='Too many attempts. Locked 30s.'; document.getElementById('loginUsername').disabled = true; document.getElementById('loginPassword').disabled = true; setTimeout(()=>{document.getElementById('loginUsername').disabled=false;document.getElementById('loginPassword').disabled=false;loginAttempts=0;errorEl.textContent='';errorEl.className='error-msg';},30000); } return; }
     if(!user.verified){errorEl.textContent='⚠️ Account not verified. Contact developer.';errorEl.className='error-msg show';return;}
 
-    // === DEMO TRIAL ACTIVATION & LICENSE ENFORCEMENT ===
+    // === DEMO LICENSE ENFORCEMENT ===
+    // Trial is NOT activated on login — it starts when the user makes
+    // their first sale (the moment they "start using" the app).
     if (user.role === 'demo') {
-        // Activate trial on first successful DEMO login (sets trialStart/trialExpiry once)
-        licenseManager.activateDemoTrial();
-        // Check trial status before allowing entry
         var check = licenseManager.checkTrialExpiry();
         if (check.expired) {
             errorEl.className='error-msg';
@@ -1512,6 +1512,7 @@ function handleLogin(){
             licenseManager.enforceLicenseLock(check.tampered ? 'tampered' : 'expired');
             return;
         }
+        // Allow login — trial may not have started yet, that's fine.
     }
 
     loginAttempts=0; currentUser = user;
@@ -1547,7 +1548,10 @@ function updateDemoUI(){
         badgeContainer.style.display = 'inline-flex';
         var badgeText = document.getElementById('demoHeaderBadge');
         if (badgeText) {
-            if (info.daysRemaining > 0) {
+            if (!info.trialStart) {
+                badgeText.textContent = 'DEMO • TRIAL NOT STARTED';
+                badgeText.className = 'demo-badge';
+            } else if (info.daysRemaining > 0) {
                 badgeText.textContent = 'DEMO • ' + info.daysRemaining + ' DAY' + (info.daysRemaining > 1 ? 'S' : '') + ' LEFT';
                 badgeText.className = 'demo-badge';
             } else if (info.lessThan24h) {
@@ -1574,7 +1578,10 @@ function renderDemoBanner(){
     var info = licenseManager.getLicenseInfo();
     var banner = document.createElement('div');
 
-    if (info.daysRemaining > 0) {
+    if (!info.trialStart) {
+        banner.className = 'demo-banner';
+        banner.innerHTML = '<i class="fas fa-play-circle"></i> <strong>DEMO MODE</strong> — Your 14-day trial will start when you make your first sale. Explore all features now. <button class="dismiss-btn" onclick="dismissDemoBanner()">×</button>';
+    } else if (info.daysRemaining > 0) {
         banner.className = 'demo-banner';
         banner.innerHTML = '<i class="fas fa-info-circle"></i> <strong>DEMO MODE</strong> — ' +
             info.daysRemaining + ' day' + (info.daysRemaining > 1 ? 's' : '') +
@@ -1604,6 +1611,8 @@ var trialWarningShown = {};
 function setupTrialWarnings(){
     if (!isDemo()) return;
     var info = licenseManager.getLicenseInfo();
+    // Don't show warnings if trial hasn't started yet
+    if (!info.trialStart) return;
     var days = info.daysRemaining;
     var threshold = licenseManager.getWarningThreshold();
 
@@ -1632,8 +1641,8 @@ function startDemoTicker(){
             licenseManager.updateDemoIndicator();
             renderDemoBanner();
             var info = licenseManager.getLicenseInfo();
-            if (info.daysRemaining === 0 && !info.lessThan24h) {
-                // Trial has now fully expired while app is open
+            // Only enforce lock if trial has started and expired
+            if (info.trialStart && info.daysRemaining === 0 && !info.lessThan24h) {
                 licenseManager.enforceLicenseLock('expired');
             }
         }
@@ -1702,8 +1711,8 @@ function loadUsers(){
     if(filtered.length===0){container.innerHTML='<div class="empty"><i class="fas fa-users"></i><p>No users</p></div>';return;} 
     container.innerHTML = filtered.map(u=>{ 
         const roleClass=u.role; 
-         const isAdminUser = u.username === 'IMOELVIS';
-         const isProtected = u.username === 'IMOELVIS' || u.username === 'DEMO';
+         const isAdminUser = u.username === 'RASHID';
+         const isProtected = u.username === 'RASHID' || u.username === 'DEMO';
         return '<div class="item-card" style="border-left-color:'+(u.status==='active'?'#0b6e4f':'#f59e0b')+';">'+ 
             '<div style="display:flex;justify-content:space-between;align-items:start;">'+ 
             '<div><h4 style="font-size:14px;color:#0f172a;">'+u.fullName+'</h4>'+ 
@@ -1712,7 +1721,7 @@ function loadUsers(){
             '<span class="user-role '+roleClass+'">'+u.role.charAt(0).toUpperCase()+u.role.slice(1)+'</span></div>'+ 
             '<div style="display:flex;gap:6px;margin-top:6px;align-items:center;flex-wrap:wrap;">'+ 
             '<span style="font-size:10px;color:'+(u.status==='active'?'#16a34a':u.status==='pending'?'#f59e0b':'#dc2626')+';">'+(u.status==='active'?'✅ Active':u.status==='pending'?'⏳ Pending':'⛔ Inactive')+(u.verified===false?' 📧 Unverified':'')+'</span>'+ 
-            (currentUser && currentUser.role === 'admin' && !isProtected ? '<div class="actions">'+
+            (currentUser && isAdmin() && !isProtected ? '<div class="actions">'+
             '<button class="btn btn-sm btn-blue" onclick="editUser(\''+u.id+'\')"><i class="fas fa-edit"></i></button>'+
             '<button class="btn btn-sm btn-danger" onclick="deleteUser(\''+u.id+'\')"><i class="fas fa-trash"></i></button>'+
             '</div>' : '')+
@@ -1724,9 +1733,9 @@ function loadUsers(){
 function openUserModal(user){ if(!adminGuard('manage users')) return; const modal=document.getElementById('userModal'); document.getElementById('userModalTitle').textContent=user?'Edit User':'Add User'; document.getElementById('userId').value=user?user.id:''; document.getElementById('userFullName').value=user?user.fullName:''; document.getElementById('userUsername').value=user?user.username:''; document.getElementById('userEmail').value=user?user.email||'':''; document.getElementById('userPhone').value=user?user.phone||'':''; document.getElementById('userRole').value=user?user.role:'cashier'; document.getElementById('userPassword').value=''; document.getElementById('userPassword').required=!user; document.getElementById('userStatus').value=user?user.status:'active'; modal.classList.add('show'); }
 function saveUser(){ if(!adminGuard('save user')) return; const id=document.getElementById('userId').value||generateId(); const fullName=document.getElementById('userFullName').value.trim(); const username=document.getElementById('userUsername').value.trim(); const email=document.getElementById('userEmail').value.trim(); const phone=document.getElementById('userPhone').value.trim(); const role=document.getElementById('userRole').value; const password=document.getElementById('userPassword').value.trim(); const status=document.getElementById('userStatus').value; if(!fullName||!username){showToast('Fill required fields','error');return;} if(!password){showToast('Password required','error');return;} if(password.length<8){showToast('Password 8+ chars','error');return;} const existing=users.find(u=>u.username===username&&u.id!==id); if(existing){showToast('Username taken','error');return;} const user={id,fullName,username,password:password,email:email||undefined,phone:phone||undefined,role,status,pharmacy:document.getElementById('shopName').value||'Dawa Smart',verified:true}; const idx=users.findIndex(u=>u.id===id); if(idx>=0){ user.password = password || users[idx].password; users[idx]=user;showToast('User updated!','success');} else {users.push(user);showToast('User added! Credentials: '+username+' / '+password,'success');} document.getElementById('userModal').classList.remove('show'); loadUsers(); saveUsersToStorage(); }
 function editUser(id){const user=users.find(u=>u.id===id);if(user)openUserModal(user);}
-function deleteUser(id){if(!adminGuard('delete user')) return;if(id === 'user_imoelvis'){showToast('Cannot delete primary admin','error');return;}if(id === 'user_demo'){showToast('Cannot delete demo account','error');return;}if(!confirm('Delete this user?'))return;users=users.filter(u=>u.id!==id);saveUsersToStorage();loadUsers();showToast('User deleted','success');}
+function deleteUser(id){if(!adminGuard('delete user')) return;if(id === 'user_rashidjuma'){showToast('Cannot delete primary developer','error');return;}if(id === 'user_demo'){showToast('Cannot delete demo account','error');return;}if(!confirm('Delete this user?'))return;users=users.filter(u=>u.id!==id);saveUsersToStorage();loadUsers();showToast('User deleted','success');}
 function saveUsersToStorage(){localStorage.setItem('yetu_users',JSON.stringify(users));}
-function loadUsersFromStorage(){ const stored=localStorage.getItem('yetu_users'); if(stored){ const parsed=JSON.parse(stored); const hasMain = parsed.some(u=>u.username === 'IMOELVIS'); const hasDemo = parsed.some(u=>u.username === 'DEMO'); if(hasMain && hasDemo) users = parsed; else { users = []; if(!hasMain) users.push(SINGLE_USER); if(!hasDemo) users.push(DEMO_USER); users = users.concat(parsed.filter(u=>u.username !== 'IMOELVIS' && u.username !== 'DEMO')); } saveUsersToStorage(); } }
+function loadUsersFromStorage(){ const stored=localStorage.getItem('yetu_users'); if(stored){ const parsed=JSON.parse(stored); const hasMain = parsed.some(u=>u.username === 'RASHID'); const hasDemo = parsed.some(u=>u.username === 'DEMO'); if(hasMain && hasDemo) users = parsed; else { users = []; if(!hasMain) users.push(SINGLE_USER); if(!hasDemo) users.push(DEMO_USER); users = users.concat(parsed.filter(u=>u.username !== 'RASHID' && u.username !== 'DEMO')); } saveUsersToStorage(); } }
 
 // ===== EXPENSES =====
 function saveExpense(){ if(!adminGuard('save expense')) return; const type = document.getElementById('expenseType').value; const amount = parseFloat(document.getElementById('expenseAmount').value); const desc = document.getElementById('expenseDesc').value.trim(); if(!type || !amount || amount <= 0){ showToast('Please fill expense details','error'); return; } const expense = { id: generateId(), type: type, amount: amount, description: desc, date: new Date().toISOString() }; db.add('expenses', expense).then(()=>{ showToast('Expense saved!','success'); document.getElementById('expenseType').value='lunch'; document.getElementById('expenseAmount').value=''; document.getElementById('expenseDesc').value=''; loadExpensesForDate(new Date().toISOString().split('T')[0]); loadExpensesPeriod('daily'); }).catch(()=> showToast('Error saving expense','error')); }
@@ -2274,6 +2283,12 @@ function processPayment(){
         cart=[];
         negotiatedPrices={};
         customSaleDate=null;
+        // Activate demo trial on first sale if not yet started
+        if (isDemo() && typeof licenseManager !== 'undefined' && !licenseManager.getLicenseInfo().trialStart) {
+            licenseManager.activateDemoTrial();
+            showToast('14-day trial activated! You have ' + licenseManager.getTrialDaysRemaining() + ' days.', 'success');
+            updateDemoUI();
+        }
         document.getElementById('negotiationControls').classList.remove('show');
         document.getElementById('backdateControls')?.classList.remove('show');
         document.getElementById('revenueInsight').classList.remove('show');
@@ -2783,7 +2798,7 @@ function loadSampleData(){
                     payment: payment,
                     change: payment - total,
                     method: method,
-                    cashier: isDemo() ? 'DEMO User' : 'IMOELVIS',
+                    cashier: isDemo() ? 'DEMO User' : (currentUser && currentUser.fullName ? currentUser.fullName : 'Rashid Juma'),
                     receiptNumber: String(receiptCounter++).padStart(4, '0'),
                     date: daysAgo(i + 1) + 'T10:00:00.000Z',
                     vat: 0,
@@ -3061,16 +3076,18 @@ function updateLicenseInfoDisplay(){
     var daysEl = document.getElementById('licenseDaysText');
     var versionEl = document.getElementById('appVersionDisplay');
     var expiryEl = document.getElementById('licenseExpiryVersion');
-    if (statusEl) statusEl.textContent = info.status.charAt(0).toUpperCase() + info.status.slice(1);
+    if (statusEl) statusEl.textContent = info.trialStart ? (info.status.charAt(0).toUpperCase() + info.status.slice(1)) : 'Pending (not started)';
     if (trialEl) {
         if (info.trialStart && info.trialExpiry) {
             trialEl.textContent = new Date(info.trialStart).toLocaleDateString() + ' → ' + new Date(info.trialExpiry).toLocaleDateString();
         } else {
-            trialEl.textContent = 'Not activated';
+            trialEl.textContent = 'Trial starts on first sale';
         }
     }
     if (daysEl) {
-        if (info.trialExpiry && info.daysRemaining > 0) {
+        if (!info.trialStart) {
+            daysEl.textContent = 'Not started yet';
+        } else if (info.trialExpiry && info.daysRemaining > 0) {
             daysEl.textContent = info.daysRemaining + ' day' + (info.daysRemaining > 1 ? 's' : '');
         } else if (info.lessThan24h) {
             daysEl.textContent = '< 1 day (' + info.hoursRemaining + 'h ' + info.minutesRemaining + 'm)';

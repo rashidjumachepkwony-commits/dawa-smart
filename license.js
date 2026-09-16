@@ -296,8 +296,8 @@
 
   // Main gatekeeper — ask before allowing protected functionality.
   LicenseManager.prototype.canUseApplication = function () {
-    // Production / admin users always have full access
-    if (window.currentUser && window.currentUser.role === 'admin') {
+    // Production / developer users always have full access
+    if (window.currentUser && (window.currentUser.role === 'developer' || window.currentUser.role === 'admin')) {
       return { allowed: true, reason: 'production' };
     }
 
