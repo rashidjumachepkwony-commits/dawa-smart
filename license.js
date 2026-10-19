@@ -513,14 +513,28 @@
     return true;
   };
 
-  LicenseManager.prototype.resetTrial = function () {
-    if (!this.isDevMode()) return false;
-    localStorage.removeItem(this.key);
-    this._ensureLicense();
-    return true;
-  };
+   LicenseManager.prototype.resetTrial = function () {
+     if (!this.isDevMode()) return false;
+     localStorage.removeItem(this.key);
+     this._ensureLicense();
+     return true;
+   };
 
-  LicenseManager.prototype.showDevPanel = function () {
+   LicenseManager.prototype.resetDemoTrial = function () {
+     localStorage.removeItem(this.key);
+     this._ensureLicense();
+     return true;
+   };
+
+   LicenseManager.prototype.isTrialExpired = function () {
+     var license = this.getLicense();
+     if (!license.trialStart) return false;
+     if (!license.trialExpiry) return false;
+     var check = this._basicExpiryCheck(license);
+     return check.expired;
+   };
+
+   LicenseManager.prototype.showDevPanel = function () {
     if (!this.isDevMode()) return;
     var panel = document.getElementById('licenseDevPanel');
     if (panel) {
@@ -556,6 +570,8 @@
   function enforceLicenseLock(reason) { return licenseManager.enforceLicenseLock(reason); }
   function activateLicense(key) { return licenseManager.activateLicense(key); }
   function canUseApplication() { return licenseManager.canUseApplication(); }
+  function resetDemoTrial() { return licenseManager.resetDemoTrial(); }
+  function isTrialExpired() { return licenseManager.isTrialExpired(); }
 
   // ─── Global exposure ──────────────────────────────────────────
 
@@ -576,6 +592,8 @@
   window.enforceLicenseLock = enforceLicenseLock;
   window.activateLicense = activateLicense;
   window.canUseApplication = canUseApplication;
+  window.resetDemoTrial = resetDemoTrial;
+  window.isTrialExpired = isTrialExpired;
 
   // Dev-mode keyboard shortcut: triple Ctrl+Shift+L within 2 seconds
   // toggles dev mode and opens the developer license testing panel.

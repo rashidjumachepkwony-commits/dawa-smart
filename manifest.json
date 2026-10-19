@@ -1,7 +1,7 @@
 {
     "name": "Dawa Smart Pharmacy POS",
     "short_name": "Dawa Smart",
-    "start_url": "/",
+    "start_url": "app.html",
     "display": "standalone",
     "description": "Dawa Smart - Professional Pharmacy POS with Inventory, Sales, Lab Tests, and Billing for Kenyan pharmacies.",
     "lang": "en-KE",
