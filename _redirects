@@ -1,0 +1,17 @@
+# =============================================================
+# Dawa Smart — Cloudflare Pages Redirects
+# =============================================================
+# Ensure single-page application routes work correctly
+# All non-static paths fall back to the landing page (index.html)
+
+# Redirect root to landing page
+/  /index.html  200
+
+# API routes to Cloudflare Worker
+/api/*  https://api.startechafrica.co.ke/:splat  200
+
+# All other routes load the landing page
+/*  /index.html  200
+
+# Ensure app.html is accessible directly
+/app.html  /app.html  200

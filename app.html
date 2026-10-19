@@ -352,7 +352,7 @@
 <!-- APP -->
 <div id="appContainer" class="app-container">
   <div class="header">
-     <span class="app-name"><i class="fas fa-prescription-bottle-medical"></i> <span id="headerPharmacyName">Dawa Smart</span> <span class="badge">eTIMS</span> <span class="offline-badge" id="offlineBadge"><i class="fas fa-wifi-slash"></i> OFFLINE</span></span>
+      <span class="app-name"><i class="fas fa-prescription-bottle-medical"></i> <span id="headerPharmacyName">Dawa Smart</span> <span class="badge">eTIMS</span> <span class="offline-badge" id="offlineBadge"><i class="fas fa-wifi-slash"></i> OFFLINE</span> <span class="sync-badge" id="syncBadge" style="display:none;background:rgba(255,255,255,0.15);padding:2px 10px;border-radius:20px;font-size:11px;display:none;"><i class="fas fa-sync-alt" id="syncIcon"></i> <span id="syncStatusText">Sync</span></span></span>
      <div class="user-info">
        <span id="headerDemoBadge" class="user-badge" style="display:none;"><span class="demo-badge" id="demoHeaderBadge">DEMO</span></span>
        <span class="user-badge"><i class="fas fa-building"></i> <span id="currentPharmacyDisplay">Dawa Smart</span></span>
@@ -850,8 +850,34 @@
   </div>
 
   <script src="license.js"></script>
+  <script src="sync-queue.js"></script>
+  <script src="supabase-client.js"></script>
 
 <script>
+// =============================================================
+// OFFLINE-FIRST: Service Worker Registration
+// =============================================================
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+      .then(function(reg) {
+        console.log('[Dawa Smart] Service Worker registered (scope: /)');
+        // Check for updates
+        if (reg.waiting) {
+          reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+        }
+      })
+      .catch(function(error) {
+        console.log('[Dawa Smart] Service Worker registration failed:', error);
+      });
+  });
+
+  // Handle SW updates
+  navigator.serviceWorker.addEventListener('controllerchange', function() {
+    window.location.reload();
+  });
+}
+
 // =============================================================
 // APP CONFIGURATION
 // =============================================================
@@ -3080,6 +3106,40 @@ function initApp(){
         document.getElementById('categoryFilter').addEventListener('change',loadProducts);
         document.getElementById('patientSearch').addEventListener('input',loadPatients);
         if(!navigator.onLine)document.getElementById('offlineBadge').style.display='inline';
+        // Update sync status indicator
+        if (typeof window.DawaSync !== 'undefined') {
+          var syncStatus = window.DawaSync.getStatus();
+          updateSyncIndicator(syncStatus);
+          window.addEventListener('dawaSyncStatus', function(e) {
+            updateSyncIndicator(e.detail);
+          });
+        }
+        function updateSyncIndicator(status) {
+          var badge = document.getElementById('syncBadge');
+          var text = document.getElementById('syncStatusText');
+          var icon = document.getElementById('syncIcon');
+          if (!badge || !text || !icon) return;
+          badge.style.display = 'flex';
+          text.textContent = status.status || 'Sync';
+          icon.className = 'fas fa-sync-alt';
+          if (status.status === 'synced') {
+            badge.style.background = 'rgba(22, 163, 74, 0.15)';
+            icon.className = 'fas fa-check-circle';
+            text.textContent = 'Synced';
+          } else if (status.status === 'syncing') {
+            icon.className = 'fas fa-sync-alt fa-spin';
+            text.textContent = 'Syncing (' + status.pending + ')';
+          } else if (status.status === 'offline') {
+            badge.style.background = 'rgba(245, 158, 11, 0.15)';
+            icon.className = 'fas fa-wifi-slash';
+            text.textContent = 'Offline';
+          } else if (status.status === 'pending' || status.status === 'failed') {
+            badge.style.background = 'rgba(245, 158, 11, 0.15)';
+            text.textContent = (status.pending || 0) + ' pending';
+          } else if (status.status === 'local-only') {
+            badge.style.display = 'none';
+          }
+        }
         document.getElementById('drugDbCount').textContent = totalDrugs + ' drugs';
         renderDrugSearchResultsMain();
         loadCreditDashboard();
@@ -3169,6 +3229,25 @@ window.triggerMpesaSTK=triggerMpesaSTK;window.isAdmin=isAdmin;window.isDemo=isDe
 window.resetDemoData=resetDemoData;window.updateDemoUI=updateDemoUI;window.renderDemoBanner=renderDemoBanner;
 window.contactSalesWhatsApp=contactSalesWhatsApp;window.contactSupportEmail=contactSupportEmail;window.exitDemo=exitDemo;window.resetDemoTrialAndReload=resetDemoTrialAndReload;window.checkLoginTrialStatus=checkLoginTrialStatus;
 window.updateLicenseInfoDisplay=updateLicenseInfoDisplay;
+window.DawaSync=window.DawaSync;window.DawaSupabase=window.DawaSupabase;
+
+// ─── Connection Status Listeners ───
+function updateOfflineBadge(){
+    var badge = document.getElementById('offlineBadge');
+    if (!badge) return;
+    if (!navigator.onLine) {
+        badge.style.display = 'inline';
+    } else {
+        badge.style.display = 'none';
+        // Trigger sync when coming back online
+        if (typeof window.DawaSync !== 'undefined' && window.DawaSync.syncNow) {
+            setTimeout(function(){ window.DawaSync.syncNow(); }, 500);
+        }
+    }
+}
+window.addEventListener('online', updateOfflineBadge);
+window.addEventListener('offline', updateOfflineBadge);
+
 window.editSale=editSale;window.deleteSale=deleteSale;window.adjustCredit=adjustCredit;
 window.toggleNegotiation=toggleNegotiation;window.applyAllNegotiations=applyAllNegotiations;window.clearAllNegotiations=clearAllNegotiations;
 window.toggleBackdate=toggleBackdate;window.applyBackdate=applyBackdate;window.clearBackdate=clearBackdate;
