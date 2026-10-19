@@ -8,7 +8,7 @@
 /  /index.html  200
 
 # API routes to Cloudflare Worker
-/api/*  https://api.startechafrica.co.ke/:splat  200
+/api/*  https://dawa-api.startechafrica.co.ke/:splat  200
 
 # All other routes load the landing page
 /*  /index.html  200

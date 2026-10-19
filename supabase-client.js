@@ -243,11 +243,24 @@
     }
   };
 
-  // Auto-detect config from localStorage on page load
-  // Configuration should be set via Cloudflare Worker or deployment env
-  const config = getConfig();
-  if (config.url && config.anonKey) {
-    initSupabase(config.url, config.anonKey);
+  // Auto-detect config: check localStorage first, then fetch from Worker
+  const localConfig = getConfig();
+  if (localConfig.url && localConfig.anonKey) {
+    initSupabase(localConfig.url, localConfig.anonKey);
+  } else if (window.location.hostname.includes('startechafrica.co.ke')) {
+    // On a production domain — try fetching config from the Worker
+    // The Worker at dawa-api.startechafrica.co.ke/api/config returns public config only
+    fetch('https://dawa-api.startechafrica.co.ke/api/config')
+      .then((res) => res.ok ? res.json() : null)
+      .then((config) => {
+        if (config && config.supabaseUrl && config.supabaseAnonKey) {
+          saveConfig({ url: config.supabaseUrl, anonKey: config.supabaseAnonKey });
+          initSupabase(config.supabaseUrl, config.supabaseAnonKey);
+        }
+      })
+      .catch((err) => {
+        console.log('[Dawa Smart] Config fetch skipped (offline or Worker not configured):', err.message);
+      });
   }
 
 })();
