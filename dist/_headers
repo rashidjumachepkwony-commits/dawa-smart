@@ -1,0 +1,50 @@
+# =============================================================
+# Dawa Smart — Cloudflare Pages Headers
+# =============================================================
+# This file is processed automatically by Cloudflare Pages.
+# It sets security headers and routing rules.
+# =============================================================
+
+# Security headers for all routes
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  X-XSS-Protection: 1; mode=block
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=()
+  X-Content-Security-Policy: default-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.supabase.co https://api.startechafrica.co.ke; img-src 'self' data: https:; connect-src 'self' https://api.startechafrica.co.ke https://*.supabase.co
+
+/_headers
+  404
+
+# Service worker registration requires correct content type
+/sw.js
+  Content-Type: application/javascript; charset=utf-8
+  Cache-Control: no-cache
+
+# Sync and supabase client scripts
+/sync-queue.js
+  Content-Type: application/javascript; charset=utf-8
+  Cache-Control: no-cache
+
+/supabase-client.js
+  Content-Type: application/javascript; charset=utf-8
+  Cache-Control: no-cache
+
+# Manifest
+/manifest.json
+  Content-Type: application/manifest+json; charset=utf-8
+
+# Static assets — cache aggressively
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.css
+  Cache-Control: public, max-age=31536000
+
+/*.js
+  Cache-Control: public, max-age=31536000
+
+# API routes proxy to Cloudflare Worker
+/api/*
+  Content-Type: application/json
