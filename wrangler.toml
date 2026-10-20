@@ -7,7 +7,7 @@
 
 name = "dawa-smart-api"
 main = "worker.js"
-account_id = "YOUR_CLOUDFLARE_ACCOUNT_ID"
+account_id = "0123627158662d9787fbcaed50687469"
 compatibility_date = "2024-01-01"
 
 # Environment variables (set in Cloudflare dashboard or via wrangler secret)

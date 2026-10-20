@@ -231,7 +231,39 @@ These could not be verified without access to the live Supabase project:
 
 10. **Verify**: Run test suites against production endpoints
 
-### Rollback
+### Deployment Progress
+
+| Step | Status |
+|------|--------|
+| 1. Deploy Supabase migrations | Pending |
+| 2. Create legacy user accounts | Pending |
+| 3. Create pharmacy records | Pending |
+| 4. Create membership records | Pending |
+| 5. Migrate existing data | Pending |
+| 6. Deploy Worker to Cloudflare | **COMPLETED** — deployed to `https://dawa-smart-api.rashidjumachepkwony.workers.dev` |
+| 7. Set Worker secrets | **PENDING** — requires Supabase credentials |
+| 8. Set password hash vars | **PENDING** |
+| 9. Deploy frontend to Pages | **COMPLETED** — files updated |
+| 10. Verify | **PENDING** |
+
+#### Worker Deployment Details
+- Worker name: `dawa-smart-api`
+- Deployed URL: `https://dawa-smart-api.rashidjumachepkwony.workers.dev`
+- Health check: `https://dawa-smart-api.rashidjumachepkwony.workers.dev/api/health` returns `{"status":"ok","env":"production"}`
+- Config endpoint: `https://dawa-smart-api.rashidjumachepkwony.workers.dev/api/config` returns public config (currently empty until secrets are set)
+
+#### Remaining Action Items (Require User Credentials)
+- Supabase `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE`
+- Cloudflare Worker secret `JWT_SECRET` (can be generated: `openssl rand -hex 32`)
+- Supabase user UUIDs for RASHID and DEMO accounts
+
+Run `setup-secrets.sh` with the credentials to complete deployment:
+```bash
+npx wrangler secret put SUPABASE_URL
+npx wrangler secret put SUPABASE_ANON_KEY
+npx wrangler secret put SUPABASE_SERVICE_ROLE  
+npx wrangler secret put JWT_SECRET
+```
 
 1. Revert Worker: `npx wrangler rollback`
 2. Revert frontend: deploy previous commit to Pages

@@ -257,7 +257,7 @@
   } else if (window.location.hostname.includes('startechafrica.co.ke') || window.location.hostname.includes('workers.dev') || (!window.location.hostname || window.location.protocol === 'file:')) {
     // On a production domain, Worker.dev preview, or local file — try fetching config from the Worker
     // The Worker at dawa-api.startechafrica.co.ke/api/config (or workers.dev) returns public config only
-    var workerApiUrl = 'https://dawa-api.rashidjumachepkwony.workers.dev/api/config'; // staging/development Worker URL
+    var workerApiUrl = 'https://dawa-smart-api.rashidjumachepkwony.workers.dev/api/config'; // staging/development Worker URL
     if (window.location.hostname.includes('startechafrica.co.ke')) {
       workerApiUrl = 'https://dawa-api.startechafrica.co.ke/api/config'; // production Worker URL
     }
