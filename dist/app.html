@@ -355,7 +355,10 @@
       <span class="app-name"><i class="fas fa-prescription-bottle-medical"></i> <span id="headerPharmacyName">Dawa Smart</span> <span class="badge">eTIMS</span> <span class="offline-badge" id="offlineBadge"><i class="fas fa-wifi-slash"></i> OFFLINE</span> <span class="sync-badge" id="syncBadge" style="display:none;background:rgba(255,255,255,0.15);padding:2px 10px;border-radius:20px;font-size:11px;display:none;"><i class="fas fa-sync-alt" id="syncIcon"></i> <span id="syncStatusText">Sync</span></span></span>
      <div class="user-info">
        <span id="headerDemoBadge" class="user-badge" style="display:none;"><span class="demo-badge" id="demoHeaderBadge">DEMO</span></span>
-       <span class="user-badge"><i class="fas fa-building"></i> <span id="currentPharmacyDisplay">Dawa Smart</span></span>
+               <span class="user-badge"><i class="fas fa-building"></i> <span id="currentPharmacyDisplay">Dawa Smart</span>
+          <select id="pharmacySwitcher" onchange="switchWorkspace(this.value)" style="display:none;margin-left:6px;padding:2px 6px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.2);color:#fff;font-size:11px;">
+          </select>
+        </span></span>
        <span class="user-badge"><i class="fas fa-user-circle"></i> <span id="currentUserDisplay">User</span> <span class="role" id="currentRoleDisplay">Admin</span></span>
        <button class="logout-btn" onclick="handleLogout()"><i class="fas fa-sign-out-alt"></i></button>
      </div>
@@ -850,6 +853,7 @@
   </div>
 
   <script src="license.js"></script>
+  <script src="tenant.js"></script>
   <script src="sync-queue.js"></script>
   <script src="supabase-client.js"></script>
 
@@ -1190,26 +1194,140 @@ function normalizeExpense(expense) {
 
 const db = {
     db: null,
+    currentPharmacyId: null,
     init() {
+        var self = this;
         return new Promise((resolve, reject) => {
-            const req = indexedDB.open('YetuPharmcareDB', 4);
+            const req = indexedDB.open('YetuPharmcareDB', 5);
             req.onerror = () => reject('DB error');
-            req.onsuccess = () => { this.db = req.result; resolve(); };
+            req.onsuccess = () => { self.db = req.result; resolve(); };
             req.onupgradeneeded = (e) => {
                 const d = e.target.result;
-                ['products','sales','saleItems','patients','batches','controlledLogs','labTests','expenses','users'].forEach(s => {
-                    if (!d.objectStoreNames.contains(s)) d.createObjectStore(s, { keyPath: 'id' });
+                const stores = ['products','sales','saleItems','patients','batches','controlledLogs','labTests','expenses','users'];
+                stores.forEach(s => {
+                    if (!d.objectStoreNames.contains(s)) {
+                        const store = d.createObjectStore(s, { keyPath: 'id' });
+                        store.createIndex('pharmacy_id', 'pharmacyId', { unique: false });
+                    }
                 });
             };
         });
     },
-    add(store, data) { return this.init().then(() => new Promise((resolve, reject) => { const tx = this.db.transaction(store, 'readwrite'); const req = tx.objectStore(store).add(data); req.onsuccess = () => resolve(data); req.onerror = () => reject(req.error); })); },
-    getAll(store) { return this.init().then(() => new Promise((resolve, reject) => { const tx = this.db.transaction(store, 'readonly'); const req = tx.objectStore(store).getAll(); req.onsuccess = () => { const records = req.result || []; resolve(store === 'expenses' ? records.map(normalizeExpense) : records); }; req.onerror = () => reject(req.error); })); },
-    getById(store, id) { return this.init().then(() => new Promise((resolve, reject) => { const tx = this.db.transaction(store, 'readonly'); const req = tx.objectStore(store).get(id); req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error); })); },
-    update(store, data) { return this.init().then(() => new Promise((resolve, reject) => { const tx = this.db.transaction(store, 'readwrite'); const req = tx.objectStore(store).put(data); req.onsuccess = () => resolve(data); req.onerror = () => reject(req.error); })); },
-    delete(store, id) { return this.init().then(() => new Promise((resolve, reject) => { const tx = this.db.transaction(store, 'readwrite'); const req = tx.objectStore(store).delete(id); req.onsuccess = () => resolve(); req.onerror = () => reject(req.error); })); },
-    getSalesByDateRange(start, end) { return this.getAll('sales').then(sales => { const s = new Date(start), e = new Date(end); e.setHours(23,59,59,999); return sales.filter(sale => { const d = new Date(sale.date); return d >= s && d <= e; }); }); },
-    getSaleItems(saleId) { return this.getAll('saleItems').then(items => items.filter(i => i.saleId === saleId)); }
+    add(store, data) {
+        var self = this;
+        // Auto-inject pharmacyId from tenant context
+        if (typeof window.DawaTenant !== 'undefined' && window.DawaTenant.getCurrentPharmacyId &&
+            !data.pharmacyId && ['products','sales','saleItems','patients','batches','controlledLogs','labTests','expenses'].indexOf(store) >= 0) {
+            data = { ...data, pharmacyId: window.DawaTenant.getCurrentPharmacyId() };
+        }
+        return this.init().then(() => new Promise((resolve, reject) => {
+            const tx = self.db.transaction(store, 'readwrite');
+            const req = tx.objectStore(store).add(data);
+            req.onsuccess = () => {
+                // Enqueue sync if online and tenant is initialized
+                if (navigator.onLine && typeof window.DawaSync !== 'undefined' && window.DawaSync.enqueueOperation &&
+                    typeof window.DawaTenant !== 'undefined' && window.DawaTenant.getToken) {
+                    window.DawaSync.enqueueOperation(store, 'create', data.id, data);
+                }
+                resolve(data);
+            };
+            req.onerror = () => reject(req.error);
+        }));
+    },
+    getAll(store) {
+        var self = this;
+        return this.init().then(() => new Promise((resolve, reject) => {
+            const tx = self.db.transaction(store, 'readonly');
+            const req = tx.objectStore(store).getAll();
+            req.onsuccess = () => {
+                let records = req.result || [];
+                // Scope to current pharmacy for tenant data stores
+                if (typeof window.DawaTenant !== 'undefined' && window.DawaTenant.getCurrentPharmacyId) {
+                    var pharmId = window.DawaTenant.getCurrentPharmacyId();
+                    var tenantStores = ['products','sales','saleItems','patients','batches','controlledLogs','labTests','expenses'];
+                    if (pharmId && tenantStores.indexOf(store) >= 0) {
+                        records = records.filter(r => r.pharmacyId === pharmId);
+                    }
+                }
+                resolve(store === 'expenses' ? records.map(normalizeExpense) : records);
+            };
+            req.onerror = () => reject(req.error);
+        }));
+    },
+    getById(store, id) {
+        var self = this;
+        return this.init().then(() => new Promise((resolve, reject) => {
+            const tx = self.db.transaction(store, 'readonly');
+            const req = tx.objectStore(store).get(id);
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+        }));
+    },
+    update(store, data) {
+        var self = this;
+        // Auto-inject pharmacyId from tenant context
+        if (typeof window.DawaTenant !== 'undefined' && window.DawaTenant.getCurrentPharmacyId &&
+            !data.pharmacyId && ['products','sales','saleItems','patients','batches','controlledLogs','labTests','expenses'].indexOf(store) >= 0) {
+            data = { ...data, pharmacyId: window.DawaTenant.getCurrentPharmacyId() };
+        }
+        return this.init().then(() => new Promise((resolve, reject) => {
+            const tx = self.db.transaction(store, 'readwrite');
+            const req = tx.objectStore(store).put(data);
+            req.onsuccess = () => {
+                // Enqueue sync
+                if (navigator.onLine && typeof window.DawaSync !== 'undefined' && window.DawaSync.enqueueOperation &&
+                    typeof window.DawaTenant !== 'undefined' && window.DawaTenant.getToken) {
+                    window.DawaSync.enqueueOperation(store, 'update', data.id, data);
+                }
+                resolve(data);
+            };
+            req.onerror = () => reject(req.error);
+        }));
+    },
+    delete(store, id) {
+        var self = this;
+        return this.init().then(() => new Promise((resolve, reject) => {
+            const tx = self.db.transaction(store, 'readwrite');
+            const req = tx.objectStore(store).delete(id);
+            req.onsuccess = () => {
+                if (navigator.onLine && typeof window.DawaSync !== 'undefined' && window.DawaSync.enqueueOperation &&
+                    typeof window.DawaTenant !== 'undefined' && window.DawaTenant.getToken) {
+                    window.DawaSync.enqueueOperation(store, 'delete', id, { id: id });
+                }
+                resolve();
+            };
+            req.onerror = () => reject(req.error);
+        }));
+    },
+    getSalesByDateRange(start, end) {
+        return this.getAll('sales').then(sales => {
+            const s = new Date(start), e = new Date(end);
+            e.setHours(23,59,59,999);
+            return sales.filter(sale => {
+                const d = new Date(sale.date);
+                return d >= s && d <= e;
+            });
+        });
+    },
+    getSaleItems(saleId) {
+        return this.getAll('saleItems').then(items => items.filter(i => i.saleId === saleId));
+    },
+    setPharmacyId(id) { this.currentPharmacyId = id; },
+    getCurrentPharmacyId() { return this.currentPharmacyId; },
+    clearAll() {
+        var self = this;
+        return this.init().then(() => {
+            const stores = ['products','sales','saleItems','patients','batches','controlledLogs','labTests','expenses'];
+            return Promise.all(stores.map(store => {
+                return new Promise((resolve, reject) => {
+                    const tx = self.db.transaction(store, 'readwrite');
+                    tx.clear();
+                    tx.oncomplete = () => resolve();
+                    tx.onerror = () => reject(tx.error);
+                });
+            }));
+        });
+    }
 };
 
 // =============================================================
@@ -1523,14 +1641,38 @@ function clearBackdate() {
 }
 
 // ===== LOGIN =====
-function handleLogin(){
-    const username = document.getElementById('loginUsername').value.trim();
-    const password = document.getElementById('loginPassword').value.trim();
-    const errorEl = document.getElementById('loginError');
+async function handleLogin(){
+    var username = document.getElementById('loginUsername').value.trim();
+    var password = document.getElementById('loginPassword').value.trim();
+    var errorEl = document.getElementById('loginError');
     errorEl.className='error-msg';
     if(!username || !password){errorEl.textContent='Please enter both fields';errorEl.className='error-msg show';return;}
-    const user = findUser(username,password);
-    if(!user){ loginAttempts++; errorEl.textContent='❌ Wrong username or password. Attempt '+loginAttempts+'/5'; errorEl.className='error-msg show'; if(loginAttempts>=5){ errorEl.textContent='Too many attempts. Locked 30s.'; document.getElementById('loginUsername').disabled = true; document.getElementById('loginPassword').disabled = true; setTimeout(()=>{document.getElementById('loginUsername').disabled=false;document.getElementById('loginPassword').disabled=false;loginAttempts=0;errorEl.textContent='';errorEl.className='error-msg';},30000); } return; }
+
+    // Authenticate via Worker API (uses hashed credentials server-side)
+    var authResult = null;
+    if (typeof window.DawaTenant !== 'undefined' && window.DawaTenant.authenticate) {
+        authResult = await window.DawaTenant.authenticate(username, password);
+        if (!authResult.success) {
+            loginAttempts++;
+            errorEl.textContent='❌ '+authResult.error+'. Attempt '+loginAttempts+'/5';
+            errorEl.className='error-msg show';
+            if(loginAttempts>=5){ errorEl.textContent='Too many attempts. Locked 30s.'; document.getElementById('loginUsername').disabled = true; document.getElementById('loginPassword').disabled = true; setTimeout(()=>{document.getElementById('loginUsername').disabled=false;document.getElementById('loginPassword').disabled=false;loginAttempts=0;errorEl.textContent='';errorEl.className='error-msg';},30000); }
+            return;
+        }
+    }
+
+    // Fallback to local-only auth if offline / no Worker configured
+    var user = findUser(username,password);
+    if(!user && (!authResult || !authResult.success)){
+        loginAttempts++; errorEl.textContent='❌ Wrong username or password. Attempt '+loginAttempts+'/5'; errorEl.className='error-msg show'; if(loginAttempts>=5){ errorEl.textContent='Too many attempts. Locked 30s.'; document.getElementById('loginUsername').disabled = true; document.getElementById('loginPassword').disabled = true; setTimeout(()=>{document.getElementById('loginUsername').disabled=false;document.getElementById('loginPassword').disabled=false;loginAttempts=0;errorEl.textContent='';errorEl.className='error-msg';},30000); }
+        return;
+    }
+
+    // Use auth result if available (for token + pharmacy context)
+    if (authResult && authResult.success) {
+        user = authResult.user;
+    }
+
     if(!user.verified){errorEl.textContent='⚠️ Account not verified. Contact developer.';errorEl.className='error-msg show';return;}
 
      // === DEMO LICENSE ENFORCEMENT ===
@@ -1552,14 +1694,18 @@ function handleLogin(){
             }
         }
     }
-        // Allow login — trial may not have started yet, that's fine.
-    }
 
     loginAttempts=0; currentUser = user;
     document.getElementById('loginPage').style.display='none';
     document.getElementById('appContainer').className='app-container show';
     document.getElementById('currentUserDisplay').textContent=user.fullName;
     document.getElementById('currentRoleDisplay').textContent=user.role.charAt(0).toUpperCase()+user.role.slice(1);
+    // Fetch and display pharmacy memberships
+    if (typeof window.DawaTenant !== 'undefined' && window.DawaTenant.fetchMemberships) {
+        window.DawaTenant.fetchMemberships().then(() => {
+            refreshWorkspaceSwitcher();
+        });
+    }
     loadPharmacySettings(); updatePharmacyDisplay();
     updateDemoUI();
     setupTrialWarnings();
@@ -1569,12 +1715,17 @@ function handleLogin(){
 
 function handleLogout(){
     currentUser=null;
+    if (typeof window.DawaTenant !== 'undefined' && window.DawaTenant.logout) {
+        window.DawaTenant.logout();
+    }
     document.getElementById('appContainer').className='app-container';
     document.getElementById('loginPage').style.display='flex';
     var badge = document.getElementById('headerDemoBadge');
     if (badge) badge.style.display='none';
+    var switcher = document.getElementById('pharmacySwitcher');
+    if (switcher) { switcher.style.display='none'; switcher.innerHTML=''; }
      showToast('Logged out');
- }
+  }
 
 // ===== DEMO UI HELPERS =====
 function updateDemoUI(){
@@ -1753,10 +1904,19 @@ function resetDemoData(){
     });
 }
 function loadPharmacySettings() {
-    const stored = localStorage.getItem('yetu_pharmacy');
+    // Use tenant-scoped storage key if pharmacy context is available
+    var pharmId = (typeof window.DawaTenant !== 'undefined' && window.DawaTenant.getCurrentPharmacyId)
+        ? window.DawaTenant.getCurrentPharmacyId() : null;
+    var storageKey = pharmId ? 'yetu_pharmacy_' + pharmId : 'yetu_pharmacy';
+    const stored = localStorage.getItem(storageKey);
     if (stored) { try { const settings = JSON.parse(stored); document.getElementById('shopName').value = settings.name || 'Dawa Smart'; document.getElementById('shopAddress').value = settings.address || '7 Cheptais · 📞 0740289362'; document.getElementById('kraPin').value = settings.kraPin || 'P-2025-001'; document.getElementById('receiptFooter').value = settings.footer || 'Thank you for choosing Dawa Smart!'; document.getElementById('vatRate').value = settings.vatRate || 0; document.getElementById('headerPharmacyName').textContent = settings.name || 'Dawa Smart'; document.getElementById('currentPharmacyDisplay').textContent = settings.name || 'Dawa Smart'; document.getElementById('loginTitle').textContent = settings.name || 'Dawa Smart'; vatRate = parseFloat(settings.vatRate) || 0; document.getElementById('vatRateDisplay').textContent = vatRate; receiptFormatter.shopName = settings.name || 'Dawa Smart'; receiptFormatter.address = settings.address || '7 Cheptais · 📞 0740289362'; receiptFormatter.kraPin = settings.kraPin || 'P-2025-001'; receiptFormatter.footer = settings.footer || 'Thank you for choosing Dawa Smart!'; receiptFormatter.vatRate = vatRate; } catch(e) {} } }
 function updatePharmacyDisplay() { const name = document.getElementById('shopName').value || 'Dawa Smart'; document.getElementById('headerPharmacyName').textContent = name; document.getElementById('currentPharmacyDisplay').textContent = name; }
-function saveSettings(){ if(!adminGuard('save settings')) return; const settings = { name: document.getElementById('shopName').value.trim() || 'Dawa Smart', address: document.getElementById('shopAddress').value.trim() || '7 Cheptais · 📞 0740289362', kraPin: document.getElementById('kraPin').value.trim() || 'P-2025-001', footer: document.getElementById('receiptFooter').value.trim() || 'Thank you for choosing Dawa Smart!', vatRate: parseFloat(document.getElementById('vatRate').value) || 0 }; localStorage.setItem('yetu_pharmacy', JSON.stringify(settings)); vatRate = settings.vatRate; document.getElementById('vatRateDisplay').textContent = vatRate; receiptFormatter.shopName = settings.name; receiptFormatter.address = settings.address; receiptFormatter.kraPin = settings.kraPin; receiptFormatter.footer = settings.footer; receiptFormatter.vatRate = vatRate; updatePharmacyDisplay(); showToast('Settings saved!','success'); }
+function saveSettings(){ if(!adminGuard('save settings')) return;
+    // Use tenant-scoped storage key
+    var pharmId = (typeof window.DawaTenant !== 'undefined' && window.DawaTenant.getCurrentPharmacyId)
+        ? window.DawaTenant.getCurrentPharmacyId() : null;
+    var storageKey = pharmId ? 'yetu_pharmacy_' + pharmId : 'yetu_pharmacy';
+    const settings = { name: document.getElementById('shopName').value.trim() || 'Dawa Smart', address: document.getElementById('shopAddress').value.trim() || '7 Cheptais · 📞 0740289362', kraPin: document.getElementById('kraPin').value.trim() || 'P-2025-001', footer: document.getElementById('receiptFooter').value.trim() || 'Thank you for choosing Dawa Smart!', vatRate: parseFloat(document.getElementById('vatRate').value) || 0 }; localStorage.setItem(storageKey, JSON.stringify(settings)); vatRate = settings.vatRate; document.getElementById('vatRateDisplay').textContent = vatRate; receiptFormatter.shopName = settings.name; receiptFormatter.address = settings.address; receiptFormatter.kraPin = settings.kraPin; receiptFormatter.footer = settings.footer; receiptFormatter.vatRate = vatRate; updatePharmacyDisplay(); showToast('Settings saved!','success'); }
 
 // ===== USER MANAGEMENT =====
 function loadUsers(){ 
@@ -3156,6 +3316,13 @@ function initApp(){
             if (startFreshBtn) startFreshBtn.style.display = 'none';
             if (clearAllBtn) clearAllBtn.style.display = 'none';
         }
+
+        // Refresh workspace switcher
+        if (typeof window.DawaTenant !== 'undefined' && window.DawaTenant.fetchMemberships) {
+            window.DawaTenant.fetchMemberships().then(() => {
+                refreshWorkspaceSwitcher();
+            });
+        }
         console.log('⚕️ Dawa Smart v1.0.0 ready with ' + totalDrugs + ' drugs!');
          showToast('⚕️ Dawa Smart v1.0.0 ready!','success');
     }).catch(e => {console.error('Init error:',e);showToast('Error loading app: '+e.message,'error');});
@@ -3230,6 +3397,44 @@ window.resetDemoData=resetDemoData;window.updateDemoUI=updateDemoUI;window.rende
 window.contactSalesWhatsApp=contactSalesWhatsApp;window.contactSupportEmail=contactSupportEmail;window.exitDemo=exitDemo;window.resetDemoTrialAndReload=resetDemoTrialAndReload;window.checkLoginTrialStatus=checkLoginTrialStatus;
 window.updateLicenseInfoDisplay=updateLicenseInfoDisplay;
 window.DawaSync=window.DawaSync;window.DawaSupabase=window.DawaSupabase;
+window.DawaTenant=window.DawaTenant;
+
+// ─── Workspace Switcher ───
+async function refreshWorkspaceSwitcher(){
+    var switcher = document.getElementById('pharmacySwitcher');
+    if (!switcher) return;
+    if (typeof window.DawaTenant === 'undefined' || !window.DawaTenant.getMemberships) return;
+
+    var memberships = window.DawaTenant.getMemberships();
+    if (memberships.length <= 1) {
+        switcher.style.display = 'none';
+        return;
+    }
+
+    var current = window.DawaTenant.getCurrentPharmacy();
+    var html = '';
+    memberships.forEach(function(m) {
+        var p = m.pharmacy || {};
+        html += '<option value="' + p.id + '" ' + (current && current.id === p.id ? 'selected' : '') + '>' + p.name + '</option>';
+    });
+    switcher.innerHTML = html;
+    switcher.style.display = 'inline-block';
+}
+
+async function switchWorkspace(pharmacyId){
+    if (!pharmacyId || typeof window.DawaTenant === 'undefined') return;
+    try {
+        await window.DawaTenant.switchPharmacy(pharmacyId);
+        refreshWorkspaceSwitcher();
+        loadProducts(); loadPatients(); loadCustomers(); loadProductSearch();
+        updateStats(); updateProductGrid(); updatePricingDashboard();
+        loadLabTests(); loadUsers(); loadCreditDashboard();
+        showToast('Switched to ' + window.DawaTenant.getCurrentPharmacy().name, 'success');
+    } catch(e) {
+        showToast('Switch failed: ' + e.message, 'error');
+    }
+}
+window.switchWorkspace=switchWorkspace;window.refreshWorkspaceSwitcher=refreshWorkspaceSwitcher;
 
 // ─── Connection Status Listeners ───
 function updateOfflineBadge(){

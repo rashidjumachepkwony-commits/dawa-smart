@@ -8,7 +8,9 @@
 /  /index.html  200
 
 # API routes to Cloudflare Worker
-/api/*  https://dawa-api.startechafrica.co.ke/:splat  200
+# Use staging Worker for development, production domain for live
+# The app's JS also handles this fallback automatically
+/api/*  https://dawa-smart-api.rashidjumachepkwony.workers.dev/:splat  200
 
 # All other routes load the landing page
 /*  /index.html  200
