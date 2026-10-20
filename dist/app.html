@@ -880,6 +880,16 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('controllerchange', function() {
     window.location.reload();
   });
+  
+  // Show update notification when new SW is waiting
+  if (navigator.serviceWorker) {
+    navigator.serviceWorker.addEventListener('controllerchange', function() {
+      // New SW is now controlling the page — show refresh prompt
+      if (window.location.search.includes('noupdate') !== true) {
+        showToast('New version available! Refresh to update.', 'info', 8000);
+      }
+    });
+  }
 }
 
 // =============================================================

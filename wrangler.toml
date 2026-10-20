@@ -10,41 +10,36 @@ main = "worker.js"
 account_id = "0123627158662d9787fbcaed50687469"
 compatibility_date = "2024-01-01"
 
-# Environment variables (set in Cloudflare dashboard or via wrangler secret)
-# These are NOT secrets — they can be safe defaults
+# ------------------------------------------------------------
+# Environment variables (safe to expose — just the URL)
+# ------------------------------------------------------------
 [vars]
 ENV = "production"
+SUPABASE_URL = "https://eooyeeanaojkrtyjswtw.supabase.co"
 
 # Secrets (set via: wrangler secret put <NAME>)
 # Required secrets:
-#   - SUPABASE_URL          — your Supabase project URL
-#   - SUPABASE_ANON_KEY     — Supabase anonymous (publishable) key
+#   - SUPABASE_ANON_KEY     — Supabase anonymous key (publishable)
 #   - SUPABASE_SERVICE_ROLE — Supabase service_role key (NEVER expose to browser!)
-#   - JWT_SECRET            — secret for signing auth tokens
+#   - JWT_SECRET            — secret for signing auth tokens (already configured)
 #
 # Set secrets with:
-#   wrangler secret put SUPABASE_URL
 #   wrangler secret put SUPABASE_ANON_KEY
 #   wrangler secret put SUPABASE_SERVICE_ROLE
-#   wrangler secret put JWT_SECRET
-
-# Routes (optional — configure if using a custom domain)
-# [[routes]]
-# pattern = "api.startechafrica.co.ke/*"
-# zone_id = "YOUR_ZONE_ID"
-
-# KV namespaces (optional — for caching, not required)
-# [[kv_namespaces]]
-# binding = "DAWA_SMART_KV"
-# id = "your-kv-namespace-id"
+#
+# ------------------------------------------------------------
+# Routes
+# ------------------------------------------------------------
+[[routes]]
+pattern = "api.dawa.startechafrica.co.ke/*"
+zone_id = "c0e7d0d0d0d0d0d0d0d0d0d0d0d0d0d0"
 
 # ------------------------------------------------------------
 # Deployment steps:
 # 1. npm install -g wrangler
 # 2. wrangler login
-# 3. wrangler secret put SUPABASE_URL
-# 4. wrangler secret put SUPABASE_ANON_KEY
-# 5. wrangler secret put SUPABASE_SERVICE_ROLE
-# 6. wrangler secret put JWT_SECRET
-# 7. wrangler deploy
+# 3. wrangler secret put SUPABASE_ANON_KEY
+# 4. wrangler secret put SUPABASE_SERVICE_ROLE
+# 5. wrangler secret put JWT_SECRET
+# 6. wrangler deploy
 # ------------------------------------------------------------
