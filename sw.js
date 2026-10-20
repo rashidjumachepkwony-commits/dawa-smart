@@ -10,13 +10,16 @@
    - Stale-while-revalidate for CSS/JS
    ============================================================= */
 
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const CACHE_NAME = 'dawa-smart-sw-' + CACHE_VERSION;
 
 // Files to cache for offline application shell
 const CORE_ASSETS = [
   'app.html',
+  'tenant.js',
   'license.js',
+  'sync-queue.js',
+  'supabase-client.js',
   'license.css',
   'manifest.json',
   'assets/icon-192.png',
@@ -147,14 +150,16 @@ self.addEventListener('fetch', (event) => {
           // Update cache in background (stale-while-revalidate)
           fetch(request).then((response) => {
             if (response.ok) {
-              caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone()));
+              const cloned = response.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(request, cloned));
             }
-          });
+          }).catch(() => {});
           return cached;
         }
         return fetch(request).then((response) => {
           if (response.ok) {
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone()));
+            const cloned = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, cloned));
           }
           return response;
         }).catch(() => {
