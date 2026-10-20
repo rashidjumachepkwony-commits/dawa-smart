@@ -137,28 +137,38 @@
     });
   }
 
-  // ==========================================================================
-  // Sync Execution
-  // ==========================================================================
-  async function drainQueue() {
-    if (!isOnline()) {
-      updateSyncStatus('offline', getQueue().length);
-      return;
-    }
+   // ==========================================================================
+   // Sync Execution
+   // ==========================================================================
+   async function drainQueue() {
+     if (!isOnline()) {
+       updateSyncStatus('offline', getQueue().length);
+       return;
+     }
 
-    // Check if Supabase client is available
-    if (typeof window.supabaseClient === 'undefined') {
-      console.warn('[Dawa Smart Sync] Supabase client not initialized — staying local-only');
-      return;
-    }
+     // Check if Supabase client is available
+     var client = window.supabaseClient;
+     if (typeof window.supabaseClient === 'undefined' || !window.supabaseClient) {
+       console.warn('[Dawa Smart Sync] Supabase client not initialized — staying local-only');
+       return;
+     }
 
-    const queue = getQueue();
-    if (queue.length === 0) {
-      updateSyncStatus('synced', 0);
-      return;
-    }
+     const queue = getQueue();
+     if (queue.length === 0) {
+       updateSyncStatus('synced', 0);
+       return;
+     }
 
-    updateSyncStatus('syncing', queue.length);
+     // Get current pharmacy context from tenant manager
+     var pharmacyId = null;
+     if (window.DawaTenant) {
+       var currentPharmacy = window.DawaTenant.getCurrentPharmacy();
+       if (currentPharmacy) {
+         pharmacyId = currentPharmacy.id;
+       }
+     }
+
+     updateSyncStatus('syncing', queue.length);
 
     let synced = 0;
     let failed = 0;
@@ -213,98 +223,87 @@
   }
 
   // ==========================================================================
-  // Individual Operation Sync
+  // Individual Operation Sync — via Worker API (not direct Supabase)
   // ==========================================================================
   async function syncOperation(op) {
+    // Get current pharmacy token from tenant manager
+    const token = window.DawaTenant ? window.DawaTenant.getToken() : null;
+    if (!token) {
+      throw new Error('No auth token — cannot sync');
+    }
+
     const { entity, operation, recordId, payload } = op;
-    const client = window.supabaseClient;
 
-    switch (operation) {
-      case 'create': {
-        const { data, error } = await client
-          .from(entity)
-          .insert(payload)
-          .select();
+    // Inject pharmacy_id from current context (Server ALSO injects from JWT)
+    const pharmacyId = window.DawaTenant ? window.DawaTenant.getCurrentPharmacyId() : null;
+    if (pharmacyId) {
+      payload.pharmacy_id = pharmacyId;
+    }
 
-        if (error) throw error;
+    // Use the Worker /api/sync endpoint for all sync operations
+    // The Worker validates: entity allowlist, role permissions, record ownership,
+    // workspace boundaries, and parent/child relationships
+     const res = await fetch((window.DawaTenant ? window.DawaTenant.apiBase : '') + '/api/sync', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      body: JSON.stringify({
+        operations: [{
+          id: op.id,
+          entity,
+          operation,
+          recordId,
+          payload
+        }]
+      })
+    });
 
-        // If server generated a different ID, update locally
-        if (data && data[0] && data[0].id !== payload.id) {
-          await db.update(entity, { ...payload, id: data[0].id });
-        }
-        break;
-      }
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.error || ('Sync failed: ' + res.status));
+    }
 
-      case 'update': {
-        // Use server-side revision for optimistic concurrency
-        const { data: existing, error: fetchError } = await client
-          .from(entity)
-          .select('revision')
-          .eq('id', recordId)
-          .single();
-
-        if (fetchError && fetchError.code !== 'PGRST116') {
-          // PGRST116 = row not found, which is fine for update (may be deleted)
-          throw fetchError;
-        }
-
-        // If record exists on server with newer revision, we have a conflict
-        if (existing && existing.revision && payload.revision !== existing.revision) {
-          // Conflict: merge strategy — prefer server version for unchanged fields
-          throw new Error('CONFLICT: revision mismatch for ' + entity + '/' + recordId);
-        }
-
-        const { error } = await client
-          .from(entity)
-          .update({ ...payload, revision: (existing?.revision || 0) + 1 })
-          .eq('id', recordId);
-
-        if (error) throw error;
-        break;
-      }
-
-      case 'delete': {
-        // Use tombstone pattern: mark as deleted on server rather than hard delete
-        const { error } = await client
-          .from(entity)
-          .update({ deleted_at: new Date().toISOString() })
-          .eq('id', recordId);
-
-        if (error) throw error;
-
-        // Also remove from local IndexedDB
-        if (typeof db !== 'undefined') {
-          await db.delete(entity, recordId);
-        }
-        break;
-      }
-
-      default:
-        throw new Error('Unknown operation: ' + operation);
+    const result = await res.json();
+    if (result.failed > 0) {
+      const errors = result.errors || [];
+      const msg = errors.map(e => e.error || e).join(', ');
+      throw new Error(msg || 'Sync operation failed');
     }
   }
 
-  // ==========================================================================
-  // Pull Changes from Server
-  // ==========================================================================
-  async function pullChanges(since) {
+   // ==========================================================================
+   // Pull Changes from Server — scoped to current pharmacy
+   // ==========================================================================
+   async function pullChanges(since) {
     if (!isOnline() || typeof window.supabaseClient === 'undefined') {
       return { error: 'Offline or no client' };
     }
 
     const client = window.supabaseClient;
     const sinceStr = since ? new Date(since).toISOString() : new Date(0).toISOString();
+
+    // Get current pharmacy context
+    const pharmacyId = window.DawaTenant ? window.DawaTenant.getCurrentPharmacyId() : null;
+    if (!pharmacyId) {
+      return { error: 'No active pharmacy context' };
+    }
+
     const entities = ['products', 'sales', 'saleItems', 'patients', 'batches',
-                      'controlledLogs', 'labTests', 'expenses', 'users'];
+                      'controlledLogs', 'labTests', 'expenses'];
     let pulled = {};
 
     try {
       for (const entity of entities) {
-        const { data, error } = await client
+        let query = client
           .from(entity)
           .select('*')
+          .eq('pharmacy_id', pharmacyId)  // Scope to current pharmacy only
           .gte('updated_at', sinceStr)
           .is('deleted_at', null);
+
+        const { data, error } = await query;
 
         if (error) {
           console.error('[Dawa Smart Sync] Pull failed for', entity, error);

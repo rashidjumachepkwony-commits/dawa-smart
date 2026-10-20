@@ -67,13 +67,14 @@
     return createClient(url, anonKey);
   }
 
-  function createClient(url, anonKey) {
+   function createClient(url, anonKey) {
     if (typeof window.supabase === 'undefined' || !window.supabase.createClient) {
       console.error('[Dawa Smart Supabase] SDK not loaded');
       return null;
     }
 
     try {
+      // Use a custom fetch that injects the Worker JWT token
       const client = window.supabase.createClient(url, anonKey, {
         realtime: {
           params: {
@@ -82,10 +83,16 @@
           }
         },
         fetch: (resource, options) => {
-          // Add timeout and error handling
+          // Inject authorization token from tenant manager if available
+          if (window.DawaTenant) {
+            const token = window.DawaTenant.getToken();
+            if (token && options.headers) {
+              options.headers['Authorization'] = 'Bearer ' + token;
+            }
+          }
           return fetch(resource, {
             ...options,
-            signal: AbortSignal.timeout(30000) // 30 second timeout
+            signal: AbortSignal.timeout(30000)
           });
         }
       });
@@ -247,10 +254,14 @@
   const localConfig = getConfig();
   if (localConfig.url && localConfig.anonKey) {
     initSupabase(localConfig.url, localConfig.anonKey);
-  } else if (window.location.hostname.includes('startechafrica.co.ke')) {
-    // On a production domain — try fetching config from the Worker
-    // The Worker at dawa-api.startechafrica.co.ke/api/config returns public config only
-    fetch('https://dawa-api.startechafrica.co.ke/api/config')
+  } else if (window.location.hostname.includes('startechafrica.co.ke') || window.location.hostname.includes('workers.dev') || (!window.location.hostname || window.location.protocol === 'file:')) {
+    // On a production domain, Worker.dev preview, or local file — try fetching config from the Worker
+    // The Worker at dawa-api.startechafrica.co.ke/api/config (or workers.dev) returns public config only
+    var workerApiUrl = 'https://dawa-api.rashidjumachepkwony.workers.dev/api/config'; // staging/development Worker URL
+    if (window.location.hostname.includes('startechafrica.co.ke')) {
+      workerApiUrl = 'https://dawa-api.startechafrica.co.ke/api/config'; // production Worker URL
+    }
+    fetch(workerApiUrl)
       .then((res) => res.ok ? res.json() : null)
       .then((config) => {
         if (config && config.supabaseUrl && config.supabaseAnonKey) {
