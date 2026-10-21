@@ -1,10 +1,11 @@
+﻿// UNIQUE-TENANT-V2
 /* =============================================================
-   Dawa Smart — Multi-Tenant Workspace Manager
+   Dawa Smart â€” Multi-Tenant Workspace Manager
    =============================================================
    Manages the active pharmacy workspace context for the user.
    Integrates with the existing auth and database systems.
 
-   This module is ADDITIVE — if no Supabase config exists, it
+   This module is ADDITIVE â€” if no Supabase config exists, it
    operates in local-only mode with a single default workspace.
    ============================================================= */
 
@@ -13,9 +14,14 @@
 
   var WORKER_API_URL = 'https://dawa-smart-api.rashidjumachepkwony.workers.dev';
   var PRODUCTION_API_URL = 'https://dawa-api.startechafrica.co.ke';
-  var apiBase = window.location && window.location.hostname.includes('startechafrica.co.ke')
-    ? PRODUCTION_API_URL
-    : WORKER_API_URL;
+  // Use production Worker URL only if the production Worker exists.
+  // Currently the Worker is on Workers.dev staging URL. Production Worker
+  // at dawa-api.startechafrica.co.ke needs to be configured separately.
+  var apiBase = window.location && window.location.hostname === 'dawa.startechafrica.co.ke'
+    ? WORKER_API_URL
+    : (window.location && window.location.hostname.includes('startechafrica.co.ke')
+      ? PRODUCTION_API_URL
+      : WORKER_API_URL);
 
   function api(path) {
     return apiBase + path;
@@ -30,7 +36,7 @@
   let memberships = [];
   let token = null;
 
-  // ─── Initialize ─────────────────────────────────────────────
+  // â”€â”€â”€ Initialize â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function init() {
     loadToken();
     loadMemberships();
@@ -38,7 +44,7 @@
     return Promise.resolve();
   }
 
-  // ─── Token Management ───────────────────────────────────────
+  // â”€â”€â”€ Token Management â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function loadToken() {
     try {
       const stored = localStorage.getItem(TOKEN_KEY);
@@ -78,7 +84,7 @@
     return token ? { 'Authorization': 'Bearer ' + token } : {};
   }
 
-  // ─── Memberships ────────────────────────────────────────────
+  // â”€â”€â”€ Memberships â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function loadMemberships() {
     try {
       const stored = localStorage.getItem(MEMBERSHIPS_KEY);
@@ -125,7 +131,7 @@
     return memberships;
   }
 
-  // ─── Current Pharmacy ───────────────────────────────────────
+  // â”€â”€â”€ Current Pharmacy â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function loadCurrentPharmacy() {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
@@ -150,7 +156,7 @@
     return currentPharmacy ? currentPharmacy.id : null;
   }
 
-  // ─── Pharmacy Switching ─────────────────────────────────────
+  // â”€â”€â”€ Pharmacy Switching â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   async function switchPharmacy(pharmacyId) {
     const membership = memberships.find(m => m.pharmacy?.id === pharmacyId);
     if (!membership) {
@@ -199,7 +205,7 @@
     }
   }
 
-  // ─── Auth Bridge ────────────────────────────────────────────
+  // â”€â”€â”€ Auth Bridge â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   async function authenticate(username, password) {
     try {
       const res = await fetch(api('/api/auth/local'), {
@@ -287,7 +293,7 @@
     localStorage.removeItem(MEMBERSHIPS_KEY);
   }
 
-  // ─── Utility ────────────────────────────────────────────────
+  // â”€â”€â”€ Utility â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function isDemoMode() {
     return currentPharmacy ?
       (currentPharmacy.slug === 'dawa-smart-demo' || currentPharmacy.name === 'Dawa Smart Demo') :
@@ -298,7 +304,7 @@
     return currentPharmacy && currentPharmacy.id === pharmacyId;
   }
 
-  // ─── Public API ─────────────────────────────────────────────
+  // â”€â”€â”€ Public API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   window.DawaTenant = {
     init,
     authenticate,

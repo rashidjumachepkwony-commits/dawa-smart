@@ -14,9 +14,14 @@
 
   var WORKER_API_URL = 'https://dawa-smart-api.rashidjumachepkwony.workers.dev';
   var PRODUCTION_API_URL = 'https://dawa-api.startechafrica.co.ke';
-  var apiBase = window.location && window.location.hostname.includes('startechafrica.co.ke')
-    ? PRODUCTION_API_URL
-    : WORKER_API_URL;
+  // Use production Worker URL only if the production Worker exists.
+  // Currently the Worker is on Workers.dev staging URL. Production Worker
+  // at dawa-api.startechafrica.co.ke needs to be configured separately.
+  var apiBase = window.location && window.location.hostname === 'dawa.startechafrica.co.ke'
+    ? WORKER_API_URL
+    : (window.location && window.location.hostname.includes('startechafrica.co.ke')
+      ? PRODUCTION_API_URL
+      : WORKER_API_URL);
 
   function api(path) {
     return apiBase + path;

@@ -131,7 +131,9 @@
 
   async function supabaseSignIn(username, password) {
     var workerAuthUrl = 'https://dawa-smart-api.rashidjumachepkwony.workers.dev/api/auth/local';
-    if (window.location.hostname.includes('startechafrica.co.ke')) {
+    // Use production Worker URL only if the production Worker exists.
+    // The production Worker at dawa-api.startechafrica.co.ke needs separate configuration.
+    if (window.location && window.location.hostname.includes('startechafrica.co.ke') && window.location.hostname !== 'dawa.startechafrica.co.ke') {
       workerAuthUrl = 'https://dawa-api.startechafrica.co.ke/api/auth/local';
     }
 
@@ -262,11 +264,13 @@
   const localConfig = getConfig();
   if (localConfig.url && localConfig.anonKey) {
     initSupabase(localConfig.url, localConfig.anonKey);
-   } else if (window.location.hostname.includes('startechafrica.co.ke') || window.location.hostname.includes('workers.dev') || window.location.hostname.includes('pages.dev') || (!window.location.hostname || window.location.protocol === 'file:')) {
+    } else if (window.location.hostname.includes('startechafrica.co.ke') || window.location.hostname.includes('workers.dev') || window.location.hostname.includes('pages.dev') || (!window.location.hostname || window.location.protocol === 'file:')) {
     // On a production domain, Worker.dev preview, or local file â€” try fetching config from the Worker
     // The Worker at dawa-api.startechafrica.co.ke/api/config (or workers.dev) returns public config only
     var workerApiUrl = 'https://dawa-smart-api.rashidjumachepkwony.workers.dev/api/config'; // staging/development Worker URL
-    if (window.location.hostname.includes('startechafrica.co.ke')) {
+    // Use production URL only for non-Pages startechafrica.co.ke domains
+    // (dawa.startechafrica.co.ke is the Pages domain, which should use staging Worker)
+    if (window.location.hostname.includes('startechafrica.co.ke') && window.location.hostname !== 'dawa.startechafrica.co.ke') {
       workerApiUrl = 'https://dawa-api.startechafrica.co.ke/api/config'; // production Worker URL
     }
     fetch(workerApiUrl)
