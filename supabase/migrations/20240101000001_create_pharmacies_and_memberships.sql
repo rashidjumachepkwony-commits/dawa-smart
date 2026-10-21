@@ -24,6 +24,7 @@ create table if not exists public.pharmacies (
   updated_at timestamptz default now()
 );
 
+drop trigger if exists update_pharmacies_updated_at on public.pharmacies;
 create trigger update_pharmacies_updated_at
   before update on public.pharmacies
   for each row execute function update_updated_at();
@@ -57,6 +58,7 @@ create unique index if not exists idx_pharmacy_members_email
 create index if not exists idx_pharmacy_members_user on public.pharmacy_members(auth_user_id);
 create index if not exists idx_pharmacy_members_pharmacy on public.pharmacy_members(pharmacy_id);
 
+drop trigger if exists update_pharmacy_members_updated_at on public.pharmacy_members;
 create trigger update_pharmacy_members_updated_at
   before update on public.pharmacy_members
   for each row execute function update_updated_at();
@@ -64,6 +66,15 @@ create trigger update_pharmacy_members_updated_at
 -- ─── RLS on new tables ────────────────────────────────────────
 alter table public.pharmacies enable row level security;
 alter table public.pharmacy_members enable row level security;
+
+-- Drop existing policies for re-runs
+drop policy if exists "pharmacies_select_member" on public.pharmacies;
+drop policy if exists "pharmacies_insert_owner" on public.pharmacies;
+drop policy if exists "pharmacies_update_owner" on public.pharmacies;
+drop policy if exists "pharmacy_members_select_self" on public.pharmacy_members;
+drop policy if exists "pharmacy_members_insert_owner_admin" on public.pharmacy_members;
+drop policy if exists "pharmacy_members_update_owner_admin" on public.pharmacy_members;
+drop policy if exists "pharmacy_members_prevent_pharmacy_change" on public.pharmacy_members;
 
 -- Pharmacy members can READ their pharmacy
 create policy "pharmacies_select_member" on public.pharmacies
@@ -117,8 +128,28 @@ create policy "pharmacy_members_select_self" on public.pharmacy_members
   );
 
 -- Only owners/admins can insert/update memberships (invitations)
-create policy "pharmacy_members_write_owner_admin" on public.pharmacy_members
-  for insert, update with check (
+create policy "pharmacy_members_insert_owner_admin" on public.pharmacy_members
+  for insert with check (
+    exists (
+      select 1 from public.pharmacy_members pm
+      where pm.auth_user_id = auth.uid()
+      and pm.pharmacy_id = pharmacy_members.pharmacy_id
+      and pm.role in ('owner', 'admin')
+      and pm.status = 'active'
+    )
+  );
+
+create policy "pharmacy_members_update_owner_admin" on public.pharmacy_members
+  for update using (
+    exists (
+      select 1 from public.pharmacy_members pm
+      where pm.auth_user_id = auth.uid()
+      and pm.pharmacy_id = pharmacy_members.pharmacy_id
+      and pm.role in ('owner', 'admin')
+      and pm.status = 'active'
+    )
+  )
+  with check (
     exists (
       select 1 from public.pharmacy_members pm
       where pm.auth_user_id = auth.uid()
@@ -130,11 +161,19 @@ create policy "pharmacy_members_write_owner_admin" on public.pharmacy_members
 
 -- Prevent changing pharmacy_id on UPDATE (cannot move data between workspaces)
 create policy "pharmacy_members_prevent_pharmacy_change" on public.pharmacy_members
-  for update using (true)
+  for update using (
+    exists (
+      select 1 from public.pharmacy_members pm
+      where pm.auth_user_id = auth.uid()
+      and pm.pharmacy_id = pharmacy_members.pharmacy_id
+      and pm.status = 'active'
+    )
+  )
   with check (
     -- Only allow updating if pharmacy_id is NOT being changed
-    -- (Enforced via the update policy above, which requires ownership of target pharmacy)
-    existing.pharmacy_id = pharmacy_members.pharmacy_id
-    OR
-    pharmacy_members.pharmacy_id = existing.pharmacy_id
+    exists (
+      select 1 from public.pharmacy_members existing
+      where existing.id = pharmacy_members.id
+      and existing.pharmacy_id = pharmacy_members.pharmacy_id
+    )
   );

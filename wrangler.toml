@@ -9,6 +9,7 @@ name = "dawa-smart-api"
 main = "worker.js"
 account_id = "0123627158662d9787fbcaed50687469"
 compatibility_date = "2024-01-01"
+workers_dev = true
 
 # ------------------------------------------------------------
 # Environment variables (safe to expose — just the URL)
@@ -28,11 +29,11 @@ SUPABASE_URL = "https://eooyeeanaojkrtyjswtw.supabase.co"
 #   wrangler secret put SUPABASE_SERVICE_ROLE
 #
 # ------------------------------------------------------------
-# Routes
+# Routes (optional — configure if using a custom domain)
 # ------------------------------------------------------------
-[[routes]]
-pattern = "api.dawa.startechafrica.co.ke/*"
-zone_id = "c0e7d0d0d0d0d0d0d0d0d0d0d0d0d0d0"
+# [[routes]]
+# pattern = "api.startechafrica.co.ke/*"
+# zone_id = "YOUR_ZONE_ID"
 
 # ------------------------------------------------------------
 # Deployment steps:

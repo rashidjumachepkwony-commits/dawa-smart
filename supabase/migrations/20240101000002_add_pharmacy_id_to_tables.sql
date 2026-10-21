@@ -59,6 +59,10 @@ drop policy if exists "products_select_all" on public.products;
 drop policy if exists "products_insert_admin_plus" on public.products;
 drop policy if exists "products_update_admin_plus" on public.products;
 drop policy if exists "products_delete_admin_plus" on public.products;
+drop policy if exists "products_select_member" on public.products;
+drop policy if exists "products_insert_member_write" on public.products;
+drop policy if exists "products_update_member_write" on public.products;
+drop policy if exists "products_delete_member_write" on public.products;
 
 create policy "products_select_member" on public.products
   for select using (
@@ -111,6 +115,9 @@ create policy "products_delete_member_write" on public.products
 drop policy if exists "sales_select_all" on public.sales;
 drop policy if exists "sales_insert_all" on public.sales;
 drop policy if exists "sales_update_admin_plus" on public.sales;
+drop policy if exists "sales_select_member" on public.sales;
+drop policy if exists "sales_insert_member_active" on public.sales;
+drop policy if exists "sales_update_owner_admin" on public.sales;
 
 create policy "sales_select_member" on public.sales
   for select using (
@@ -146,6 +153,8 @@ create policy "sales_update_owner_admin" on public.sales
 -- Sale Items: workspace-scoped via parent sale
 drop policy if exists "sale_items_select_all" on public.sale_items;
 drop policy if exists "sale_items_insert_all" on public.sale_items;
+drop policy if exists "sale_items_select_member" on public.sale_items;
+drop policy if exists "sale_items_insert_member" on public.sale_items;
 
 create policy "sale_items_select_member" on public.sale_items
   for select using (
@@ -176,6 +185,8 @@ create policy "sale_items_insert_member" on public.sale_items
 -- Batches: workspace-scoped
 drop policy if exists "batches_select_all" on public.batches;
 drop policy if exists "batches_write_admin_plus" on public.batches;
+drop policy if exists "batches_select_member" on public.batches;
+drop policy if exists "batches_write_member_admin" on public.batches;
 
 create policy "batches_select_member" on public.batches
   for select using (
@@ -209,6 +220,11 @@ create policy "batches_write_member_admin" on public.batches
 -- Patients: workspace-scoped
 drop policy if exists "patients_select_all" on public.patients;
 drop policy if exists "patients_write_all" on public.patients;
+drop policy if exists "patients_insert_all" on public.patients;
+drop policy if exists "patients_update_all" on public.patients;
+drop policy if exists "patients_select_member" on public.patients;
+drop policy if exists "patients_insert_member_active" on public.patients;
+drop policy if exists "patients_update_member_active" on public.patients;
 
 create policy "patients_select_member" on public.patients
   for select using (
@@ -220,8 +236,18 @@ create policy "patients_select_member" on public.patients
     )
   );
 
-create policy "patients_write_member_active" on public.patients
-  for insert, update with check (
+create policy "patients_insert_member_active" on public.patients
+  for insert with check (
+    exists (
+      select 1 from public.pharmacy_members pm
+      where pm.auth_user_id = auth.uid()
+      and pm.pharmacy_id = patients.pharmacy_id
+      and pm.status = 'active'
+    )
+  );
+
+create policy "patients_update_member_active" on public.patients
+  for update with check (
     exists (
       select 1 from public.pharmacy_members pm
       where pm.auth_user_id = auth.uid()
@@ -233,6 +259,11 @@ create policy "patients_write_member_active" on public.patients
 -- Lab Tests: workspace-scoped
 drop policy if exists "lab_tests_select_all" on public.lab_tests;
 drop policy if exists "lab_tests_write_all" on public.lab_tests;
+drop policy if exists "lab_tests_insert_all" on public.lab_tests;
+drop policy if exists "lab_tests_update_all" on public.lab_tests;
+drop policy if exists "lab_tests_select_member" on public.lab_tests;
+drop policy if exists "lab_tests_insert_member_active" on public.lab_tests;
+drop policy if exists "lab_tests_update_member_active" on public.lab_tests;
 
 create policy "lab_tests_select_member" on public.lab_tests
   for select using (
@@ -244,8 +275,18 @@ create policy "lab_tests_select_member" on public.lab_tests
     )
   );
 
-create policy "lab_tests_write_member_active" on public.lab_tests
-  for insert, update with check (
+create policy "lab_tests_insert_member_active" on public.lab_tests
+  for insert with check (
+    exists (
+      select 1 from public.pharmacy_members pm
+      where pm.auth_user_id = auth.uid()
+      and pm.pharmacy_id = lab_tests.pharmacy_id
+      and pm.status = 'active'
+    )
+  );
+
+create policy "lab_tests_update_member_active" on public.lab_tests
+  for update with check (
     exists (
       select 1 from public.pharmacy_members pm
       where pm.auth_user_id = auth.uid()
@@ -257,6 +298,10 @@ create policy "lab_tests_write_member_active" on public.lab_tests
 -- Expenses: workspace-scoped
 drop policy if exists "expenses_select_all" on public.expenses;
 drop policy if exists "expenses_write_admin_plus" on public.expenses;
+drop policy if exists "expenses_select_member" on public.expenses;
+drop policy if exists "expenses_insert_member_admin" on public.expenses;
+drop policy if exists "expenses_update_member_admin" on public.expenses;
+drop policy if exists "expenses_delete_member_admin" on public.expenses;
 
 create policy "expenses_select_member" on public.expenses
   for select using (
@@ -268,8 +313,30 @@ create policy "expenses_select_member" on public.expenses
     )
   );
 
-create policy "expenses_write_member_admin" on public.expenses
-  for insert, update, delete with check (
+create policy "expenses_insert_member_admin" on public.expenses
+  for insert with check (
+    exists (
+      select 1 from public.pharmacy_members pm
+      where pm.auth_user_id = auth.uid()
+      and pm.pharmacy_id = expenses.pharmacy_id
+      and pm.status = 'active'
+      and pm.role in ('owner', 'admin', 'manager')
+    )
+  );
+
+create policy "expenses_update_member_admin" on public.expenses
+  for update with check (
+    exists (
+      select 1 from public.pharmacy_members pm
+      where pm.auth_user_id = auth.uid()
+      and pm.pharmacy_id = expenses.pharmacy_id
+      and pm.status = 'active'
+      and pm.role in ('owner', 'admin', 'manager')
+    )
+  );
+
+create policy "expenses_delete_member_admin" on public.expenses
+  for delete using (
     exists (
       select 1 from public.pharmacy_members pm
       where pm.auth_user_id = auth.uid()
@@ -282,6 +349,8 @@ create policy "expenses_write_member_admin" on public.expenses
 -- Controlled Logs: workspace-scoped
 drop policy if exists "controlled_logs_select_all" on public.controlled_logs;
 drop policy if exists "controlled_logs_write_pharmacist_plus" on public.controlled_logs;
+drop policy if exists "controlled_logs_select_member" on public.controlled_logs;
+drop policy if exists "controlled_logs_insert_member_pharmacist" on public.controlled_logs;
 
 create policy "controlled_logs_select_member" on public.controlled_logs
   for select using (

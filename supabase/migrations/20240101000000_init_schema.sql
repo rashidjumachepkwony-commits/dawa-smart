@@ -56,6 +56,7 @@ create table if not exists public.users (
   updated_at timestamptz default now()
 );
 
+drop trigger if exists update_users_updated_at on public.users;
 create trigger update_users_updated_at
   before update on public.users
   for each row execute function update_updated_at();
@@ -80,6 +81,7 @@ create table if not exists public.products (
   revision integer default 0
 );
 
+drop trigger if exists update_products_updated_at on public.products;
 create trigger update_products_updated_at
   before update on public.products
   for each row execute function update_updated_at();
@@ -105,6 +107,7 @@ create table if not exists public.batches (
   revision integer default 0
 );
 
+drop trigger if exists update_batches_updated_at on public.batches;
 create trigger update_batches_updated_at
   before update on public.batches
   for each row execute function update_updated_at();
@@ -140,6 +143,7 @@ create table if not exists public.sales (
   revision integer default 0
 );
 
+drop trigger if exists update_sales_updated_at on public.sales;
 create trigger update_sales_updated_at
   before update on public.sales
   for each row execute function update_updated_at();
@@ -165,6 +169,7 @@ create table if not exists public.sale_items (
   revision integer default 0
 );
 
+drop trigger if exists update_sale_items_updated_at on public.sale_items;
 create trigger update_sale_items_updated_at
   before update on public.sale_items
   for each row execute function update_updated_at();
@@ -189,6 +194,7 @@ create table if not exists public.patients (
   revision integer default 0
 );
 
+drop trigger if exists update_patients_updated_at on public.patients;
 create trigger update_patients_updated_at
   before update on public.patients
   for each row execute function update_updated_at();
@@ -212,6 +218,7 @@ create table if not exists public.lab_tests (
   revision integer default 0
 );
 
+drop trigger if exists update_lab_tests_updated_at on public.lab_tests;
 create trigger update_lab_tests_updated_at
   before update on public.lab_tests
   for each row execute function update_updated_at();
@@ -231,6 +238,7 @@ create table if not exists public.expenses (
   revision integer default 0
 );
 
+drop trigger if exists update_expenses_updated_at on public.expenses;
 create trigger update_expenses_updated_at
   before update on public.expenses
   for each row execute function update_updated_at();
@@ -250,6 +258,7 @@ create table if not exists public.controlled_logs (
   revision integer default 0
 );
 
+drop trigger if exists update_controlled_logs_updated_at on public.controlled_logs;
 create trigger update_controlled_logs_updated_at
   before update on public.controlled_logs
   for each row execute function update_updated_at();
@@ -270,13 +279,69 @@ alter table public.controlled_logs enable row level security;
 -- Demo users can read all and write to non-sensitive tables
 -- Cashiers/staff have limited access
 
+-- Drop existing policies (for re-runs)
+drop policy if exists "users_select_own" on public.users;
+drop policy if exists "users_insert_admin_only" on public.users;
+drop policy if exists "users_update_admin_only" on public.users;
+drop policy if exists "products_select_all" on public.products;
+drop policy if exists "products_insert_admin_plus" on public.products;
+drop policy if exists "products_update_admin_plus" on public.products;
+drop policy if exists "products_delete_admin_plus" on public.products;
+drop policy if exists "products_select_member" on public.products;
+drop policy if exists "products_insert_member_write" on public.products;
+drop policy if exists "products_update_member_write" on public.products;
+drop policy if exists "products_delete_member_write" on public.products;
+drop policy if exists "sales_select_all" on public.sales;
+drop policy if exists "sales_insert_all" on public.sales;
+drop policy if exists "sales_update_admin_plus" on public.sales;
+drop policy if exists "sales_select_member" on public.sales;
+drop policy if exists "sales_insert_member_active" on public.sales;
+drop policy if exists "sales_update_owner_admin" on public.sales;
+drop policy if exists "batches_select_all" on public.batches;
+drop policy if exists "batches_write_admin_plus" on public.batches;
+drop policy if exists "batches_select_member" on public.batches;
+drop policy if exists "batches_write_member_admin" on public.batches;
+drop policy if exists "sale_items_select_all" on public.sale_items;
+drop policy if exists "sale_items_insert_all" on public.sale_items;
+drop policy if exists "sale_items_select_member" on public.sale_items;
+drop policy if exists "sale_items_insert_member" on public.sale_items;
+drop policy if exists "patients_select_all" on public.patients;
+drop policy if exists "patients_insert_all" on public.patients;
+drop policy if exists "patients_update_all" on public.patients;
+drop policy if exists "patients_select_member" on public.patients;
+drop policy if exists "patients_insert_member_active" on public.patients;
+drop policy if exists "patients_update_member_active" on public.patients;
+drop policy if exists "lab_tests_select_all" on public.lab_tests;
+drop policy if exists "lab_tests_insert_all" on public.lab_tests;
+drop policy if exists "lab_tests_update_all" on public.lab_tests;
+drop policy if exists "lab_tests_select_member" on public.lab_tests;
+drop policy if exists "lab_tests_insert_member_active" on public.lab_tests;
+drop policy if exists "lab_tests_update_member_active" on public.lab_tests;
+drop policy if exists "expenses_select_all" on public.expenses;
+drop policy if exists "expenses_write_admin_plus" on public.expenses;
+drop policy if exists "expenses_select_member" on public.expenses;
+drop policy if exists "expenses_insert_member_admin" on public.expenses;
+drop policy if exists "expenses_update_member_admin" on public.expenses;
+drop policy if exists "expenses_delete_member_admin" on public.expenses;
+drop policy if exists "controlled_logs_select_all" on public.controlled_logs;
+drop policy if exists "controlled_logs_write_pharmacist_plus" on public.controlled_logs;
+drop policy if exists "controlled_logs_select_member" on public.controlled_logs;
+drop policy if exists "controlled_logs_insert_member_pharmacist" on public.controlled_logs;
+drop policy if exists "pharmacies_select_member" on public.pharmacies;
+drop policy if exists "pharmacies_insert_owner" on public.pharmacies;
+drop policy if exists "pharmacies_update_owner" on public.pharmacies;
+drop policy if exists "pharmacy_members_select_self" on public.pharmacy_members;
+drop policy if exists "pharmacy_members_insert_owner_admin" on public.pharmacy_members;
+drop policy if exists "pharmacy_members_update_owner_admin" on public.pharmacy_members;
+drop policy if exists "pharmacy_members_prevent_pharmacy_change" on public.pharmacy_members;
+
 -- Users table — only developers/admins can manage users
 create policy "users_select_own" on public.users
   for select using (
-    auth.uid()::text = id::text OR
+    auth.uid() = id OR
     exists (
       select 1 from public.users u
-      where u.id = auth.uid()::text::uuid
+      where u.id = auth.uid()
       and u.role in ('developer', 'admin')
     )
   );
@@ -285,7 +350,7 @@ create policy "users_insert_admin_only" on public.users
   for insert with check (
     exists (
       select 1 from public.users u
-      where u.id = auth.uid()::text::text
+      where u.id = auth.uid()
       and u.role in ('developer', 'admin')
     )
   );
@@ -294,7 +359,7 @@ create policy "users_update_admin_only" on public.users
   for update using (
     exists (
       select 1 from public.users u
-      where u.id = auth.uid()::text::text
+      where u.id = auth.uid()
       and u.role in ('developer', 'admin')
     )
   );
@@ -377,8 +442,13 @@ create policy "patients_select_all" on public.patients
     and (deleted_at is null)
   );
 
-create policy "patients_write_all" on public.patients
-  for insert, update with check (
+create policy "patients_insert_all" on public.patients
+  for insert with check (
+    exists (select 1 from public.users where id = auth.uid())
+  );
+
+create policy "patients_update_all" on public.patients
+  for update with check (
     exists (select 1 from public.users where id = auth.uid())
   );
 
@@ -389,8 +459,13 @@ create policy "lab_tests_select_all" on public.lab_tests
     and (deleted_at is null)
   );
 
-create policy "lab_tests_write_all" on public.lab_tests
-  for insert, update with check (
+create policy "lab_tests_insert_all" on public.lab_tests
+  for insert with check (
+    exists (select 1 from public.users where id = auth.uid())
+  );
+
+create policy "lab_tests_update_all" on public.lab_tests
+  for update with check (
     exists (select 1 from public.users where id = auth.uid())
   );
 

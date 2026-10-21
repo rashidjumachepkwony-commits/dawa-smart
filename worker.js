@@ -69,10 +69,10 @@ export default {
       if (path === '/api/config') {
         return jsonResponse(200, {
           supabaseUrl: env.SUPABASE_URL || null,
-          supabaseAnonKey: env.SUPABASE_ANON_KEY || null,
+           supabaseAnonKey: env.SUPABASE_ANON_KEY || env.SUPABASE_PUBLISHABLE_KEY || null,
           environment: env.ENV || 'development',
           features: {
-            sync: !!(env.SUPABASE_URL && env.SUPABASE_ANON_KEY),
+             sync: !!(env.SUPABASE_URL && (env.SUPABASE_ANON_KEY || env.SUPABASE_PUBLISHABLE_KEY)),
             auth: true,
             multitenant: true
           }
@@ -243,10 +243,10 @@ async function requireAuth(request, env) {
   const memberCheck = await supabaseFetch(env, '/rest/v1/pharmacy_members', {
     method: 'GET',
     headers: {
-      'apikey': env.SUPABASE_ANON_KEY,
-      'Authorization': `Bearer ${env.SUPABASE_ANON_KEY}`,
-      'Accept': 'application/json'
-    }
+       'apikey': env.SUPABASE_ANON_KEY || env.SUPABASE_PUBLISHABLE_KEY,
+       'Authorization': `Bearer ${env.SUPABASE_ANON_KEY || env.SUPABASE_PUBLISHABLE_KEY}`,
+       'Accept': 'application/json'
+     }
   });
 
   // Use service_role for membership lookup (RLS would block anon key)
@@ -351,7 +351,7 @@ async function handleRegister(request, env, corsHeaders) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': env.SUPABASE_ANON_KEY
+        'apikey': env.SUPABASE_ANON_KEY || env.SUPABASE_PUBLISHABLE_KEY
       },
       body: JSON.stringify({
         email: body.email,
