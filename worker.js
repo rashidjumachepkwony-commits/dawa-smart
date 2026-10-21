@@ -468,7 +468,7 @@ async function handleLocalAuth(request, env, corsHeaders) {
   // Look up or create pharmacy for this user
   let pharmacy = await supabaseFetch(env,
     `/rest/v1/pharmacies?slug=eq.${user.pharmacySlug}&select=*`,
-    { headers: { 'Accept': 'application/json' } }
+    { headers: { 'Accept': 'application/json', 'Prefer': 'return=representation' } }
   ).catch(() => []);
 
   if (!pharmacy || pharmacy.length === 0) {
@@ -478,13 +478,23 @@ async function handleLocalAuth(request, env, corsHeaders) {
 
     pharmacy = await supabaseFetch(env, '/rest/v1/pharmacies', {
       method: 'POST',
+      headers: { 'Prefer': 'return=representation' },
       body: JSON.stringify({
         name: pharmacyName,
         slug: user.pharmacySlug,
-        owner_id: user.id,
+        owner_id: null, // Legacy users don't have Supabase Auth user IDs
         status: username === 'DEMO' ? 'trial' : 'active'
       })
-    });
+    }).catch(() => null);
+  }
+
+  if (!pharmacy || (Array.isArray(pharmacy) && pharmacy.length === 0)) {
+    return jsonErrorResponse('Failed to create or find pharmacy', 500, corsHeaders);
+  }
+
+  // Handle case where pharmacy is an array (from SELECT) or object (from POST with return=representation)
+  if (Array.isArray(pharmacy)) {
+    pharmacy = pharmacy[0];
   }
 
   // Check membership

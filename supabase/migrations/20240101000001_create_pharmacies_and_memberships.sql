@@ -39,7 +39,7 @@ create table if not exists public.pharmacy_members (
   auth_user_id uuid references auth.users(id) on delete cascade,
   email text,
   role text check (
-    role in ('owner', 'admin', 'manager', 'pharmacist', 'cashier', 'lab', 'doctor', 'demo')
+    role in ('owner', 'admin', 'manager', 'pharmacist', 'cashier', 'lab', 'doctor', 'demo', 'developer')
   ) not null,
   status text check (status in ('active', 'pending', 'suspended')) default 'pending',
   invited_by uuid references auth.users(id),
