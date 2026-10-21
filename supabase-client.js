@@ -141,9 +141,13 @@
       });
 
       if (error) {
-        // Fallback: create a signed JWT via the Cloudflare Worker
-        // This allows using the existing user system without migrating
-        const workerResponse = await fetch('/api/auth/local', {
+         // Fallback: create a signed JWT via the Cloudflare Worker
+        // Use absolute Worker URL to ensure cross-origin compatibility
+        var workerAuthUrl = 'https://dawa-smart-api.rashidjumachepkwony.workers.dev/api/auth/local';
+        if (window.location.hostname.includes('startechafrica.co.ke')) {
+          workerAuthUrl = 'https://dawa-api.startechafrica.co.ke/api/auth/local';
+        }
+        const workerResponse = await fetch(workerAuthUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password })
@@ -254,7 +258,7 @@
   const localConfig = getConfig();
   if (localConfig.url && localConfig.anonKey) {
     initSupabase(localConfig.url, localConfig.anonKey);
-  } else if (window.location.hostname.includes('startechafrica.co.ke') || window.location.hostname.includes('workers.dev') || (!window.location.hostname || window.location.protocol === 'file:')) {
+   } else if (window.location.hostname.includes('startechafrica.co.ke') || window.location.hostname.includes('workers.dev') || window.location.hostname.includes('pages.dev') || (!window.location.hostname || window.location.protocol === 'file:')) {
     // On a production domain, Worker.dev preview, or local file — try fetching config from the Worker
     // The Worker at dawa-api.startechafrica.co.ke/api/config (or workers.dev) returns public config only
     var workerApiUrl = 'https://dawa-smart-api.rashidjumachepkwony.workers.dev/api/config'; // staging/development Worker URL

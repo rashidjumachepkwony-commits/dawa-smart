@@ -3,6 +3,8 @@
 # =============================================================
 # This file is processed automatically by Cloudflare Pages.
 # It sets security headers and routing rules.
+# IMPORTANT: Cloudflare Pages applies the LAST matching rule's header.
+# Specific rules MUST come AFTER generic rules to override them.
 # =============================================================
 
 # Security headers for all routes
@@ -12,24 +14,38 @@
   X-XSS-Protection: 1; mode=block
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: geolocation=(), microphone=(), camera=()
-  X-Content-Security-Policy: default-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.supabase.co https://api.startechafrica.co.ke; img-src 'self' data: https:; connect-src 'self' https://api.startechafrica.co.ke https://*.supabase.co
+  X-Content-Security-Policy: default-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.supabase.co https://api.startechafrica.co.ke; img-src 'self' data: https:; connect-src 'self' https://*.startechafrica.co.ke https://*.workers.dev https://*.supabase.co
 
-/_headers
-  404
+# Generic static asset caching (OVERRIDDEN by specific rules below)
+/*.css
+  Cache-Control: public, max-age=31536000
 
-# Service worker registration requires correct content type
+/*.js
+  Cache-Control: public, max-age=31536000
+
+# ─── Specific overrides (must come AFTER generic rules) ───────────
+
+# Service worker — must always be fresh so SW updates work
 /sw.js
   Content-Type: application/javascript; charset=utf-8
-  Cache-Control: no-cache
+  Cache-Control: no-cache, no-store, must-revalidate
 
-# Sync and supabase client scripts
-/sync-queue.js
-  Content-Type: application/javascript; charset=utf-8
-  Cache-Control: no-cache
-
+# Critical app scripts — must always be fresh
 /supabase-client.js
   Content-Type: application/javascript; charset=utf-8
-  Cache-Control: no-cache
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/sync-queue.js
+  Content-Type: application/javascript; charset=utf-8
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/tenant.js
+  Content-Type: application/javascript; charset=utf-8
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/license.js
+  Content-Type: application/javascript; charset=utf-8
+  Cache-Control: no-cache, no-store, must-revalidate
 
 # Manifest
 /manifest.json
@@ -38,12 +54,6 @@
 # Static assets — cache aggressively
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
-
-/*.css
-  Cache-Control: public, max-age=31536000
-
-/*.js
-  Cache-Control: public, max-age=31536000
 
 # API routes proxy to Cloudflare Worker
 /api/*
