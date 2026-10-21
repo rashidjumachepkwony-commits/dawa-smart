@@ -16,10 +16,10 @@ const CACHE_NAME = 'dawa-smart-sw-' + CACHE_VERSION;
 // Files to cache for offline application shell
 const CORE_ASSETS = [
   'app.html',
-  'tenant.js',
-  'license.js',
-  'sync-queue.js',
-  'supabase-client.js',
+  'tenant.js?v=4',
+  'license.js?v=4',
+  'sync-queue.js?v=4',
+  'supabase-client.js?v=4',
   'license.css',
   'manifest.json',
   'assets/icon-192.png',
@@ -117,6 +117,12 @@ self.addEventListener('fetch', (event) => {
 
   // Handle same-origin requests
   const pathname = url.pathname;
+
+  // CRITICAL: sw.js must always come from the network to allow SW updates
+  if (pathname === '/sw.js') {
+    event.respondWith(fetch(request));
+    return;
+  }
 
   // HTML pages: network-first with cache fallback
   if (request.headers.get('accept') && request.headers.get('accept').includes('text/html')) {
