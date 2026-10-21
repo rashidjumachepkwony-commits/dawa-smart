@@ -3,8 +3,6 @@
 # =============================================================
 # This file is processed automatically by Cloudflare Pages.
 # It sets security headers and routing rules.
-# IMPORTANT: Cloudflare Pages applies the LAST matching rule's header.
-# Specific rules MUST come AFTER generic rules to override them.
 # =============================================================
 
 # Security headers for all routes
@@ -16,36 +14,51 @@
   Permissions-Policy: geolocation=(), microphone=(), camera=()
   X-Content-Security-Policy: default-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.supabase.co https://api.startechafrica.co.ke; img-src 'self' data: https:; connect-src 'self' https://*.startechafrica.co.ke https://*.workers.dev https://*.supabase.co
 
-# Generic static asset caching (OVERRIDDEN by specific rules below)
+# Static CSS caching
 /*.css
   Cache-Control: public, max-age=31536000
 
-/*.js
-  Cache-Control: public, max-age=31536000
+# ─── All app JS files: no-store (never cache, always fresh) ─────
 
-# ─── Specific overrides (must come AFTER generic rules) ───────────
-
-# Service worker — must always be fresh so SW updates work
 /sw.js
   Content-Type: application/javascript; charset=utf-8
-  Cache-Control: no-cache, no-store, must-revalidate
+  Cache-Control: no-store, must-revalidate
 
-# Critical app scripts — must always be fresh
+/sw2.js
+  Content-Type: application/javascript; charset=utf-8
+  Cache-Control: no-store, must-revalidate
+
 /supabase-client.js
   Content-Type: application/javascript; charset=utf-8
-  Cache-Control: no-cache, no-store, must-revalidate
+  Cache-Control: no-store, must-revalidate
+
+/supabase2.js
+  Content-Type: application/javascript; charset=utf-8
+  Cache-Control: no-store, must-revalidate
 
 /sync-queue.js
   Content-Type: application/javascript; charset=utf-8
-  Cache-Control: no-cache, no-store, must-revalidate
+  Cache-Control: no-store, must-revalidate
+
+/sync-queue2.js
+  Content-Type: application/javascript; charset=utf-8
+  Cache-Control: no-store, must-revalidate
 
 /tenant.js
   Content-Type: application/javascript; charset=utf-8
-  Cache-Control: no-cache, no-store, must-revalidate
+  Cache-Control: no-store, must-revalidate
+
+/tenant2.js
+  Content-Type: application/javascript; charset=utf-8
+  Cache-Control: no-store, must-revalidate
 
 /license.js
   Content-Type: application/javascript; charset=utf-8
-  Cache-Control: no-cache, no-store, must-revalidate
+  Cache-Control: no-store, must-revalidate
+
+/license2.js
+  Content-Type: application/javascript; charset=utf-8
+  Cache-Control: no-store, must-revalidate
 
 # Manifest
 /manifest.json

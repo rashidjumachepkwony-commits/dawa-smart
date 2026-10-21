@@ -1,5 +1,6 @@
+﻿// UNIQUE-BUSTER-V2
 /* =============================================================
-   Dawa Smart — Supabase Client Integration
+   Dawa Smart â€” Supabase Client Integration
    =============================================================
    Provides a bridge between the local IndexedDB data and Supabase.
    
@@ -38,7 +39,7 @@
   // ==========================================================================
   async function initSupabase(url, anonKey) {
     if (!url || !anonKey) {
-      console.log('[Dawa Smart Supabase] No credentials configured — local-only mode');
+      console.log('[Dawa Smart Supabase] No credentials configured â€” local-only mode');
       window.supabaseClient = null;
       return null;
     }
@@ -145,9 +146,9 @@
         if (!error) {
           return { data, error: null };
         }
-        // Supabase auth failed — fall through to Worker auth
+        // Supabase auth failed â€” fall through to Worker auth
       } catch (e) {
-        // Supabase auth threw — fall through to Worker auth
+        // Supabase auth threw â€” fall through to Worker auth
       }
     }
 
@@ -262,7 +263,7 @@
   if (localConfig.url && localConfig.anonKey) {
     initSupabase(localConfig.url, localConfig.anonKey);
    } else if (window.location.hostname.includes('startechafrica.co.ke') || window.location.hostname.includes('workers.dev') || window.location.hostname.includes('pages.dev') || (!window.location.hostname || window.location.protocol === 'file:')) {
-    // On a production domain, Worker.dev preview, or local file — try fetching config from the Worker
+    // On a production domain, Worker.dev preview, or local file â€” try fetching config from the Worker
     // The Worker at dawa-api.startechafrica.co.ke/api/config (or workers.dev) returns public config only
     var workerApiUrl = 'https://dawa-smart-api.rashidjumachepkwony.workers.dev/api/config'; // staging/development Worker URL
     if (window.location.hostname.includes('startechafrica.co.ke')) {

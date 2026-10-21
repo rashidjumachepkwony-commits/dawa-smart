@@ -1,5 +1,6 @@
+﻿// UNIQUE-SW-V2
 /* =============================================================
-   Dawa Smart — Service Worker
+   Dawa Smart â€” Service Worker
    =============================================================
    Cache strategy for offline-first operation.
    
@@ -10,16 +11,16 @@
    - Stale-while-revalidate for CSS/JS
    ============================================================= */
 
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v5';
 const CACHE_NAME = 'dawa-smart-sw-' + CACHE_VERSION;
 
 // Files to cache for offline application shell
 const CORE_ASSETS = [
   'app.html',
-  'tenant.js?v=5',
-  'license.js?v=5',
-  'sync-queue.js?v=5',
-  'supabase-client.js?v=5',
+  'tenant2.js',
+  'license2.js',
+  'sync-queue2.js',
+  'supabase2.js',
   'license.css',
   'manifest.json',
   'assets/icon-192.png',
@@ -118,8 +119,8 @@ self.addEventListener('fetch', (event) => {
   // Handle same-origin requests
   const pathname = url.pathname;
 
-  // CRITICAL: sw.js must always come from the network to allow SW updates
-  if (pathname === '/sw.js') {
+  // CRITICAL: sw2.js must always come from the network to allow SW updates
+  if (pathname === '/sw2.js') {
     event.respondWith(fetch(request));
     return;
   }

@@ -852,10 +852,10 @@
     </div>
   </div>
 
-  <script src="license.js?v=5"></script>
-  <script src="tenant.js?v=5"></script>
-  <script src="sync-queue.js?v=5"></script>
-  <script src="supabase-client.js?v=5"></script>
+  <script src="license2.js"></script>
+  <script src="tenant2.js"></script>
+  <script src="sync-queue2.js"></script>
+  <script src="supabase2.js"></script>
 
 <script>
 // =============================================================
@@ -863,7 +863,7 @@
 // =============================================================
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('/sw.js?v=5', { scope: '/', updateViaCache: 'none' })
+    navigator.serviceWorker.register('/sw2.js', { scope: '/', updateViaCache: 'none' })
       .then(function(reg) {
         console.log('[Dawa Smart] Service Worker registered (scope: /)');
         // Check for updates
