@@ -129,45 +129,48 @@
   //   - App uses existing local auth only (no changes)
 
   async function supabaseSignIn(username, password) {
-    if (!window.supabaseClient) {
-      return { localOnly: true };
+    var workerAuthUrl = 'https://dawa-smart-api.rashidjumachepkwony.workers.dev/api/auth/local';
+    if (window.location.hostname.includes('startechafrica.co.ke')) {
+      workerAuthUrl = 'https://dawa-api.startechafrica.co.ke/api/auth/local';
     }
 
-    try {
-      // Map existing users to Supabase Auth
-      const { data, error } = await window.supabaseClient.auth.signInWithPassword({
-        email: username + '@dawasmartz.local',
-        password: password
-      });
-
-      if (error) {
-         // Fallback: create a signed JWT via the Cloudflare Worker
-        // Use absolute Worker URL to ensure cross-origin compatibility
-        var workerAuthUrl = 'https://dawa-smart-api.rashidjumachepkwony.workers.dev/api/auth/local';
-        if (window.location.hostname.includes('startechafrica.co.ke')) {
-          workerAuthUrl = 'https://dawa-api.startechafrica.co.ke/api/auth/local';
-        }
-        const workerResponse = await fetch(workerAuthUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password })
+    // Try Supabase Auth first (if SDK loaded)
+    if (window.supabaseClient) {
+      try {
+        const { data, error } = await window.supabaseClient.auth.signInWithPassword({
+          email: username + '@dawasmartz.local',
+          password: password
         });
 
-        if (!workerResponse.ok) {
-          throw new Error('Authentication failed');
+        if (!error) {
+          return { data, error: null };
         }
+        // Supabase auth failed — fall through to Worker auth
+      } catch (e) {
+        // Supabase auth threw — fall through to Worker auth
+      }
+    }
 
-        const result = await workerResponse.json();
-        if (result.token) {
-          localStorage.setItem('dawa_supabase_token', result.token);
-          localStorage.setItem('dawa_supabase_token_expiry',
-            new Date(Date.now() + result.expires_in * 1000).toISOString());
-        }
+    // Fallback: create a signed JWT via the Cloudflare Worker
+    try {
+      const workerResponse = await fetch(workerAuthUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
 
-        return result;
+      if (!workerResponse.ok) {
+        throw new Error('Authentication failed');
       }
 
-      return { data, error: null };
+      const result = await workerResponse.json();
+      if (result.token) {
+        localStorage.setItem('dawa_supabase_token', result.token);
+        localStorage.setItem('dawa_supabase_token_expiry',
+          new Date(Date.now() + result.expires_in * 1000).toISOString());
+      }
+
+      return result;
     } catch (e) {
       console.error('[Dawa Smart Supabase] Sign-in error:', e);
       return { error: e.message };
