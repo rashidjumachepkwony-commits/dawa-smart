@@ -239,17 +239,7 @@ async function requireAuth(request, env) {
     return { error: 'Token missing required claims', status: 401 };
   }
 
-  // Verify membership exists and is active
-  const memberCheck = await supabaseFetch(env, '/rest/v1/pharmacy_members', {
-    method: 'GET',
-    headers: {
-       'apikey': env.SUPABASE_ANON_KEY || env.SUPABASE_PUBLISHABLE_KEY,
-       'Authorization': `Bearer ${env.SUPABASE_ANON_KEY || env.SUPABASE_PUBLISHABLE_KEY}`,
-       'Accept': 'application/json'
-     }
-  });
-
-  // Use service_role for membership lookup (RLS would block anon key)
+  // Verify membership exists and is active using service_role (RLS would block anon key)
   const memberCheckWithService = await supabaseFetch(env,
     `/rest/v1/pharmacy_members?auth_user_id=eq.${payload.sub}&pharmacy_id=eq.${payload.pharmacy_id}&status=eq.active&select=role`,
     {
@@ -497,14 +487,14 @@ async function handleLocalAuth(request, env, corsHeaders) {
     pharmacy = pharmacy[0];
   }
 
-  // Check membership
+  // Check membership by auth_user_id OR email (within this pharmacy)
   let membership = await supabaseFetch(env,
-    `/rest/v1/pharmacy_members?auth_user_id=eq.${user.id}&pharmacy_id=eq.${pharmacy.id}&select=role,status`,
+    `/rest/v1/pharmacy_members?pharmacy_id=eq.${pharmacy.id}&select=role,status,id,auth_user_id&or=(auth_user_id.eq.${user.id},email.eq.${encodeURIComponent(user.email)})`,
     { headers: { 'Accept': 'application/json' } }
   ).catch(() => []);
 
   if (!membership || membership.length === 0) {
-    // Create membership
+    // Create membership (with .catch() for safety)
     await supabaseFetch(env, '/rest/v1/pharmacy_members', {
       method: 'POST',
       body: JSON.stringify({
@@ -514,8 +504,20 @@ async function handleLocalAuth(request, env, corsHeaders) {
         role: user.role,
         status: 'active'
       })
-    });
+    }).catch(() => null);
     membership = [{ role: user.role, status: 'active' }];
+  } else if (membership[0].auth_user_id !== user.id) {
+    // Link existing membership to this legacy user
+    await supabaseFetch(env,
+      `/rest/v1/pharmacy_members?id=eq.${membership[0].id}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({
+          auth_user_id: user.id,
+          status: 'active'
+        })
+      }
+    ).catch(() => null);
   }
 
   const token = await createJWT({
@@ -537,7 +539,9 @@ async function handleLocalAuth(request, env, corsHeaders) {
       email: user.email,
       fullName: username === 'RASHID' ? 'Rashid Juma' : 'Dawa Smart Demo',
       role: membership[0].role,
-      username: username
+      username: username,
+      verified: true,
+      status: 'active'
     },
     pharmacy: {
       id: pharmacy.id,

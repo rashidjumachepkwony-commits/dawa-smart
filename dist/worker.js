@@ -69,10 +69,10 @@ export default {
       if (path === '/api/config') {
         return jsonResponse(200, {
           supabaseUrl: env.SUPABASE_URL || null,
-          supabaseAnonKey: env.SUPABASE_ANON_KEY || null,
+           supabaseAnonKey: env.SUPABASE_ANON_KEY || env.SUPABASE_PUBLISHABLE_KEY || null,
           environment: env.ENV || 'development',
           features: {
-            sync: !!(env.SUPABASE_URL && env.SUPABASE_ANON_KEY),
+             sync: !!(env.SUPABASE_URL && (env.SUPABASE_ANON_KEY || env.SUPABASE_PUBLISHABLE_KEY)),
             auth: true,
             multitenant: true
           }
@@ -239,17 +239,7 @@ async function requireAuth(request, env) {
     return { error: 'Token missing required claims', status: 401 };
   }
 
-  // Verify membership exists and is active
-  const memberCheck = await supabaseFetch(env, '/rest/v1/pharmacy_members', {
-    method: 'GET',
-    headers: {
-      'apikey': env.SUPABASE_ANON_KEY,
-      'Authorization': `Bearer ${env.SUPABASE_ANON_KEY}`,
-      'Accept': 'application/json'
-    }
-  });
-
-  // Use service_role for membership lookup (RLS would block anon key)
+  // Verify membership exists and is active using service_role (RLS would block anon key)
   const memberCheckWithService = await supabaseFetch(env,
     `/rest/v1/pharmacy_members?auth_user_id=eq.${payload.sub}&pharmacy_id=eq.${payload.pharmacy_id}&status=eq.active&select=role`,
     {
@@ -351,7 +341,7 @@ async function handleRegister(request, env, corsHeaders) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': env.SUPABASE_ANON_KEY
+        'apikey': env.SUPABASE_ANON_KEY || env.SUPABASE_PUBLISHABLE_KEY
       },
       body: JSON.stringify({
         email: body.email,
@@ -468,7 +458,7 @@ async function handleLocalAuth(request, env, corsHeaders) {
   // Look up or create pharmacy for this user
   let pharmacy = await supabaseFetch(env,
     `/rest/v1/pharmacies?slug=eq.${user.pharmacySlug}&select=*`,
-    { headers: { 'Accept': 'application/json' } }
+    { headers: { 'Accept': 'application/json', 'Prefer': 'return=representation' } }
   ).catch(() => []);
 
   if (!pharmacy || pharmacy.length === 0) {
@@ -478,23 +468,33 @@ async function handleLocalAuth(request, env, corsHeaders) {
 
     pharmacy = await supabaseFetch(env, '/rest/v1/pharmacies', {
       method: 'POST',
+      headers: { 'Prefer': 'return=representation' },
       body: JSON.stringify({
         name: pharmacyName,
         slug: user.pharmacySlug,
-        owner_id: user.id,
+        owner_id: null, // Legacy users don't have Supabase Auth user IDs
         status: username === 'DEMO' ? 'trial' : 'active'
       })
-    });
+    }).catch(() => null);
   }
 
-  // Check membership
+  if (!pharmacy || (Array.isArray(pharmacy) && pharmacy.length === 0)) {
+    return jsonErrorResponse('Failed to create or find pharmacy', 500, corsHeaders);
+  }
+
+  // Handle case where pharmacy is an array (from SELECT) or object (from POST with return=representation)
+  if (Array.isArray(pharmacy)) {
+    pharmacy = pharmacy[0];
+  }
+
+  // Check membership by auth_user_id OR email (within this pharmacy)
   let membership = await supabaseFetch(env,
-    `/rest/v1/pharmacy_members?auth_user_id=eq.${user.id}&pharmacy_id=eq.${pharmacy.id}&select=role,status`,
+    `/rest/v1/pharmacy_members?pharmacy_id=eq.${pharmacy.id}&select=role,status,id,auth_user_id&or=(auth_user_id.eq.${user.id},email.eq.${encodeURIComponent(user.email)})`,
     { headers: { 'Accept': 'application/json' } }
   ).catch(() => []);
 
   if (!membership || membership.length === 0) {
-    // Create membership
+    // Create membership (with .catch() for safety)
     await supabaseFetch(env, '/rest/v1/pharmacy_members', {
       method: 'POST',
       body: JSON.stringify({
@@ -504,8 +504,20 @@ async function handleLocalAuth(request, env, corsHeaders) {
         role: user.role,
         status: 'active'
       })
-    });
+    }).catch(() => null);
     membership = [{ role: user.role, status: 'active' }];
+  } else if (membership[0].auth_user_id !== user.id) {
+    // Link existing membership to this legacy user
+    await supabaseFetch(env,
+      `/rest/v1/pharmacy_members?id=eq.${membership[0].id}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({
+          auth_user_id: user.id,
+          status: 'active'
+        })
+      }
+    ).catch(() => null);
   }
 
   const token = await createJWT({
@@ -527,7 +539,9 @@ async function handleLocalAuth(request, env, corsHeaders) {
       email: user.email,
       fullName: username === 'RASHID' ? 'Rashid Juma' : 'Dawa Smart Demo',
       role: membership[0].role,
-      username: username
+      username: username,
+      verified: true,
+      status: 'active'
     },
     pharmacy: {
       id: pharmacy.id,
