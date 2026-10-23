@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="DAWA SMART — Smart Pharmacy Management System. Manage sales, stock, expenses, customers, staff and lab tests from one powerful system for Kenyan pharmacies.">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:title" content="DAWA SMART — Smart Pharmacy Management">
+  <meta property="og:description" content="Manage pharmacy sales, stock, expenses, customers, staff and lab tests from one powerful system.">
+  <meta property="og:image" content="assets/icon-512.png">
+  <meta property="og:url" content="https://rashidjumachepkwony-commits.github.io/dawa-smart/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Dawa Smart">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="DAWA SMART — Smart Pharmacy Management">
+  <meta name="twitter:description" content="Manage pharmacy sales, stock, expenses, customers, staff and lab tests from one powerful system.">
+  <meta name="twitter:image" content="assets/icon-512.png">
+
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="landing.css">
+
+  <title>DAWA SMART — Smart Pharmacy Management</title>
+</head>
+<body>
+
+  <!-- ===== Navigation ===== -->
+  <nav class="nav" id="topNav">
+    <div class="container">
+      <a href="#" class="logo">
+        <i class="fas fa-prescription-bottle-medical"></i>
+        <span>Dawa Smart</span>
+      </a>
+      <div class="nav-links" id="navLinks">
+        <a href="#" class="nav-link active">Home</a>
+        <a href="#features" class="nav-link">Features</a>
+        <a href="#how-it-works" class="nav-link">How It Works</a>
+        <a href="#benefits" class="nav-link">Benefits</a>
+        <a href="#faq" class="nav-link">FAQ</a>
+        <a href="#contact" class="nav-link">Contact</a>
+      </div>
+      <div class="cta-buttons">
+        <a href="#contact" class="btn btn-outline">Request Demo</a>
+        <a href="app.html" class="btn btn-primary">Open App</a>
+      </div>
+      <div class="hamburger" id="hamburger">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ===== Hero ===== -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center;">
+        <div class="hero-content">
+          <div class="hero-badge">
+            <i class="fas fa-star"></i> 14-Day Free Demo
+          </div>
+          <h1>Run Your Pharmacy Smarter.</h1>
+          <p class="hero-text">DAWA SMART helps pharmacies manage sales, stock, expenses, customers, staff and daily operations from one powerful system.</p>
+          <div class="hero-buttons">
+            <a href="app.html" class="btn btn-primary"><i class="fas fa-rocket"></i> Explore Dawa Smart</a>
+            <a href="#contact" class="btn btn-secondary"><i class="fab fa-whatsapp"></i> Request a Demo</a>
+            <a href="app.html" class="btn btn-secondary" style="background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.15);">Open App</a>
+          </div>
+          <div class="hero-tags">
+            <span class="hero-tag"><i class="fas fa-wifi-slash"></i> Offline-First</span>
+            <span class="hero-tag"><i class="fas fa-file-invoice"></i> eTIMS Compliant</span>
+            <span class="hero-tag"><i class="fas fa-mobile-alt"></i> PWA Ready</span>
+          </div>
+        </div>
+        <div class="hero-image" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+          <img src="assets/landing-dashboard.png" alt="Dawa Smart dashboard preview" style="max-width:100%;display:block;" onerror="this.style.display='none';this.parentElement.innerHTML='<div style=color:rgba(255,255,255,0.5);text-align:center;padding:60px;font-size:14px;><i class=fas fa-desktop style=font-size:48px;margin-bottom:10px;><br>Dashboard Preview</div>'">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Trust Strip ===== -->
+  <div class="trust-strip">
+    <div class="container">
+      <div class="trust-grid">
+        <div class="trust-item"><i class="fas fa-check-circle"></i> Offline-first PWA</div>
+        <div class="trust-item"><i class="fas fa-check-circle"></i> No internet required</div>
+        <div class="trust-item"><i class="fas fa-check-circle"></i> eTIMS compliant receipts</div>
+        <div class="trust-item"><i class="fas fa-check-circle"></i> KRA ready reports</div>
+        <div class="trust-item"><i class="fas fa-check-circle"></i> SHA/NHIF integration</div>
+        <div class="trust-item"><i class="fas fa-check-circle"></i> M-Pesa payments</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Problem ===== -->
+  <section class="section problem">
+    <div class="container">
+      <div class="problem-grid">
+        <div class="problem-content">
+          <h2>Managing a Pharmacy Shouldn't Be Complicated.</h2>
+          <p class="problem-text">Many pharmacies still rely on spreadsheets, paper ledgers and memory to run daily operations. This leads to stock-outs, revenue leakage, poor customer credit tracking and lost time.</p>
+          <ul class="problem-list">
+            <li><i class="fas fa-times-circle"></i> Difficult stock tracking and expiry monitoring</li>
+            <li><i class="fas fa-times-circle"></i> Unclear daily sales and revenue</li>
+            <li><i class="fas fa-times-circle"></i> Difficulty monitoring expenses</li>
+            <li><i class="fas fa-times-circle"></i> Manual customer credit records</li>
+            <li><i class="fas fa-times-circle"></i> Difficulty generating business reports</li>
+            <li><i class="fas fa-times-circle"></i> Limited visibility into performance</li>
+            <li><i class="fas fa-times-circle"></i> Staff accountability challenges</li>
+          </ul>
+        </div>
+        <div class="problem-image" style="background:#0b6e4f;border-radius:20px;padding:30px;text-align:center;color:#fff;">
+          <i class="fas fa-prescription-bottle-medical" style="font-size:80px;margin-bottom:16px;"></i>
+          <h3 style="font-size:20px;margin-bottom:12px;">Dawa Smart solves these problems</h3>
+          <p style="font-size:14px;opacity:0.9;">One system. Full visibility. Complete control.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Features ===== -->
+  <section class="section features" id="features">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Everything You Need — In One System</h2>
+        <p class="section-subtitle">Dawa Smart covers every aspect of pharmacy operations.</p>
+      </div>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="feature-icon"><i class="fas fa-cash-register"></i></div>
+          <h3>POS &amp; Sales</h3>
+          <p>Fast checkout with barcode scanning and multiple payment methods.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><i class="fas fa-boxes"></i></div>
+          <h3>Inventory Management</h3>
+          <p>Real-time stock tracking with batch and expiry monitoring.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><i class="fas fa-chart-line"></i></div>
+          <h3>Pricing &amp; Profitability</h3>
+          <p>Monitor selling prices, buying costs and profit margins.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><i class="fas fa-wallet"></i></div>
+          <h3>Expense Tracking</h3>
+          <p>Record and categorise daily business expenses.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><i class="fas fa-user-md"></i></div>
+          <h3>Patient Records</h3>
+          <p>Complete patient management with credit limits and medical history.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><i class="fas fa-vial"></i></div>
+          <h3>Laboratory Management</h3>
+          <p>Order, track and record lab test results.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><i class="fas fa-users"></i></div>
+          <h3>Staff Management</h3>
+          <p>Role-based user accounts with access control.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><i class="fas fa-chart-bar"></i></div>
+          <h3>Reports &amp; Analytics</h3>
+          <p>Daily, weekly, monthly and yearly business analysis.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><i class="fas fa-file-invoice"></i></div>
+          <h3>eTIMS Receipts</h3>
+          <p>KRA-compliant tax invoices with QR-ready formatting.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><i class="fas fa-mobile-alt"></i></div>
+          <h3>M-Pesa Payments</h3>
+          <p>Accept M-Pesa and card payments directly from the POS.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><i class="fas fa-database"></i></div>
+          <h3>Drug Database</h3>
+          <p>500+ Kenyan drugs searchable by name, generic or category.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><i class="fas fa-cloud-download-alt"></i></div>
+          <h3>Backup &amp; Restore</h3>
+          <p>Export and restore all pharmacy data as JSON files.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Screenshot Showcase ===== -->
+  <section class="section-sm showcase">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">See Dawa Smart in Action</h2>
+      </div>
+      <div class="showcase-grid">
+        <div class="showcase-item">
+          <div class="showcase-image"><i class="fas fa-tachometer-alt" style="font-size:40px;"></i><br>Dashboard</div>
+          <div class="showcase-content">
+            <h4>Dashboard</h4>
+            <p>Today's sales, revenue, products and stock value at a glance.</p>
+          </div>
+        </div>
+        <div class="showcase-item">
+          <div class="showcase-image"><i class="fas fa-cash-register" style="font-size:40px;"></i><br>POS Interface</div>
+          <div class="showcase-content">
+            <h4>Point of Sale</h4>
+            <p>Fast checkout with product search, cart and payment processing.</p>
+          </div>
+        </div>
+        <div class="showcase-item">
+          <div class="showcase-image"><i class="fas fa-boxes" style="font-size:40px;"></i><br>Inventory</div>
+          <div class="showcase-content">
+            <h4>Inventory</h4>
+            <p>Manage products, categories, batches and expiry dates.</p>
+          </div>
+        </div>
+        <div class="showcase-item">
+          <div class="showcase-image"><i class="fas fa-chart-bar" style="font-size:40px;"></i><br>Reports</div>
+          <div class="showcase-content">
+            <h4>Reports</h4>
+            <p>Generate sales, expense and professional analysis reports.</p>
+          </div>
+        </div>
+        <div class="showcase-item">
+          <div class="showcase-image"><i class="fas fa-user-injured" style="font-size:40px;"></i><br>Patients</div>
+          <div class="showcase-content">
+            <h4>Patients</h4>
+            <p>Track customer credit, medical history and insurance.</p>
+          </div>
+        </div>
+        <div class="showcase-item">
+          <div class="showcase-image"><i class="fas fa-users-cog" style="font-size:40px;"></i><br>Users</div>
+            <div class="showcase-content">
+            <h4>Staff</h4>
+            <p>Role-based user accounts with controlled access.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== How It Works ===== -->
+  <section class="section how-it-works" id="how-it-works">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">How It Works</h2>
+        <p class="section-subtitle">Four simple steps to get started.</p>
+      </div>
+      <div class="how-grid">
+        <div class="how-step">
+          <div class="step-number">1</div>
+          <h3>Set Up Your Pharmacy</h3>
+          <p>Enter your pharmacy details, KRA PIN and VAT rate. No installation required — runs in your browser.</p>
+        </div>
+        <div class="how-step">
+          <div class="step-number">2</div>
+          <h3>Add Products &amp; Stock</h3>
+          <p>Import or search 500+ Kenyan drugs. Add stock with batch numbers, quantities and expiry dates.</p>
+        </div>
+        <div class="how-step">
+          <div class="step-number">3</div>
+          <h3>Record Sales &amp; Operations</h3>
+          <p>Process sales, track expenses, manage patients and lab tests from one interface.</p>
+        </div>
+        <div class="how-step">
+          <div class="step-number">4</div>
+          <h3>Monitor Reports</h3>
+          <p>View daily, weekly and monthly reports to understand your pharmacy performance.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Benefits ===== -->
+  <section class="section benefits" id="benefits">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">More Control. Better Organization.</h2>
+        <p class="section-subtitle">Dawa Smart gives you the tools you need to run your pharmacy efficiently.</p>
+      </div>
+      <ul class="benefit-list">
+        <li class="benefit-item">
+          <i class="fas fa-check"></i>
+          <span class="benefit-text">Know exactly what is happening in your pharmacy — sales, stock and expenses in real time.</span>
+        </li>
+        <li class="benefit-item">
+          <i class="fas fa-check"></i>
+          <span class="benefit-text">Keep stock organized with batch tracking and expiry date monitoring.</span>
+        </li>
+        <li class="benefit-item">
+          <i class="fas fa-check"></i>
+          <span class="benefit-text">Track sales instantly and see which products are moving.</span>
+        </li>
+        <li class="benefit-item">
+          <i class="fas fa-check"></i>
+          <span class="benefit-text">Monitor business expenses by category and date.</span>
+        </li>
+        <li class="benefit-item">
+          <i class="fas fa-check"></i>
+          <span class="benefit-text">Manage customer credit and payment terms with confidence.</span>
+        </li>
+        <li class="benefit-item">
+          <i class="fas fa-check"></i>
+          <span class="benefit-text">Create and manage staff accounts with role-based access control.</span>
+        </li>
+        <li class="benefit-item">
+          <i class="fas fa-check"></i>
+          <span class="benefit-text">Generate useful reports for daily, weekly and monthly business insight.</span>
+        </li>
+        <li class="benefit-item">
+          <i class="fas fa-check"></i>
+          <span class="benefit-text">Keep all important pharmacy information — receipts, patients, lab tests — organized in one place.</span>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ===== Who It's For ===== -->
+  <section class="section who">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Who Is Dawa Smart For?</h2>
+        <p class="section-subtitle">Built for Kenyan pharmacy businesses of all sizes.</p>
+      </div>
+      <div class="who-grid">
+        <div class="who-card">
+          <i class="fas fa-clinic-medical"></i>
+          <h3>Pharmacies</h3>
+          <p>Retail and wholesale pharmacies managing daily dispensing and sales.</p>
+        </div>
+        <div class="who-card">
+          <i class="fas fa-store"></i>
+          <h3>Chemists</h3>
+          <p>UCSF-registered chemists and medicine outlets.</p>
+        </div>
+        <div class="who-card">
+          <i class="fas fa-user-tie"></i>
+          <h3>Pharmacy Owners</h3>
+          <p>Owners who want full visibility into their business performance.</p>
+        </div>
+        <div class="who-card">
+          <i class="fas fa-user-cog"></i>
+          <h3>Pharmacy Managers</h3>
+          <p>Managers looking for efficient daily operations tools.</p>
+        </div>
+        <div class="who-card">
+          <i class="fas fa-seedling"></i>
+          <h3>Growing Businesses</h3>
+          <p>Small to medium pharmacy chains ready to digitize.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== CTA ===== -->
+  <section class="section cta">
+    <div class="container">
+      <h2>Ready to Take Your Pharmacy Digital?</h2>
+      <p class="cta-text">See how Dawa Smart can help you organize your pharmacy operations. Try the 14-day free demo — no credit card required.</p>
+      <div class="cta-buttons">
+        <a href="app.html" class="btn btn-primary">Explore Dawa Smart</a>
+        <a href="https://wa.me/254759324463?text=Hello%2C%20I%20am%20interested%20in%20Dawa%20Smart%20Pharmacy%20Management%20System.%20I%20would%20like%20to%20see%20a%20demo%20and%20learn%20more." class="btn btn-outline">Talk to Us</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FAQ ===== -->
+  <section class="section faq" id="faq">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Frequently Asked Questions</h2>
+      </div>
+      <div class="faq-grid">
+        <div class="faq-item">
+          <div class="faq-question">
+            What is Dawa Smart? <i class="fas fa-chevron-down"></i>
+          </div>
+          <div class="faq-answer">
+            Dawa Smart is a browser-based pharmacy management system that helps pharmacies manage sales, inventory, expenses, patient records, laboratory tests and business reports.
+          </div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-question">
+            Who can use Dawa Smart? <i class="fas fa-chevron-down"></i>
+          </div>
+          <div class="faq-answer">
+            Dawa Smart is designed for pharmacy owners, pharmacy managers, chemists and pharmacy staff in Kenya.
+          </div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-question">
+            What can I manage with Dawa Smart? <i class="fas fa-chevron-down"></i>
+          </div>
+          <div class="faq-answer">
+            You can manage POS sales, product inventory, batch tracking, patient records, credit ledgers, lab tests, expenses, staff users and business reports.
+          </div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-question">
+            Can I manage pharmacy stock? <i class="fas fa-chevron-down"></i>
+          </div>
+          <div class="faq-answer">
+            Yes. Dawa Smart tracks real-time stock levels, batch numbers, selling prices, buying costs and expiry dates. You receive alerts for low stock and near-expiry items.
+          </div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-question">
+            Can I track sales and expenses? <i class="fas fa-chevron-down"></i>
+          </div>
+          <div class="faq-answer">
+            Yes. Every sale is recorded with receipt number, payment method and cashier. Expenses are categorised by type, date and amount for accurate reporting.
+          </div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-question">
+            Can I manage staff? <i class="fas fa-chevron-down"></i>
+          </div>
+          <div class="faq-answer">
+            Yes. You can create user accounts with role-based access control — developers, admins and cashiers each see only what they need.
+          </div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-question">
+            Can I generate reports? <i class="fas fa-chevron-down"></i>
+          </div>
+          <div class="faq-answer">
+            Yes. Dawa Smart generates daily, weekly, monthly and yearly reports covering revenue, expenses, profit, top-selling products, payment methods and professional analysis.
+          </div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-question">
+            How do I get started? <i class="fas fa-chevron-down"></i>
+          </div>
+          <div class="faq-answer">
+            Click "Open App" or "Explore Dawa Smart", then log in with the DEMO credentials. A 14-day free trial starts when you make your first sale. No installation required — it runs in your browser.
+          </div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-question">
+            Does Dawa Smart require internet? <i class="fas fa-chevron-down"></i>
+          </div>
+          <div class="faq-answer">
+            Dawa Smart works offline. Data is stored in your browser using IndexedDB. An internet connection is only needed for the initial page load or exporting data.
+          </div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-question">
+            Is my data secure? <i class="fas fa-chevron-down"></i>
+          </div>
+          <div class="faq-answer">
+            All data stays in your browser. Dawa Smart does not send data to external servers, and license/trial information is stored separately and excluded from backups.
+          </div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-question">
+            What is the 14-day demo? <i class="fas fa-chevron-down"></i>
+          </div>
+            <div class="faq-answer">
+            The 14-day demo gives you full access to try every feature. The trial starts on your first sale, not on login. If it expires, you can reset it to start fresh.
+          </div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-question">
+            Does Dawa Smart support M-Pesa? <i class="fas fa-chevron-down"></i>
+          </div>
+          <div class="faq-answer">
+            Yes. Dawa Smart supports M-Pesa, Airtel Money, card and cash payment methods, plus credit sales with customer ledger tracking.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Contact ===== -->
+  <section class="section contact" id="contact">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Get in Touch</h2>
+        <p class="section-subtitle">Have questions? Reach out and we'll help you get started.</p>
+      </div>
+      <div class="contact-grid">
+        <div class="contact-info">
+          <h3>Contact Information</h3>
+          <ul class="contact-list">
+            <li><i class="fab fa-whatsapp"></i> WhatsApp: <a href="https://wa.me/254759324463?text=Hello%2C%20I%20am%20interested%20in%20Dawa%20Smart%20Pharmacy%20Management%20System.%20I%20would%20like%20to%20see%20a%20demo%20and%20learn%20more." target="_blank">0759 324 463</a></li>
+            <li><i class="fas fa-phone"></i> Phone: 0759 324 463</li>
+            <li><i class="fas fa-envelope"></i> Email: <a href="mailto:sales@dawasmartz.co.ke?subject=Dawa%20Smart%20Inquiry">sales@dawasmartz.co.ke</a></li>
+            <li><i class="fas fa-map-marker-alt"></i> 7 Cheptais, Kenya</li>
+          </ul>
+          <p class="contact-note" style="font-size:12px;color:#94a3b8;margin-top:20px;">
+            Or simply open Dawa Smart and start using the 14-day demo. No signup required.
+          </p>
+          <div style="margin-top:20px;">
+            <a href="app.html" class="btn btn-primary" style="padding:12px 24px;">Open Dawa Smart Now</a>
+          </div>
+        </div>
+        <div class="contact-form-container">
+          <div class="form-group">
+            <input type="text" id="leadName" placeholder="Your name">
+          </div>
+          <div class="form-group">
+            <input type="tel" id="leadPhone" placeholder="Phone number (optional)">
+          </div>
+          <div class="form-group">
+            <input type="email" id="leadEmail" placeholder="Email address (optional)">
+          </div>
+          <div class="form-group">
+            <textarea id="leadMessage" placeholder="Your message" rows="4" style="resize:vertical;"></textarea>
+          </div>
+          <button class="btn-submit" onclick="sendLeadInquiry()">Send via WhatsApp</button>
+          <p class="contact-note">This form sends your inquiry to our WhatsApp number. We do not store your details.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== WhatsApp Float ===== -->
+  <a href="https://wa.me/254759324463?text=Hello%2C%20I%20am%20interested%20in%20Dawa%20Smart%20Pharmacy%20Management%20System.%20I%20would%20like%20to%20see%20a%20demo%20and%20learn%20more." class="whatsapp-float" target="_blank">
+    <i class="fab fa-whatsapp"></i>
+  </a>
+
+  <!-- ===== Footer ===== -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <h4>Dawa Smart</h4>
+          <p style="font-size:13px;color:#64748b;margin-bottom:16px;">Smart Pharmacy Management. Simplified.</p>
+          <p style="font-size:12px;color:#64748b;">© <span id="currentYear"></span> Dawa Smart. All rights reserved.</p>
+        </div>
+        <div class="footer-col">
+          <h4>Quick Links</h4>
+          <ul>
+            <li><a href="#features">Features</a></li>
+            <li><a href="#how-it-works">How It Works</a></li>
+            <li><a href="#benefits">Benefits</a></li>
+            <li><a href="#faq">FAQ</a></li>
+            <li><a href="#contact">Contact</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>App</h4>
+          <ul>
+            <li><a href="app.html">Open Dawa Smart</a></li>
+            <li><a href="manifest.json">PWA Manifest</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Legal</h4>
+          <ul>
+            <li><a href="LICENSE">License</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        Dawa Smart v1.0.0 · Made in Kenya
+      </div>
+    </div>
+  </footer>
+
+  <!-- Landing page script -->
+  <script>
+    'use strict';
+
+    // Set current year
+    document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+    // Mobile menu toggle
+    var hamburger = document.getElementById('hamburger');
+    var navLinks = document.getElementById('navLinks');
+    if (hamburger) {
+      hamburger.addEventListener('click', function() {
+        navLinks.classList.toggle('open');
+        this.classList.toggle('open');
+      });
+    }
+
+    // Close mobile menu on link click
+    var navLinksList = document.querySelectorAll('.nav-link, .cta-buttons a');
+    navLinksList.forEach(function(link) {
+      link.addEventListener('click', function() {
+        if (navLinks && navLinks.classList.contains('open')) {
+          navLinks.classList.remove('open');
+          if (hamburger) hamburger.classList.remove('open');
+        }
+      });
+    });
+
+    // FAQ toggle
+    var faqQuestions = document.querySelectorAll('.faq-question');
+    faqQuestions.forEach(function(q) {
+      q.addEventListener('click', function() {
+        var item = this.parentElement;
+        item.classList.toggle('active');
+        // Close others
+        faqQuestions.forEach(function(other) {
+          if (other !== q) {
+            other.parentElement.classList.remove('active');
+          }
+        });
+      });
+    });
+
+    // Highlight active nav link
+    var currentHash = window.location.hash || '#hero';
+    var navLinks = document.querySelectorAll('.nav-link');
+    navLinks.forEach(function(link) {
+      var href = link.getAttribute('href');
+      if (href === currentHash) {
+        link.classList.add('active');
+      } else {
+        link.classList.remove('active');
+      }
+    });
+
+    // Lead inquiry - sends to WhatsApp
+    function sendLeadInquiry() {
+      var name = document.getElementById('leadName').value.trim();
+      var phone = document.getElementById('leadPhone').value.trim();
+      var email = document.getElementById('leadEmail').value.trim();
+      var message = document.getElementById('leadMessage').value.trim();
+
+      if (!name) {
+        alert('Please enter your name.');
+        return;
+      }
+
+      var text = 'Hello, my name is ' + name + '. I am interested in Dawa Smart Pharmacy Management System.';
+
+      if (phone) text += ' Phone: ' + phone + '.';
+      if (email) text += ' Email: ' + email + '.';
+      if (message) text += ' Message: ' + message + '.';
+
+      var url = 'https://wa.me/254759324463?text=' + encodeURIComponent(text);
+      window.open(url, '_blank');
+    }
+
+    // Lazy load: ensure hero image loads after initial render
+    window.addEventListener('load', function() {
+      var heroImg = document.querySelector('.hero-image img');
+      if (heroImg && heroImg.complete) {
+        // Image loaded fine
+      }
+    });
+
+    // Nav shrink on scroll
+    var nav = document.getElementById('topNav');
+    if (nav) {
+      window.addEventListener('scroll', function() {
+        if (window.scrollY > 20) {
+          nav.classList.add('scrolled');
+        } else {
+          nav.classList.remove('scrolled');
+        }
+      });
+    }
+
+    // Active section highlighting
+    var sections = document.querySelectorAll('section[id]');
+    var navLinks = document.querySelectorAll('.nav-link');
+    if (sections.length && navLinks.length) {
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          var id = entry.target.getAttribute('id');
+          var link = document.querySelector('.nav-link[href="#' + id + '"]');
+          if (entry.isIntersecting && link) {
+            navLinks.forEach(function(l) { l.classList.remove('active'); });
+            link.classList.add('active');
+          }
+        });
+      }, { threshold: 0.3 });
+      sections.forEach(function(s) { observer.observe(s); });
+    }
+  </script>
+
+</body>
+</html>
