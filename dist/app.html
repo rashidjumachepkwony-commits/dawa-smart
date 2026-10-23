@@ -46,6 +46,30 @@
     .admin-table th,.admin-table td{padding:8px 12px;border:1px solid #e2e8f0;text-align:left}
     .admin-table th{background:#f8fafc;font-weight:600;color:#0f172a}
     .admin-table tbody tr:nth-child(even){background:#f8fafc}
+
+    /* Premium Landing Page */
+    .landing-hero{background:linear-gradient(135deg,#0b6e4f 0%,#08543b 100%);border-radius:24px;padding:48px;text-align:center;color:#fff;margin-bottom:24px;box-shadow:0 20px 60px rgba(11,110,79,0.3)}
+    .landing-hero h1{font-size:36px;font-weight:800;margin:0 0 12px;line-height:1.2}
+    .landing-hero .tagline{font-size:18px;font-weight:500;opacity:0.9;margin-bottom:24px}
+    .hero-buttons{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-top:24px}
+    .btn-hero{flex:1;min-width:180px;padding:16px 24px;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;border:none;transition:all 0.2s}
+    .btn-hero:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,0.15)}
+    .btn-cta-primary{background:#fff;color:#0b6e4f}
+    .btn-cta-secondary{background:#1e3a8a;color:#fff;border:2px solid #3b82f6}
+    .btn-cta-tertiary{background:#f59e0b;color:#1e293b}
+    .features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:32px 0}
+    .feature-card{background:#f8fafc;border-radius:14px;padding:20px;text-align:center;border:1px solid #e2e8f0}
+    .feature-card i{font-size:28px;color:#0b6e4f;margin-bottom:8px}
+    .feature-card h3{font-size:14px;font-weight:600;color:#0f172a;margin:8px 0}
+    .feature-card p{font-size:11px;color:#64748b}
+    .contact-bar{background:#1e293b;border-radius:16px;padding:24px;text-align:center;margin:24px 0}
+    .contact-bar .phone{font-size:24px;font-weight:800;color:#10b981}
+    .contact-bar .label{font-size:12px;color:#94a3b8;margin-top:4px}
+    .contact-bar a{color:#f59e0b;text-decoration:none;font-weight:600}
+    .dashboard-preview{background:#f0f9ff;border-radius:18px;padding:24px;margin:24px 0;border:2px dashed #bfdbfe}
+    .preview-placeholder{background:#fff;border-radius:12px;height:200px;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:14px}
+    .section-title{text-align:center;font-size:14px;font-weight:700;color:#0f172a;margin:20px 0 12px;text-transform:uppercase;letter-spacing:0.5px}
+    .section-subtitle{text-align:center;font-size:12px;color:#64748b;margin-bottom:24px}
     .error-msg{background:#fee2e2;color:#b91c1c;padding:10px;border-radius:10px;margin-bottom:16px;display:none;font-size:13px;text-align:center}
     .app-container{display:none;background:#f4f7fc;min-height:100vh}
     .app-container.show{display:block}
@@ -322,37 +346,67 @@
 
 <!-- LOGIN -->
 <div id="loginPage" class="login-container">
-  <div class="login-box">
-    <div class="logo-text"><i class="fas fa-prescription-bottle-medical"></i></div>
-     <h1 id="loginTitle">Dawa Smart</h1>
-     <p class="sub">Smart Pharmacy Management Suite</p>
-     <div class="demo-badge-container" style="background:#f0fdf4;border:2px solid #16a34a;border-radius:16px;padding:14px 16px;margin:14px 0;text-align:center;">
-       <div style="font-size:13px;font-weight:700;color:#15803d;margin-bottom:4px;">14-DAY FREE DEMO</div>
-       <div style="font-size:11px;color:#64748b;">Demo account contains sample data.</div>
-     </div>
-     <div id="loginError" class="error-msg"></div>
-     <div id="loginForm" class="login-form">
-       <div class="form-group"><label>Username</label><input type="text" id="loginUsername" placeholder="DEMO" value="DEMO"></div>
-       <div class="form-group">
-         <label>Password</label>
-         <div class="password-wrapper">
-           <input type="password" id="loginPassword" placeholder="DEMO2026" value="DEMO2026">
-           <button class="toggle-password" onclick="togglePassword('loginPassword', this)" type="button"><i class="fas fa-eye"></i></button>
-         </div>
-       </div>
-        <button class="btn-login" onclick="handleLogin()"><i class="fas fa-sign-in-alt"></i> LOGIN TO DEMO</button>
-        <button class="btn-login btn-admin" onclick="fillAdminLogin()"><i class="fas fa-user-shield"></i> ADMIN LOGIN</button>
-        <div id="resetDemoBtnContainer" style="display:none;text-align:center;margin-top:12px;">
-          <button class="btn btn-sm" onclick="resetDemoTrialAndReload()" style="background:#f59e0b;color:#1e293b;font-weight:600;">
-            <i class="fas fa-redo"></i> Reset Demo Trial
-          </button>
-          <div style="font-size:10px;color:#94a3b8;margin-top:4px;">Demo expired? Reset to start a fresh 14-day trial.</div>
+  <div class="login-box" style="max-width:720px">
+
+    <!-- HERO SECTION -->
+    <div class="landing-hero">
+      <div class="logo-text" style="margin-bottom:16px"><i class="fas fa-prescription-bottle-medical" style="font-size:48px;color:#fff;"></i></div>
+      <h1>RUN YOUR PHARMACY SMARTER</h1>
+      <div class="tagline">DAWA SMART helps pharmacies manage sales, stock, expenses, customers, staff and daily operations from one powerful system.</div>
+      <div class="hero-buttons">
+        <button class="btn-hero btn-cta-primary" onclick="scrollToLogin()"><i class="fas fa-rocket"></i> Explore Dawa Smart</button>
+        <button class="btn-hero btn-cta-secondary" onclick="openWhatsAppChat()"><i class="fab fa-whatsapp"></i> Request a Demo</button>
+        <button class="btn-hero btn-cta-tertiary" onclick="scrollToLogin()"><i class="fas fa-play-circle"></i> Open App</button>
+      </div>
+    </div>
+
+    <!-- FEATURES -->
+    <div class="section-title">Why Dawa Smart?</div>
+    <p class="section-subtitle">Everything you need to run a modern, compliant pharmacy from one premium platform.</p>
+    <div class="features-grid">
+      <div class="feature-card"><i class="fas fa-chart-line"></i><h3>Sales & POS</h3><p>Fast point-of-sale with real-time inventory sync, receipts, and KRA eTIMS integration.</p></div>
+      <div class="feature-card"><i class="fas fa-boxes"></i><h3>Smart Stock</h3><p>Track batches, expiry dates, and automated reorder alerts across multiple suppliers.</p></div>
+      <div class="feature-card"><i class="fas fa-wallet"></i><h3>Expenses & Analytics</h3><p>Record expenses, track profit margins, and generate comprehensive financial reports.</p></div>
+      <div class="feature-card"><i class="fas fa-user-md"></i><h3>Patient Records</h3><p>Manage customer profiles, credit balances, and medical history with SHA/NHIF support.</p></div>
+      <div class="feature-card"><i class="fas fa-users-cog"></i><h3>Staff Management</h3><p>Role-based access control, multi-tenant support, and granular permission settings.</p></div>
+      <div class="feature-card"><i class="fas fa-cloud-upload-alt"></i><h3>Cloud Sync</h3><p>Seamless offline-to-online sync across multiple devices with real-time collaboration.</p></div>
+    </div>
+
+    <!-- DASHBOARD PREVIEW -->
+    <div class="dashboard-preview">
+      <div class="preview-placeholder"><div style="text-align:center"><i class="fas fa-desktop" style="font-size:48px;color:#cbd5e1;margin-bottom:8px;"></i><div style="font-size:14px">Premium dashboard preview</div></div></div>
+    </div>
+
+    <!-- CONTACT BAR -->
+    <div class="contact-bar">
+      <div class="section-title" style="color:#f1f5f3;margin-bottom:16px;text-transform:uppercase;letter-spacing:1px;font-size:12px">Contact Us</div>
+      <div class="phone">📞 0759324463</div>
+      <div class="label">WhatsApp &amp; Call Support</div>
+      <div style="margin-top:8px"><a href="https://wa.me/254759324463" target="_blank" style="display:inline-block;background:#22c55e;color:#fff;padding:8px 20px;border-radius:8px;font-weight:600;text-decoration:none"><i class="fab fa-whatsapp"></i> Chat on WhatsApp</a></div>
+      <div class="label" style="margin-top:12px">📍 7 Cheptais Road, Nairobi, Kenya</div>
+    </div>
+
+    <!-- LOGIN FORM -->
+    <div style="background:#f8fafc;border-radius:16px;padding:24px;border:1px solid #e2e8f0">
+      <div id="loginError" class="error-msg"></div>
+      <div id="loginForm">
+        <div class="demo-badge-container" style="background:#f0fdf4;border:2px solid #16a34a;border-radius:16px;padding:14px 16px;margin:14px 0;text-align:center;">
+          <div style="font-size:13px;font-weight:700;color:#15803d">14-DAY FREE DEMO</div>
+          <div style="font-size:11px;color:#64748b">Enter DEMO / DEMO2026 to explore with sample data</div>
         </div>
-        <div style="text-align:center;margin-top:16px;font-size:12px;color:#94a3b8;">
-         <span id="loginDemoHint" style="display:none;color:#16a34a;font-weight:600;">Demo credentials auto-filled above.</span>
-         <div style="margin-top:8px;">Have a production account? Enter your credentials above.</div>
-       </div>
-     </div>
+        <div class="form-group"><label style="font-weight:600;color:#0f172a">Username</label><input type="text" id="loginUsername" placeholder="Enter username" value="DEMO" style="padding:12px;border:2px solid #e2e8f0;border-radius:10px;font-size:14px;width:100%"></div>
+        <div class="form-group">
+          <label style="font-weight:600;color:#0f172a">Password</label>
+          <div class="password-wrapper">
+            <input type="password" id="loginPassword" placeholder="Enter password" value="DEMO2026" style="padding:12px;border:2px solid #e2e8f0;border-radius:10px;font-size:14px;width:100%">
+            <button class="toggle-password" onclick="togglePassword('loginPassword', this)" type="button"><i class="fas fa-eye"></i></button>
+          </div>
+        </div>
+        <button class="btn-login" onclick="handleLogin()"><i class="fas fa-sign-in-alt"></i> LOGIN</button>
+        <div style="text-align:center;margin-top:12px;font-size:12px;color:#94a3b8">Admin? Enter your credentials above to access the admin panel.</div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -768,7 +822,7 @@
       <div style="margin-bottom:16px;">
         <h3 style="font-size:14px;color:#0f172a;margin-bottom:8px;"><i class="fas fa-store" style="color:#0b6e4f;"></i> Pharmacy Details</h3>
          <div class="form-group"><label>Pharmacy Name *</label><input type="text" id="shopName" value="Dawa Smart" style="max-width:100%;"></div>
-         <div class="form-group"><label>Address</label><input type="text" id="shopAddress" value="7 Cheptais · 📞 0740289362" style="max-width:100%;"></div>
+         <div class="form-group"><label>Address</label><input type="text" id="shopAddress" value="7 Cheptais · 📞 0759324463" style="max-width:100%;"></div>
          <div class="form-group"><label>KRA PIN</label><input type="text" id="kraPin" value="P-2025-001" style="max-width:160px;"></div>
          <div class="form-group"><label>Receipt Footer</label><input type="text" id="receiptFooter" value="Thank you for choosing Dawa Smart!" style="max-width:100%;"></div>
          <div class="form-group"><label>VAT Rate (%)</label><input type="number" id="vatRate" value="0" style="max-width:100px;" step="0.01"></div>
@@ -799,7 +853,7 @@
        </div>
        <div style="border-top:1px solid #f1f5f9;padding-top:14px;margin-top:14px;">
           <h3 style="font-size:14px;color:#0f172a;margin-bottom:8px;"><i class="fas fa-info-circle" style="color:#0b6e4f;"></i> About</h3>
-          <p style="font-size:12px;color:#64748b;">Dawa Smart v<span id="appVersionDisplay">1.0.0</span> · KRA eTIMS Ready · SHA/NHIF<br>📍 7 Cheptais · 📞 0740289362</p>
+          <p style="font-size:12px;color:#64748b;">Dawa Smart v<span id="appVersionDisplay">1.0.0</span> · KRA eTIMS Ready · SHA/NHIF<br>📍 7 Cheptais · 📞 0759324463</p>
           <p style="font-size:11px;color:#94a3b8;margin-top:4px;">Licensed Software · Developer: +254 740 289 362</p>
        </div>
     </div>
@@ -1379,7 +1433,7 @@ const db = {
 class ReceiptFormatter {
     constructor() {
         this.shopName = localStorage.getItem('yetu_shop_name') || 'Dawa Smart';
-        this.address = localStorage.getItem('yetu_shop_address') || '7 Cheptais · 📞 0740289362';
+        this.address = localStorage.getItem('yetu_shop_address') || '7 Cheptais · 📞 0759324463';
         this.kraPin = localStorage.getItem('yetu_kra_pin') || 'P-2025-001';
         this.footer = localStorage.getItem('yetu_receipt_footer') || 'Thank you for choosing Dawa Smart!';
         this.vatRate = parseFloat(localStorage.getItem('yetu_vat_rate')) || 0;
@@ -1956,14 +2010,14 @@ function loadPharmacySettings() {
         ? window.DawaTenant.getCurrentPharmacyId() : null;
     var storageKey = pharmId ? 'yetu_pharmacy_' + pharmId : 'yetu_pharmacy';
     const stored = localStorage.getItem(storageKey);
-    if (stored) { try { const settings = JSON.parse(stored); document.getElementById('shopName').value = settings.name || 'Dawa Smart'; document.getElementById('shopAddress').value = settings.address || '7 Cheptais · 📞 0740289362'; document.getElementById('kraPin').value = settings.kraPin || 'P-2025-001'; document.getElementById('receiptFooter').value = settings.footer || 'Thank you for choosing Dawa Smart!'; document.getElementById('vatRate').value = settings.vatRate || 0; document.getElementById('headerPharmacyName').textContent = settings.name || 'Dawa Smart'; document.getElementById('currentPharmacyDisplay').textContent = settings.name || 'Dawa Smart'; document.getElementById('loginTitle').textContent = settings.name || 'Dawa Smart'; vatRate = parseFloat(settings.vatRate) || 0; document.getElementById('vatRateDisplay').textContent = vatRate; receiptFormatter.shopName = settings.name || 'Dawa Smart'; receiptFormatter.address = settings.address || '7 Cheptais · 📞 0740289362'; receiptFormatter.kraPin = settings.kraPin || 'P-2025-001'; receiptFormatter.footer = settings.footer || 'Thank you for choosing Dawa Smart!'; receiptFormatter.vatRate = vatRate; } catch(e) {} } }
+    if (stored) { try { const settings = JSON.parse(stored); document.getElementById('shopName').value = settings.name || 'Dawa Smart'; document.getElementById('shopAddress').value = settings.address || '7 Cheptais · 📞 0759324463'; document.getElementById('kraPin').value = settings.kraPin || 'P-2025-001'; document.getElementById('receiptFooter').value = settings.footer || 'Thank you for choosing Dawa Smart!'; document.getElementById('vatRate').value = settings.vatRate || 0; document.getElementById('headerPharmacyName').textContent = settings.name || 'Dawa Smart'; document.getElementById('currentPharmacyDisplay').textContent = settings.name || 'Dawa Smart'; document.getElementById('loginTitle').textContent = settings.name || 'Dawa Smart'; vatRate = parseFloat(settings.vatRate) || 0; document.getElementById('vatRateDisplay').textContent = vatRate; receiptFormatter.shopName = settings.name || 'Dawa Smart'; receiptFormatter.address = settings.address || '7 Cheptais · 📞 0759324463'; receiptFormatter.kraPin = settings.kraPin || 'P-2025-001'; receiptFormatter.footer = settings.footer || 'Thank you for choosing Dawa Smart!'; receiptFormatter.vatRate = vatRate; } catch(e) {} } }
 function updatePharmacyDisplay() { const name = document.getElementById('shopName').value || 'Dawa Smart'; document.getElementById('headerPharmacyName').textContent = name; document.getElementById('currentPharmacyDisplay').textContent = name; }
 function saveSettings(){ if(!adminGuard('save settings')) return;
     // Use tenant-scoped storage key
     var pharmId = (typeof window.DawaTenant !== 'undefined' && window.DawaTenant.getCurrentPharmacyId)
         ? window.DawaTenant.getCurrentPharmacyId() : null;
     var storageKey = pharmId ? 'yetu_pharmacy_' + pharmId : 'yetu_pharmacy';
-    const settings = { name: document.getElementById('shopName').value.trim() || 'Dawa Smart', address: document.getElementById('shopAddress').value.trim() || '7 Cheptais · 📞 0740289362', kraPin: document.getElementById('kraPin').value.trim() || 'P-2025-001', footer: document.getElementById('receiptFooter').value.trim() || 'Thank you for choosing Dawa Smart!', vatRate: parseFloat(document.getElementById('vatRate').value) || 0 }; localStorage.setItem(storageKey, JSON.stringify(settings)); vatRate = settings.vatRate; document.getElementById('vatRateDisplay').textContent = vatRate; receiptFormatter.shopName = settings.name; receiptFormatter.address = settings.address; receiptFormatter.kraPin = settings.kraPin; receiptFormatter.footer = settings.footer; receiptFormatter.vatRate = vatRate; updatePharmacyDisplay(); showToast('Settings saved!','success'); }
+    const settings = { name: document.getElementById('shopName').value.trim() || 'Dawa Smart', address: document.getElementById('shopAddress').value.trim() || '7 Cheptais · 📞 0759324463', kraPin: document.getElementById('kraPin').value.trim() || 'P-2025-001', footer: document.getElementById('receiptFooter').value.trim() || 'Thank you for choosing Dawa Smart!', vatRate: parseFloat(document.getElementById('vatRate').value) || 0 }; localStorage.setItem(storageKey, JSON.stringify(settings)); vatRate = settings.vatRate; document.getElementById('vatRateDisplay').textContent = vatRate; receiptFormatter.shopName = settings.name; receiptFormatter.address = settings.address; receiptFormatter.kraPin = settings.kraPin; receiptFormatter.footer = settings.footer; receiptFormatter.vatRate = vatRate; updatePharmacyDisplay(); showToast('Settings saved!','success'); }
 
 // ===== USER MANAGEMENT =====
 function loadUsers(){ 
@@ -3550,6 +3604,14 @@ window.renderAdminPanel = function(pharmacies, members) {
     }
     var panel = document.getElementById('adminPanel');
     if (panel) { panel.style.display = 'block'; }
+};
+
+window.scrollToLogin = function() {
+    document.getElementById('loginForm').scrollIntoView({ behavior: 'smooth' });
+};
+
+window.openWhatsAppChat = function() {
+    window.open('https://wa.me/254759324463', '_blank');
 };
 
 window.addEventListener('load', function(){
