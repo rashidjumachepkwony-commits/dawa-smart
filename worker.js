@@ -134,6 +134,25 @@ export default {
         return await handleSync(request, auth, env, corsHeaders);
       }
 
+      // ─── Admin Endpoints (Developer role only) ───
+      if (path === '/api/admin/pharmacies' && method === 'GET') {
+        const auth = await requireAuth(request, env);
+        if (auth.error) return jsonErrorResponse(auth.error, auth.status, corsHeaders);
+        if (auth.user.role !== 'developer') {
+          return jsonErrorResponse('Admin access required', 403, corsHeaders);
+        }
+        return await handleListAllPharmacies(auth, env, corsHeaders);
+      }
+
+      if (path === '/api/admin/members' && method === 'GET') {
+        const auth = await requireAuth(request, env);
+        if (auth.error) return jsonErrorResponse(auth.error, auth.status, corsHeaders);
+        if (auth.user.role !== 'developer') {
+          return jsonErrorResponse('Admin access required', 403, corsHeaders);
+        }
+        return await handleListAllMembers(auth, env, corsHeaders);
+      }
+
       // ─── Unknown Route ───
       return jsonResponse(404, { error: 'Not found' }, corsHeaders);
 
@@ -948,4 +967,30 @@ async function processSyncOperationSecure(env, user, pharmacyId, op) {
     default:
       throw new Error('Unknown operation: ' + operation);
   }
+}
+
+// ─── Admin: List All Pharmacies ─────────────────────────────────
+async function handleListAllPharmacies(auth, env, corsHeaders) {
+  const pharmacies = await supabaseFetch(env,
+    `/rest/v1/pharmacies?select=id,name,slug,status,owner_id,created_at`,
+    { headers: { 'Accept': 'application/json' } }
+  ).catch(() => []);
+
+  return jsonResponse(200, {
+    pharmacies: pharmacies || [],
+    count: Array.isArray(pharmacies) ? pharmacies.length : 0
+  }, corsHeaders);
+}
+
+// ─── Admin: List All Members ──────────────────────────────────────
+async function handleListAllMembers(auth, env, corsHeaders) {
+  const members = await supabaseFetch(env,
+    `/rest/v1/pharmacy_members?select=id,pharmacy_id,auth_user_id,email,role,status,created_at,pharmacy:pharmacies(id,name,slug)&order=created_at.desc`,
+    { headers: { 'Accept': 'application/json' } }
+  ).catch(() => []);
+
+  return jsonResponse(200, {
+    members: members || [],
+    count: Array.isArray(members) ? members.length : 0
+  }, corsHeaders);
 }

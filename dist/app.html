@@ -40,6 +40,12 @@
     .login-box .toggle-password:hover{color:#0b6e4f}
     .btn-login{width:100%;padding:14px;background:#0b6e4f;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;transition:0.2s}
     .btn-login:hover{background:#08543b;transform:translateY(-1px)}
+    .btn-admin{background:#1e3a8a;margin-top:10px}
+    .btn-admin:hover{background:#1e40af}
+    .admin-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+    .admin-table th,.admin-table td{padding:8px 12px;border:1px solid #e2e8f0;text-align:left}
+    .admin-table th{background:#f8fafc;font-weight:600;color:#0f172a}
+    .admin-table tbody tr:nth-child(even){background:#f8fafc}
     .error-msg{background:#fee2e2;color:#b91c1c;padding:10px;border-radius:10px;margin-bottom:16px;display:none;font-size:13px;text-align:center}
     .app-container{display:none;background:#f4f7fc;min-height:100vh}
     .app-container.show{display:block}
@@ -335,6 +341,7 @@
          </div>
        </div>
         <button class="btn-login" onclick="handleLogin()"><i class="fas fa-sign-in-alt"></i> LOGIN TO DEMO</button>
+        <button class="btn-login btn-admin" onclick="fillAdminLogin()"><i class="fas fa-user-shield"></i> ADMIN LOGIN</button>
         <div id="resetDemoBtnContainer" style="display:none;text-align:center;margin-top:12px;">
           <button class="btn btn-sm" onclick="resetDemoTrialAndReload()" style="background:#f59e0b;color:#1e293b;font-weight:600;">
             <i class="fas fa-redo"></i> Reset Demo Trial
@@ -370,7 +377,8 @@
     <button data-page="pricing" title="Pricing: review costs, prices, and margins" aria-label="Pricing"><i class="fas fa-chart-pie"></i> Pricing</button>
     <button data-page="expenses" title="Expenses: record and review business expenses" aria-label="Expenses"><i class="fas fa-wallet"></i> Expenses</button>
     <button data-page="analysis" title="Analysis: view sales, profit, and expense insights" aria-label="Analysis"><i class="fas fa-chart-line"></i> Analysis</button>
-    <button data-page="credits" title="Credits: manage customer balances and payments" aria-label="Credits"><i class="fas fa-hand-holding-usd"></i> Credits</button>
+     <button data-page="credits" title="Credits: manage customer balances and payments" aria-label="Credits"><i class="fas fa-hand-holding-usd"></i> Credits</button>
+     <button id="adminNavBtn" data-page="admin" title="Admin: multi-tenant management" aria-label="Admin" style="display:none;"><i class="fas fa-user-shield"></i> Admin</button>
     <button data-page="patients" title="EMR: manage patient and customer records" aria-label="EMR"><i class="fas fa-user-md"></i> EMR</button>
     <button data-page="lab" title="Lab: manage laboratory tests and results" aria-label="Laboratory"><i class="fas fa-flask"></i> Lab</button>
     <button data-page="users" title="Users: manage staff accounts and access" aria-label="Users"><i class="fas fa-user-shield"></i> Users</button>
@@ -795,9 +803,34 @@
           <p style="font-size:11px;color:#94a3b8;margin-top:4px;">Licensed Software · Developer: +254 740 289 362</p>
        </div>
     </div>
-  </div>
+   </div>
 
-  <!-- MODALS -->
+   <!-- ADMIN PANEL -->
+   <div id="page-admin" class="page">
+     <div class="card" id="adminPanel" style="display:none;">
+       <div class="card-title"><i class="fas fa-user-shield"></i> Multi-Tenant Admin Console</div>
+       <div style="margin-bottom:16px;">
+         <h3 style="font-size:14px;color:#0f172a;margin-bottom:8px;"><i class="fas fa-building"></i> All Pharmacies (Tenants)</h3>
+         <div id="adminPharmacyTable" style="overflow-x:auto;">
+           <table class="admin-table">
+             <thead><tr><th>ID</th><th>Name</th><th>Slug</th><th>Status</th><th>Created</th></tr></thead>
+             <tbody id="adminPharmacyList"></tbody>
+           </table>
+         </div>
+       </div>
+       <div>
+         <h3 style="font-size:14px;color:#0f172a;margin-bottom:8px;"><i class="fas fa-users"></i> All Members</h3>
+         <div id="adminMemberTable" style="overflow-x:auto;">
+           <table class="admin-table">
+             <thead><tr><th>User ID</th><th>Email</th><th>Role</th><th>Status</th><th>Pharmacy</th></tr></thead>
+             <tbody id="adminMemberList"></tbody>
+           </table>
+         </div>
+       </div>
+     </div>
+   </div>
+
+   <!-- MODALS -->
   <div id="productModal" class="modal"><div class="modal-content"><span class="modal-close" onclick="document.getElementById('productModal').classList.remove('show')">&times;</span><h2 id="productModalTitle">Add Product</h2><form onsubmit="saveProduct();return false;"><input type="hidden" id="productId"><div class="form-group"><label>Product Name *</label><input type="text" id="productName" required placeholder="e.g. Amoxicillin 500mg"></div><div class="form-group"><label>Barcode / SKU</label><input type="text" id="productSku" placeholder="e.g. AMX-001"></div><div class="form-row"><div class="form-group"><label>Category</label><select id="productCategory"><option value="antibiotics">Antibiotics</option><option value="pain-relief">Pain Relief</option><option value="antimalarial">Antimalarial</option><option value="vitamins">Vitamins</option><option value="chronic">Chronic</option><option value="controlled">Controlled</option><option value="other">Other</option></select></div><div class="form-group"><label>Unit Type *</label><select id="productUnit" required><option value="">Select unit</option><option value="pack">Pack</option><option value="tabs">Tablets</option><option value="bottle">Bottle</option><option value="ampoule">Ampoule</option><option value="caps">Capsules</option><option value="strip">Strip</option><option value="tube">Tube</option><option value="box">Box</option><option value="piece">Piece</option><option value="vial">Vial</option><option value="inhaler">Inhaler</option><option value="sachet">Sachet</option></select></div></div><div class="form-row"><div class="form-group"><label>Buying Price (KES) *</label><input type="number" id="productBuyingPrice" step="0.01" required placeholder="0.00"></div><div class="form-group"><label>Selling Price *</label><input type="number" id="productSellingPrice" step="0.01" required placeholder="0.00"></div></div><div class="form-group"><label>Quantity *</label><input type="number" id="productQuantity" required placeholder="0"></div><div class="form-row"><div class="form-group"><label>Expiry Date</label><input type="date" id="productExpiry"></div><div class="form-group"><label>Batch</label><input type="text" id="productBatch" placeholder="e.g. B2025-001"></div></div><div class="form-group"><label>Generic Alternative</label><input type="text" id="productGeneric" placeholder="e.g. Generic Amoxicillin"></div><div class="form-group"><label>Supplier</label><input type="text" id="productSupplier" placeholder="Supplier"></div><div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;"><label style="font-weight:600;font-size:12px;color:#1e293b;">Controlled:</label><input type="checkbox" id="productControlled" style="width:18px;height:18px;accent-color:#dc2626;"></div><button type="submit" class="btn"><i class="fas fa-save"></i> Save</button></form></div></div>
 
   <div id="batchModal" class="modal"><div class="modal-content"><span class="modal-close" onclick="document.getElementById('batchModal').classList.remove('show')">&times;</span><h2>Add Batch</h2><form onsubmit="saveBatch();return false;"><div class="form-group"><label>Product *</label><select id="batchProductSelect" required style="width:100%;padding:8px 12px;border:2px solid #e2e8f0;border-radius:10px;"></select></div><div class="form-group"><label>Batch Number *</label><input type="text" id="batchNumber" required placeholder="B2025-001"></div><div class="form-group"><label>Quantity *</label><input type="number" id="batchQuantity" required placeholder="0"></div><div class="form-group"><label>Expiry *</label><input type="date" id="batchExpiry" required></div><div class="form-row"><div class="form-group"><label>Buying Price</label><input type="number" id="batchBuyingPrice" step="0.01" placeholder="0.00"></div><div class="form-group"><label>Selling Price *</label><input type="number" id="batchSellingPrice" step="0.01" required placeholder="0.00"></div></div><div class="form-group"><label>Supplier</label><input type="text" id="batchSupplier" placeholder="Supplier"></div><button type="submit" class="btn"><i class="fas fa-save"></i> Save Batch</button></form></div></div>
@@ -1710,6 +1743,10 @@ async function handleLogin(){
     document.getElementById('appContainer').className='app-container show';
     document.getElementById('currentUserDisplay').textContent=user.fullName;
     document.getElementById('currentRoleDisplay').textContent=user.role.charAt(0).toUpperCase()+user.role.slice(1);
+    // Show admin navigation and panel for developer role
+    var adminNavBtn = document.getElementById('adminNavBtn');
+    if (adminNavBtn) { adminNavBtn.style.display = user.role === 'developer' ? 'block' : 'none'; }
+    if (user.role === 'developer') { setTimeout(function(){ fetchAdminData(); }, 500); }
     // Fetch and display pharmacy memberships
     if (typeof window.DawaTenant !== 'undefined' && window.DawaTenant.fetchMemberships) {
         window.DawaTenant.fetchMemberships().then(() => {
@@ -3469,9 +3506,55 @@ window.toggleBackdate=toggleBackdate;window.applyBackdate=applyBackdate;window.c
 window.toggleRevenueInsight=toggleRevenueInsight;window.updateRevenueInsight=updateRevenueInsight;
 window.updateNegotiatedPrice=updateNegotiatedPrice;
 
-document.getElementById('loginPassword').value = 'DEMO2026';
-document.getElementById('loginUsername').value = 'DEMO';
-document.getElementById('loginDemoHint').style.display = 'block';
+ document.getElementById('loginPassword').value = 'DEMO2026';
+ document.getElementById('loginUsername').value = 'DEMO';
+ document.getElementById('loginDemoHint').style.display = 'block';
+
+window.fillAdminLogin = function() {
+    document.getElementById('loginUsername').value = 'RASHID';
+    document.getElementById('loginPassword').value = 'RASHID2026';
+    var msg = document.getElementById('loginDemoHint');
+    if (msg) { msg.textContent = 'Admin credentials auto-filled.'; msg.style.display = 'block'; }
+    handleLogin();
+};
+
+window.fetchAdminData = async function() {
+    if (!window.DawaTenant || !window.DawaTenant.getToken) return;
+    var token = window.DawaTenant.getToken();
+    if (!token) return;
+    try {
+        var [pharmResponse, membersResponse] = await Promise.all([
+            fetch('https://dawa-smart-api.rashidjumachepkwony.workers.dev/api/admin/pharmacies', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            }),
+            fetch('https://dawa-smart-api.rashidjumachepkwony.workers.dev/api/admin/members', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            })
+        ]);
+        var pharmacies = pharmResponse.ok ? await pharmResponse.json() : { pharmacies: [] };
+        var members = membersResponse.ok ? await membersResponse.json() : { members: [] };
+        renderAdminPanel(pharmacies.pharmacies || [], members.members || []);
+    } catch (e) {
+        console.error('[Admin] Failed to fetch admin data:', e);
+    }
+};
+
+window.renderAdminPanel = function(pharmacies, members) {
+    var pharmacyList = document.getElementById('adminPharmacyList');
+    var memberList = document.getElementById('adminMemberList');
+    if (pharmacyList) {
+        pharmacyList.innerHTML = pharmacies.map(function(p) {
+            return '<tr><td>' + (p.id || '').substring(0,8) + '</td><td>' + (p.name||'') + '</td><td>' + (p.slug||'') + '</td><td>' + (p.status||'') + '</td><td>' + (p.created_at ? new Date(p.created_at).toLocaleDateString() : '') + '</td></tr>';
+        }).join('');
+    }
+    if (memberList) {
+        memberList.innerHTML = members.map(function(m) {
+            return '<tr><td>' + (m.auth_user_id||m.id||'') + '</td><td>' + (m.email||'') + '</td><td>' + (m.role||'') + '</td><td>' + (m.status||'') + '</td><td>' + (m.pharmacy && m.pharmacy.name ? m.pharmacy.name : (m.pharmacy_id||'')) + '</td></tr>';
+        }).join('');
+    }
+    var panel = document.getElementById('adminPanel');
+    if (panel) { panel.style.display = 'block'; }
+};
 
 window.addEventListener('load', function(){
     const splash = document.getElementById('splash');
