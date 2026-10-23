@@ -3560,9 +3560,9 @@ window.toggleBackdate=toggleBackdate;window.applyBackdate=applyBackdate;window.c
 window.toggleRevenueInsight=toggleRevenueInsight;window.updateRevenueInsight=updateRevenueInsight;
 window.updateNegotiatedPrice=updateNegotiatedPrice;
 
- document.getElementById('loginPassword').value = 'DEMO2026';
- document.getElementById('loginUsername').value = 'DEMO';
- document.getElementById('loginDemoHint').style.display = 'block';
+  document.getElementById('loginPassword').value = 'DEMO2026';
+  document.getElementById('loginUsername').value = 'DEMO';
+  var _hint = document.getElementById('loginDemoHint'); if (_hint) _hint.style.display = 'block';
 
 window.fillAdminLogin = function() {
     handleLogin();
