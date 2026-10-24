@@ -18,13 +18,13 @@
 /*.html
    Cache-Control: no-store, must-revalidate
 
-# Landing CSS — short cache for development
+# Landing CSS — never cache (always serve fresh)
 /landing.css
    Cache-Control: no-store, must-revalidate
 
-# Static CSS caching (excluding landing.css)
+# Other CSS files — never cache (always fresh during active development)
 /*.css
-   Cache-Control: public, max-age=31536000
+   Cache-Control: no-store, must-revalidate
 
 # ─── All app JS files: no-store (never cache, always fresh) ─────
 

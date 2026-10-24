@@ -712,6 +712,28 @@ section[id], .hero, .cta { scroll-margin-top: 70px; }
   color: #fff;
   transform: translateY(-1px);
 }
+.btn-gold {
+  background: #D9A10B;
+  color: #000000;
+  font-weight: 600;
+  padding: 14px 28px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-decoration: none;
+}
+.btn-gold:hover {
+  background: #C79200;
+  transform: translateY(-2px);
+}
+.btn-gold:active {
+  transform: translateY(0);
+}
 
 /* ===== WhatsApp float ===== */
 .whatsapp-float {
