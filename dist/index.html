@@ -682,12 +682,13 @@
       window.open(url, '_blank');
     }
 
-    // Lazy load: ensure hero image loads after initial render
+    // Dashboard animation: animate chart bars on load
     window.addEventListener('load', function() {
-      var heroImg = document.querySelector('.hero-image img');
-      if (heroImg && heroImg.complete) {
-        // Image loaded fine
-      }
+      var bars = document.querySelectorAll('.chart-bar');
+      bars.forEach(function(bar, i) {
+        bar.style.transition = 'height 0.5s ease';
+        bar.style.height = bar.style.height || '40px';
+      });
     });
 
     // Nav shrink on scroll
