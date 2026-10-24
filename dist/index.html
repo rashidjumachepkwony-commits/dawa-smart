@@ -69,9 +69,14 @@
           <h1>Run Your Pharmacy Smarter.</h1>
           <p class="hero-text">DAWA SMART helps pharmacies manage sales, stock, expenses, customers, staff and daily operations from one powerful system.</p>
           <div class="hero-buttons">
-            <a href="app.html" class="btn btn-primary">Explore Dawa Smart</a>
-            <a href="#contact" class="btn btn-outline">Request a Demo</a>
-            <a href="app.html" class="btn btn-outline" style="background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.3);">Open App</a>
+            <a href="app.html" class="btn btn-primary"><i class="fas fa-rocket"></i> Explore Dawa Smart</a>
+            <a href="#contact" class="btn btn-secondary"><i class="fab fa-whatsapp"></i> Request a Demo</a>
+            <a href="app.html" class="btn btn-secondary" style="background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.15);">Open App</a>
+          </div>
+          <div class="hero-tags">
+            <span class="hero-tag"><i class="fas fa-wifi-slash"></i> Offline-First</span>
+            <span class="hero-tag"><i class="fas fa-file-invoice"></i> eTIMS Compliant</span>
+            <span class="hero-tag"><i class="fas fa-mobile-alt"></i> PWA Ready</span>
           </div>
         </div>
         <div class="hero-image" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
@@ -366,7 +371,7 @@
       <p class="cta-text">See how Dawa Smart can help you organize your pharmacy operations. Try the 14-day free demo — no credit card required.</p>
       <div class="cta-buttons">
         <a href="app.html" class="btn btn-primary">Explore Dawa Smart</a>
-        <a href="https://wa.me/254740289362?text=Hello%2C%20I%20am%20interested%20in%20Dawa%20Smart%20Pharmacy%20Management%20System.%20I%20would%20like%20to%20see%20a%20demo%20and%20learn%20more." class="btn btn-outline">Talk to Us</a>
+        <a href="https://wa.me/254759324463?text=Hello%2C%20I%20am%20interested%20in%20Dawa%20Smart%20Pharmacy%20Management%20System.%20I%20would%20like%20to%20see%20a%20demo%20and%20learn%20more." class="btn btn-outline">Talk to Us</a>
       </div>
     </div>
   </section>
@@ -489,7 +494,7 @@
         <div class="contact-info">
           <h3>Contact Information</h3>
           <ul class="contact-list">
-            <li><i class="fab fa-whatsapp"></i> WhatsApp: <a href="https://wa.me/254740289362?text=Hello%2C%20I%20am%20interested%20in%20Dawa%20Smart%20Pharmacy%20Management%20System.%20I%20would%20like%20to%20see%20a%20demo%20and%20learn%20more." target="_blank">0740 289 362</a></li>
+            <li><i class="fab fa-whatsapp"></i> WhatsApp: <a href="https://wa.me/254759324463?text=Hello%2C%20I%20am%20interested%20in%20Dawa%20Smart%20Pharmacy%20Management%20System.%20I%20would%20like%20to%20see%20a%20demo%20and%20learn%20more." target="_blank">0759 324 463</a></li>
             <li><i class="fas fa-phone"></i> Phone: 0759 324 463</li>
             <li><i class="fas fa-envelope"></i> Email: <a href="mailto:sales@dawasmartz.co.ke?subject=Dawa%20Smart%20Inquiry">sales@dawasmartz.co.ke</a></li>
             <li><i class="fas fa-map-marker-alt"></i> 7 Cheptais, Kenya</li>
@@ -522,7 +527,7 @@
   </section>
 
   <!-- ===== WhatsApp Float ===== -->
-  <a href="https://wa.me/254740289362?text=Hello%2C%20I%20am%20interested%20in%20Dawa%20Smart%20Pharmacy%20Management%20System.%20I%20would%20like%20to%20see%20a%20demo%20and%20learn%20more." class="whatsapp-float" target="_blank">
+  <a href="https://wa.me/254759324463?text=Hello%2C%20I%20am%20interested%20in%20Dawa%20Smart%20Pharmacy%20Management%20System.%20I%20would%20like%20to%20see%20a%20demo%20and%20learn%20more." class="whatsapp-float" target="_blank">
     <i class="fab fa-whatsapp"></i>
   </a>
 
@@ -638,7 +643,7 @@
       if (email) text += ' Email: ' + email + '.';
       if (message) text += ' Message: ' + message + '.';
 
-      var url = 'https://wa.me/254740289362?text=' + encodeURIComponent(text);
+      var url = 'https://wa.me/254759324463?text=' + encodeURIComponent(text);
       window.open(url, '_blank');
     }
 
@@ -649,6 +654,35 @@
         // Image loaded fine
       }
     });
+
+    // Nav shrink on scroll
+    var nav = document.getElementById('topNav');
+    if (nav) {
+      window.addEventListener('scroll', function() {
+        if (window.scrollY > 20) {
+          nav.classList.add('scrolled');
+        } else {
+          nav.classList.remove('scrolled');
+        }
+      });
+    }
+
+    // Active section highlighting
+    var sections = document.querySelectorAll('section[id]');
+    var navLinks = document.querySelectorAll('.nav-link');
+    if (sections.length && navLinks.length) {
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          var id = entry.target.getAttribute('id');
+          var link = document.querySelector('.nav-link[href="#' + id + '"]');
+          if (entry.isIntersecting && link) {
+            navLinks.forEach(function(l) { l.classList.remove('active'); });
+            link.classList.add('active');
+          }
+        });
+      }, { threshold: 0.3 });
+      sections.forEach(function(s) { observer.observe(s); });
+    }
   </script>
 
 </body>

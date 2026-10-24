@@ -7,16 +7,24 @@
 
 # Security headers for all routes
 /*
-  X-Frame-Options: DENY
-  X-Content-Type-Options: nosniff
-  X-XSS-Protection: 1; mode=block
-  Referrer-Policy: strict-origin-when-cross-origin
-  Permissions-Policy: geolocation=(), microphone=(), camera=()
-  X-Content-Security-Policy: default-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.supabase.co https://api.startechafrica.co.ke; img-src 'self' data: https:; connect-src 'self' https://*.startechafrica.co.ke https://*.workers.dev https://*.supabase.co
+   X-Frame-Options: DENY
+   X-Content-Type-Options: nosniff
+   X-XSS-Protection: 1; mode=block
+   Referrer-Policy: strict-origin-when-cross-origin
+   Permissions-Policy: geolocation=(), microphone=(), camera=()
+   X-Content-Security-Policy: default-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://*.supabase.co https://api.startechafrica.co.ke; img-src 'self' data: https:; connect-src 'self' https://*.startechafrica.co.ke https://*.workers.dev https://*.supabase.co
 
-# Static CSS caching
+# HTML — never cache
+/*.html
+   Cache-Control: no-store, must-revalidate
+
+# Landing CSS — short cache for development
+/landing.css
+   Cache-Control: no-store, must-revalidate
+
+# Static CSS caching (excluding landing.css)
 /*.css
-  Cache-Control: public, max-age=31536000
+   Cache-Control: public, max-age=31536000
 
 # ─── All app JS files: no-store (never cache, always fresh) ─────
 
