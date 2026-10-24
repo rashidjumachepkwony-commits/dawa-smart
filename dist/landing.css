@@ -187,11 +187,28 @@ h1, h2, h3, h4 {
   padding: 14px 28px;
   font-size: 15px;
   font-weight: 600;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+.hero .btn-gold {
+  background: #D9A10B;
+  color: #000000;
+  border-radius: 12px;
+}
+.hero .btn-gold:hover {
+  background: #C79200;
+  transform: translateY(-1px);
 }
 .hero .btn-secondary {
   background: rgba(255, 255, 255, 0.12);
   color: #fff;
   border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
   backdrop-filter: blur(5px);
 }
 .hero .btn-secondary:hover {
@@ -214,6 +231,16 @@ h1, h2, h3, h4 {
   font-size: 12px;
   font-weight: 500;
   border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.hero .hero-tag.gold-tag {
+  background: #D9A10B;
+  color: #000000;
+  border-radius: 12px;
+  font-weight: 600;
+}
+.hero .hero-tag.gold-tag:hover {
+  background: #C79200;
+  transform: translateY(-1px);
 }
 .hero .hero-image {
   margin-top: 40px;
