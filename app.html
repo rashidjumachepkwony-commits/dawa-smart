@@ -40,6 +40,36 @@
     .login-box .toggle-password:hover{color:#0b6e4f}
     .btn-login{width:100%;padding:14px;background:#0b6e4f;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;transition:0.2s}
     .btn-login:hover{background:#08543b;transform:translateY(-1px)}
+    .btn-admin{background:#1e3a8a;margin-top:10px}
+    .btn-admin:hover{background:#1e40af}
+    .admin-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+    .admin-table th,.admin-table td{padding:8px 12px;border:1px solid #e2e8f0;text-align:left}
+    .admin-table th{background:#f8fafc;font-weight:600;color:#0f172a}
+    .admin-table tbody tr:nth-child(even){background:#f8fafc}
+
+    /* Premium Landing Page */
+    .landing-hero{background:linear-gradient(135deg,#0b6e4f 0%,#08543b 100%);border-radius:24px;padding:48px;text-align:center;color:#fff;margin-bottom:24px;box-shadow:0 20px 60px rgba(11,110,79,0.3)}
+    .landing-hero h1{font-size:36px;font-weight:800;margin:0 0 12px;line-height:1.2}
+    .landing-hero .tagline{font-size:18px;font-weight:500;opacity:0.9;margin-bottom:24px}
+    .hero-buttons{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-top:24px}
+    .btn-hero{flex:1;min-width:180px;padding:16px 24px;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;border:none;transition:all 0.2s}
+    .btn-hero:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,0.15)}
+    .btn-cta-primary{background:#D9A10B;color:#000000}
+    .btn-cta-secondary{background:#D9A10B;color:#000000}
+    .btn-cta-tertiary{background:#D9A10B;color:#000000}
+    .features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:32px 0}
+    .feature-card{background:#f8fafc;border-radius:14px;padding:20px;text-align:center;border:1px solid #e2e8f0}
+    .feature-card i{font-size:28px;color:#0b6e4f;margin-bottom:8px}
+    .feature-card h3{font-size:14px;font-weight:600;color:#0f172a;margin:8px 0}
+    .feature-card p{font-size:11px;color:#64748b}
+    .contact-bar{background:#1e293b;border-radius:16px;padding:24px;text-align:center;margin:24px 0}
+    .contact-bar .phone{font-size:24px;font-weight:800;color:#10b981}
+    .contact-bar .label{font-size:12px;color:#94a3b8;margin-top:4px}
+    .contact-bar a{color:#f59e0b;text-decoration:none;font-weight:600}
+    .dashboard-preview{background:#f0f9ff;border-radius:18px;padding:24px;margin:24px 0;border:2px dashed #bfdbfe}
+    .preview-placeholder{background:#fff;border-radius:12px;height:200px;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:14px}
+    .section-title{text-align:center;font-size:14px;font-weight:700;color:#0f172a;margin:20px 0 12px;text-transform:uppercase;letter-spacing:0.5px}
+    .section-subtitle{text-align:center;font-size:12px;color:#64748b;margin-bottom:24px}
     .error-msg{background:#fee2e2;color:#b91c1c;padding:10px;border-radius:10px;margin-bottom:16px;display:none;font-size:13px;text-align:center}
     .app-container{display:none;background:#f4f7fc;min-height:100vh}
     .app-container.show{display:block}
@@ -316,46 +346,80 @@
 
 <!-- LOGIN -->
 <div id="loginPage" class="login-container">
-  <div class="login-box">
-    <div class="logo-text"><i class="fas fa-prescription-bottle-medical"></i></div>
-     <h1 id="loginTitle">Dawa Smart</h1>
-     <p class="sub">Smart Pharmacy Management Suite</p>
-     <div class="demo-badge-container" style="background:#f0fdf4;border:2px solid #16a34a;border-radius:16px;padding:14px 16px;margin:14px 0;text-align:center;">
-       <div style="font-size:13px;font-weight:700;color:#15803d;margin-bottom:4px;">14-DAY FREE DEMO</div>
-       <div style="font-size:11px;color:#64748b;">Demo account contains sample data.</div>
-     </div>
-     <div id="loginError" class="error-msg"></div>
-     <div id="loginForm" class="login-form">
-       <div class="form-group"><label>Username</label><input type="text" id="loginUsername" placeholder="DEMO" value="DEMO"></div>
-       <div class="form-group">
-         <label>Password</label>
-         <div class="password-wrapper">
-           <input type="password" id="loginPassword" placeholder="DEMO2026" value="DEMO2026">
-           <button class="toggle-password" onclick="togglePassword('loginPassword', this)" type="button"><i class="fas fa-eye"></i></button>
-         </div>
-       </div>
-        <button class="btn-login" onclick="handleLogin()"><i class="fas fa-sign-in-alt"></i> LOGIN TO DEMO</button>
-        <div id="resetDemoBtnContainer" style="display:none;text-align:center;margin-top:12px;">
-          <button class="btn btn-sm" onclick="resetDemoTrialAndReload()" style="background:#f59e0b;color:#1e293b;font-weight:600;">
-            <i class="fas fa-redo"></i> Reset Demo Trial
-          </button>
-          <div style="font-size:10px;color:#94a3b8;margin-top:4px;">Demo expired? Reset to start a fresh 14-day trial.</div>
+  <div class="login-box" style="max-width:720px">
+
+    <!-- HERO SECTION -->
+    <div class="landing-hero">
+      <div class="logo-text" style="margin-bottom:16px"><i class="fas fa-prescription-bottle-medical" style="font-size:48px;color:#fff;"></i></div>
+      <h1>RUN YOUR PHARMACY SMARTER</h1>
+      <div class="tagline">DAWA SMART helps pharmacies manage sales, stock, expenses, customers, staff and daily operations from one powerful system.</div>
+      <div class="hero-buttons">
+        <button class="btn-hero btn-cta-primary" onclick="scrollToLogin()"><i class="fas fa-rocket"></i> Explore Dawa Smart</button>
+        <button class="btn-hero btn-cta-secondary" onclick="openWhatsAppChat()"><i class="fab fa-whatsapp"></i> Request a Demo</button>
+        <button class="btn-hero btn-cta-tertiary" onclick="scrollToLogin()"><i class="fas fa-play-circle"></i> Open App</button>
+      </div>
+    </div>
+
+    <!-- FEATURES -->
+    <div class="section-title">Why Dawa Smart?</div>
+    <p class="section-subtitle">Everything you need to run a modern, compliant pharmacy from one premium platform.</p>
+    <div class="features-grid">
+      <div class="feature-card"><i class="fas fa-chart-line"></i><h3>Sales & POS</h3><p>Fast point-of-sale with real-time inventory sync, receipts, and KRA eTIMS integration.</p></div>
+      <div class="feature-card"><i class="fas fa-boxes"></i><h3>Smart Stock</h3><p>Track batches, expiry dates, and automated reorder alerts across multiple suppliers.</p></div>
+      <div class="feature-card"><i class="fas fa-wallet"></i><h3>Expenses & Analytics</h3><p>Record expenses, track profit margins, and generate comprehensive financial reports.</p></div>
+      <div class="feature-card"><i class="fas fa-user-md"></i><h3>Patient Records</h3><p>Manage customer profiles, credit balances, and medical history with SHA/NHIF support.</p></div>
+      <div class="feature-card"><i class="fas fa-users-cog"></i><h3>Staff Management</h3><p>Role-based access control, multi-tenant support, and granular permission settings.</p></div>
+      <div class="feature-card"><i class="fas fa-cloud-upload-alt"></i><h3>Cloud Sync</h3><p>Seamless offline-to-online sync across multiple devices with real-time collaboration.</p></div>
+    </div>
+
+    <!-- DASHBOARD PREVIEW -->
+    <div class="dashboard-preview">
+      <div class="preview-placeholder"><div style="text-align:center"><i class="fas fa-desktop" style="font-size:48px;color:#cbd5e1;margin-bottom:8px;"></i><div style="font-size:14px">Premium dashboard preview</div></div></div>
+    </div>
+
+    <!-- CONTACT BAR -->
+    <div class="contact-bar">
+      <div class="section-title" style="color:#f1f5f3;margin-bottom:16px;text-transform:uppercase;letter-spacing:1px;font-size:12px">Contact Us</div>
+      <div class="phone">📞 0759324463</div>
+      <div class="label">WhatsApp &amp; Call Support</div>
+      <div style="margin-top:8px"><a href="https://wa.me/254759324463" target="_blank" style="display:inline-block;background:#22c55e;color:#fff;padding:8px 20px;border-radius:8px;font-weight:600;text-decoration:none"><i class="fab fa-whatsapp"></i> Chat on WhatsApp</a></div>
+      <div class="label" style="margin-top:12px">📍 7 Cheptais Road, Nairobi, Kenya</div>
+    </div>
+
+    <!-- LOGIN FORM -->
+    <div style="background:#f8fafc;border-radius:16px;padding:24px;border:1px solid #e2e8f0">
+      <div id="loginError" class="error-msg"></div>
+      <div id="loginForm">
+        <div class="demo-badge-container" style="background:#f0fdf4;border:2px solid #16a34a;border-radius:16px;padding:14px 16px;margin:14px 0;text-align:center;">
+          <div style="font-size:13px;font-weight:700;color:#15803d">14-DAY FREE DEMO</div>
+          <div style="font-size:11px;color:#64748b">Enter DEMO / DEMO2026 to explore with sample data</div>
         </div>
-        <div style="text-align:center;margin-top:16px;font-size:12px;color:#94a3b8;">
-         <span id="loginDemoHint" style="display:none;color:#16a34a;font-weight:600;">Demo credentials auto-filled above.</span>
-         <div style="margin-top:8px;">Have a production account? Enter your credentials above.</div>
-       </div>
-     </div>
+        <div class="form-group"><label style="font-weight:600;color:#0f172a">Username</label><input type="text" id="loginUsername" placeholder="Enter username" value="DEMO" style="padding:12px;border:2px solid #e2e8f0;border-radius:10px;font-size:14px;width:100%"></div>
+        <div class="form-group">
+          <label style="font-weight:600;color:#0f172a">Password</label>
+          <div class="password-wrapper">
+            <input type="password" id="loginPassword" placeholder="Enter password" value="DEMO2026" style="padding:12px;border:2px solid #e2e8f0;border-radius:10px;font-size:14px;width:100%">
+            <button class="toggle-password" onclick="togglePassword('loginPassword', this)" type="button"><i class="fas fa-eye"></i></button>
+          </div>
+        </div>
+        <button class="btn-login" onclick="handleLogin()"><i class="fas fa-sign-in-alt"></i> LOGIN</button>
+        <div style="text-align:center;margin-top:12px;font-size:12px;color:#94a3b8">Admin? Enter your credentials above to access the admin panel.</div>
+      </div>
+    </div>
+
   </div>
 </div>
 
 <!-- APP -->
 <div id="appContainer" class="app-container">
   <div class="header">
-     <span class="app-name"><i class="fas fa-prescription-bottle-medical"></i> <span id="headerPharmacyName">Dawa Smart</span> <span class="badge">eTIMS</span> <span class="offline-badge" id="offlineBadge"><i class="fas fa-wifi-slash"></i> OFFLINE</span></span>
+      <span class="app-name"><i class="fas fa-prescription-bottle-medical"></i> <span id="headerPharmacyName">Dawa Smart</span> <span class="badge">eTIMS</span> <span class="offline-badge" id="offlineBadge"><i class="fas fa-wifi-slash"></i> OFFLINE</span> <span class="sync-badge" id="syncBadge" style="display:none;background:rgba(255,255,255,0.15);padding:2px 10px;border-radius:20px;font-size:11px;display:none;"><i class="fas fa-sync-alt" id="syncIcon"></i> <span id="syncStatusText">Sync</span></span></span>
      <div class="user-info">
        <span id="headerDemoBadge" class="user-badge" style="display:none;"><span class="demo-badge" id="demoHeaderBadge">DEMO</span></span>
-       <span class="user-badge"><i class="fas fa-building"></i> <span id="currentPharmacyDisplay">Dawa Smart</span></span>
+               <span class="user-badge"><i class="fas fa-building"></i> <span id="currentPharmacyDisplay">Dawa Smart</span>
+          <select id="pharmacySwitcher" onchange="switchWorkspace(this.value)" style="display:none;margin-left:6px;padding:2px 6px;border-radius:6px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.2);color:#fff;font-size:11px;">
+          </select>
+        </span></span>
        <span class="user-badge"><i class="fas fa-user-circle"></i> <span id="currentUserDisplay">User</span> <span class="role" id="currentRoleDisplay">Admin</span></span>
        <button class="logout-btn" onclick="handleLogout()"><i class="fas fa-sign-out-alt"></i></button>
      </div>
@@ -367,7 +431,8 @@
     <button data-page="pricing" title="Pricing: review costs, prices, and margins" aria-label="Pricing"><i class="fas fa-chart-pie"></i> Pricing</button>
     <button data-page="expenses" title="Expenses: record and review business expenses" aria-label="Expenses"><i class="fas fa-wallet"></i> Expenses</button>
     <button data-page="analysis" title="Analysis: view sales, profit, and expense insights" aria-label="Analysis"><i class="fas fa-chart-line"></i> Analysis</button>
-    <button data-page="credits" title="Credits: manage customer balances and payments" aria-label="Credits"><i class="fas fa-hand-holding-usd"></i> Credits</button>
+     <button data-page="credits" title="Credits: manage customer balances and payments" aria-label="Credits"><i class="fas fa-hand-holding-usd"></i> Credits</button>
+     <button id="adminNavBtn" data-page="admin" title="Admin: multi-tenant management" aria-label="Admin" style="display:none;"><i class="fas fa-user-shield"></i> Admin</button>
     <button data-page="patients" title="EMR: manage patient and customer records" aria-label="EMR"><i class="fas fa-user-md"></i> EMR</button>
     <button data-page="lab" title="Lab: manage laboratory tests and results" aria-label="Laboratory"><i class="fas fa-flask"></i> Lab</button>
     <button data-page="users" title="Users: manage staff accounts and access" aria-label="Users"><i class="fas fa-user-shield"></i> Users</button>
@@ -757,7 +822,7 @@
       <div style="margin-bottom:16px;">
         <h3 style="font-size:14px;color:#0f172a;margin-bottom:8px;"><i class="fas fa-store" style="color:#0b6e4f;"></i> Pharmacy Details</h3>
          <div class="form-group"><label>Pharmacy Name *</label><input type="text" id="shopName" value="Dawa Smart" style="max-width:100%;"></div>
-         <div class="form-group"><label>Address</label><input type="text" id="shopAddress" value="7 Cheptais · 📞 0740289362" style="max-width:100%;"></div>
+         <div class="form-group"><label>Address</label><input type="text" id="shopAddress" value="7 Cheptais · 📞 0759324463" style="max-width:100%;"></div>
          <div class="form-group"><label>KRA PIN</label><input type="text" id="kraPin" value="P-2025-001" style="max-width:160px;"></div>
          <div class="form-group"><label>Receipt Footer</label><input type="text" id="receiptFooter" value="Thank you for choosing Dawa Smart!" style="max-width:100%;"></div>
          <div class="form-group"><label>VAT Rate (%)</label><input type="number" id="vatRate" value="0" style="max-width:100px;" step="0.01"></div>
@@ -788,13 +853,38 @@
        </div>
        <div style="border-top:1px solid #f1f5f9;padding-top:14px;margin-top:14px;">
           <h3 style="font-size:14px;color:#0f172a;margin-bottom:8px;"><i class="fas fa-info-circle" style="color:#0b6e4f;"></i> About</h3>
-          <p style="font-size:12px;color:#64748b;">Dawa Smart v<span id="appVersionDisplay">1.0.0</span> · KRA eTIMS Ready · SHA/NHIF<br>📍 7 Cheptais · 📞 0740289362</p>
+          <p style="font-size:12px;color:#64748b;">Dawa Smart v<span id="appVersionDisplay">1.0.0</span> · KRA eTIMS Ready · SHA/NHIF<br>📍 7 Cheptais · 📞 0759324463</p>
           <p style="font-size:11px;color:#94a3b8;margin-top:4px;">Licensed Software · Developer: +254 740 289 362</p>
        </div>
     </div>
-  </div>
+   </div>
 
-  <!-- MODALS -->
+   <!-- ADMIN PANEL -->
+   <div id="page-admin" class="page">
+     <div class="card" id="adminPanel" style="display:none;">
+       <div class="card-title"><i class="fas fa-user-shield"></i> Multi-Tenant Admin Console</div>
+       <div style="margin-bottom:16px;">
+         <h3 style="font-size:14px;color:#0f172a;margin-bottom:8px;"><i class="fas fa-building"></i> All Pharmacies (Tenants)</h3>
+         <div id="adminPharmacyTable" style="overflow-x:auto;">
+           <table class="admin-table">
+             <thead><tr><th>ID</th><th>Name</th><th>Slug</th><th>Status</th><th>Created</th></tr></thead>
+             <tbody id="adminPharmacyList"></tbody>
+           </table>
+         </div>
+       </div>
+       <div>
+         <h3 style="font-size:14px;color:#0f172a;margin-bottom:8px;"><i class="fas fa-users"></i> All Members</h3>
+         <div id="adminMemberTable" style="overflow-x:auto;">
+           <table class="admin-table">
+             <thead><tr><th>User ID</th><th>Email</th><th>Role</th><th>Status</th><th>Pharmacy</th></tr></thead>
+             <tbody id="adminMemberList"></tbody>
+           </table>
+         </div>
+       </div>
+     </div>
+   </div>
+
+   <!-- MODALS -->
   <div id="productModal" class="modal"><div class="modal-content"><span class="modal-close" onclick="document.getElementById('productModal').classList.remove('show')">&times;</span><h2 id="productModalTitle">Add Product</h2><form onsubmit="saveProduct();return false;"><input type="hidden" id="productId"><div class="form-group"><label>Product Name *</label><input type="text" id="productName" required placeholder="e.g. Amoxicillin 500mg"></div><div class="form-group"><label>Barcode / SKU</label><input type="text" id="productSku" placeholder="e.g. AMX-001"></div><div class="form-row"><div class="form-group"><label>Category</label><select id="productCategory"><option value="antibiotics">Antibiotics</option><option value="pain-relief">Pain Relief</option><option value="antimalarial">Antimalarial</option><option value="vitamins">Vitamins</option><option value="chronic">Chronic</option><option value="controlled">Controlled</option><option value="other">Other</option></select></div><div class="form-group"><label>Unit Type *</label><select id="productUnit" required><option value="">Select unit</option><option value="pack">Pack</option><option value="tabs">Tablets</option><option value="bottle">Bottle</option><option value="ampoule">Ampoule</option><option value="caps">Capsules</option><option value="strip">Strip</option><option value="tube">Tube</option><option value="box">Box</option><option value="piece">Piece</option><option value="vial">Vial</option><option value="inhaler">Inhaler</option><option value="sachet">Sachet</option></select></div></div><div class="form-row"><div class="form-group"><label>Buying Price (KES) *</label><input type="number" id="productBuyingPrice" step="0.01" required placeholder="0.00"></div><div class="form-group"><label>Selling Price *</label><input type="number" id="productSellingPrice" step="0.01" required placeholder="0.00"></div></div><div class="form-group"><label>Quantity *</label><input type="number" id="productQuantity" required placeholder="0"></div><div class="form-row"><div class="form-group"><label>Expiry Date</label><input type="date" id="productExpiry"></div><div class="form-group"><label>Batch</label><input type="text" id="productBatch" placeholder="e.g. B2025-001"></div></div><div class="form-group"><label>Generic Alternative</label><input type="text" id="productGeneric" placeholder="e.g. Generic Amoxicillin"></div><div class="form-group"><label>Supplier</label><input type="text" id="productSupplier" placeholder="Supplier"></div><div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;"><label style="font-weight:600;font-size:12px;color:#1e293b;">Controlled:</label><input type="checkbox" id="productControlled" style="width:18px;height:18px;accent-color:#dc2626;"></div><button type="submit" class="btn"><i class="fas fa-save"></i> Save</button></form></div></div>
 
   <div id="batchModal" class="modal"><div class="modal-content"><span class="modal-close" onclick="document.getElementById('batchModal').classList.remove('show')">&times;</span><h2>Add Batch</h2><form onsubmit="saveBatch();return false;"><div class="form-group"><label>Product *</label><select id="batchProductSelect" required style="width:100%;padding:8px 12px;border:2px solid #e2e8f0;border-radius:10px;"></select></div><div class="form-group"><label>Batch Number *</label><input type="text" id="batchNumber" required placeholder="B2025-001"></div><div class="form-group"><label>Quantity *</label><input type="number" id="batchQuantity" required placeholder="0"></div><div class="form-group"><label>Expiry *</label><input type="date" id="batchExpiry" required></div><div class="form-row"><div class="form-group"><label>Buying Price</label><input type="number" id="batchBuyingPrice" step="0.01" placeholder="0.00"></div><div class="form-group"><label>Selling Price *</label><input type="number" id="batchSellingPrice" step="0.01" required placeholder="0.00"></div></div><div class="form-group"><label>Supplier</label><input type="text" id="batchSupplier" placeholder="Supplier"></div><button type="submit" class="btn"><i class="fas fa-save"></i> Save Batch</button></form></div></div>
@@ -849,9 +939,46 @@
     </div>
   </div>
 
-  <script src="license.js"></script>
+  <script src="license2.js"></script>
+  <script src="tenant2.js"></script>
+  <script src="sync-queue2.js"></script>
+  <script src="supabase2.js"></script>
 
 <script>
+// =============================================================
+// OFFLINE-FIRST: Service Worker Registration
+// =============================================================
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw2.js', { scope: '/', updateViaCache: 'none' })
+      .then(function(reg) {
+        console.log('[Dawa Smart] Service Worker registered (scope: /)');
+        // Check for updates
+        if (reg.waiting) {
+          reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+        }
+      })
+      .catch(function(error) {
+        console.log('[Dawa Smart] Service Worker registration failed:', error);
+      });
+  });
+
+  // Handle SW updates
+  navigator.serviceWorker.addEventListener('controllerchange', function() {
+    window.location.reload();
+  });
+  
+  // Show update notification when new SW is waiting
+  if (navigator.serviceWorker) {
+    navigator.serviceWorker.addEventListener('controllerchange', function() {
+      // New SW is now controlling the page — show refresh prompt
+      if (window.location.search.includes('noupdate') !== true) {
+        showToast('New version available! Refresh to update.', 'info', 8000);
+      }
+    });
+  }
+}
+
 // =============================================================
 // APP CONFIGURATION
 // =============================================================
@@ -1164,26 +1291,140 @@ function normalizeExpense(expense) {
 
 const db = {
     db: null,
+    currentPharmacyId: null,
     init() {
+        var self = this;
         return new Promise((resolve, reject) => {
-            const req = indexedDB.open('YetuPharmcareDB', 4);
+            const req = indexedDB.open('YetuPharmcareDB', 5);
             req.onerror = () => reject('DB error');
-            req.onsuccess = () => { this.db = req.result; resolve(); };
+            req.onsuccess = () => { self.db = req.result; resolve(); };
             req.onupgradeneeded = (e) => {
                 const d = e.target.result;
-                ['products','sales','saleItems','patients','batches','controlledLogs','labTests','expenses','users'].forEach(s => {
-                    if (!d.objectStoreNames.contains(s)) d.createObjectStore(s, { keyPath: 'id' });
+                const stores = ['products','sales','saleItems','patients','batches','controlledLogs','labTests','expenses','users'];
+                stores.forEach(s => {
+                    if (!d.objectStoreNames.contains(s)) {
+                        const store = d.createObjectStore(s, { keyPath: 'id' });
+                        store.createIndex('pharmacy_id', 'pharmacyId', { unique: false });
+                    }
                 });
             };
         });
     },
-    add(store, data) { return this.init().then(() => new Promise((resolve, reject) => { const tx = this.db.transaction(store, 'readwrite'); const req = tx.objectStore(store).add(data); req.onsuccess = () => resolve(data); req.onerror = () => reject(req.error); })); },
-    getAll(store) { return this.init().then(() => new Promise((resolve, reject) => { const tx = this.db.transaction(store, 'readonly'); const req = tx.objectStore(store).getAll(); req.onsuccess = () => { const records = req.result || []; resolve(store === 'expenses' ? records.map(normalizeExpense) : records); }; req.onerror = () => reject(req.error); })); },
-    getById(store, id) { return this.init().then(() => new Promise((resolve, reject) => { const tx = this.db.transaction(store, 'readonly'); const req = tx.objectStore(store).get(id); req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error); })); },
-    update(store, data) { return this.init().then(() => new Promise((resolve, reject) => { const tx = this.db.transaction(store, 'readwrite'); const req = tx.objectStore(store).put(data); req.onsuccess = () => resolve(data); req.onerror = () => reject(req.error); })); },
-    delete(store, id) { return this.init().then(() => new Promise((resolve, reject) => { const tx = this.db.transaction(store, 'readwrite'); const req = tx.objectStore(store).delete(id); req.onsuccess = () => resolve(); req.onerror = () => reject(req.error); })); },
-    getSalesByDateRange(start, end) { return this.getAll('sales').then(sales => { const s = new Date(start), e = new Date(end); e.setHours(23,59,59,999); return sales.filter(sale => { const d = new Date(sale.date); return d >= s && d <= e; }); }); },
-    getSaleItems(saleId) { return this.getAll('saleItems').then(items => items.filter(i => i.saleId === saleId)); }
+    add(store, data) {
+        var self = this;
+        // Auto-inject pharmacyId from tenant context
+        if (typeof window.DawaTenant !== 'undefined' && window.DawaTenant.getCurrentPharmacyId &&
+            !data.pharmacyId && ['products','sales','saleItems','patients','batches','controlledLogs','labTests','expenses'].indexOf(store) >= 0) {
+            data = { ...data, pharmacyId: window.DawaTenant.getCurrentPharmacyId() };
+        }
+        return this.init().then(() => new Promise((resolve, reject) => {
+            const tx = self.db.transaction(store, 'readwrite');
+            const req = tx.objectStore(store).add(data);
+            req.onsuccess = () => {
+                // Enqueue sync if online and tenant is initialized
+                if (navigator.onLine && typeof window.DawaSync !== 'undefined' && window.DawaSync.enqueueOperation &&
+                    typeof window.DawaTenant !== 'undefined' && window.DawaTenant.getToken) {
+                    window.DawaSync.enqueueOperation(store, 'create', data.id, data);
+                }
+                resolve(data);
+            };
+            req.onerror = () => reject(req.error);
+        }));
+    },
+    getAll(store) {
+        var self = this;
+        return this.init().then(() => new Promise((resolve, reject) => {
+            const tx = self.db.transaction(store, 'readonly');
+            const req = tx.objectStore(store).getAll();
+            req.onsuccess = () => {
+                let records = req.result || [];
+                // Scope to current pharmacy for tenant data stores
+                if (typeof window.DawaTenant !== 'undefined' && window.DawaTenant.getCurrentPharmacyId) {
+                    var pharmId = window.DawaTenant.getCurrentPharmacyId();
+                    var tenantStores = ['products','sales','saleItems','patients','batches','controlledLogs','labTests','expenses'];
+                    if (pharmId && tenantStores.indexOf(store) >= 0) {
+                        records = records.filter(r => r.pharmacyId === pharmId);
+                    }
+                }
+                resolve(store === 'expenses' ? records.map(normalizeExpense) : records);
+            };
+            req.onerror = () => reject(req.error);
+        }));
+    },
+    getById(store, id) {
+        var self = this;
+        return this.init().then(() => new Promise((resolve, reject) => {
+            const tx = self.db.transaction(store, 'readonly');
+            const req = tx.objectStore(store).get(id);
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+        }));
+    },
+    update(store, data) {
+        var self = this;
+        // Auto-inject pharmacyId from tenant context
+        if (typeof window.DawaTenant !== 'undefined' && window.DawaTenant.getCurrentPharmacyId &&
+            !data.pharmacyId && ['products','sales','saleItems','patients','batches','controlledLogs','labTests','expenses'].indexOf(store) >= 0) {
+            data = { ...data, pharmacyId: window.DawaTenant.getCurrentPharmacyId() };
+        }
+        return this.init().then(() => new Promise((resolve, reject) => {
+            const tx = self.db.transaction(store, 'readwrite');
+            const req = tx.objectStore(store).put(data);
+            req.onsuccess = () => {
+                // Enqueue sync
+                if (navigator.onLine && typeof window.DawaSync !== 'undefined' && window.DawaSync.enqueueOperation &&
+                    typeof window.DawaTenant !== 'undefined' && window.DawaTenant.getToken) {
+                    window.DawaSync.enqueueOperation(store, 'update', data.id, data);
+                }
+                resolve(data);
+            };
+            req.onerror = () => reject(req.error);
+        }));
+    },
+    delete(store, id) {
+        var self = this;
+        return this.init().then(() => new Promise((resolve, reject) => {
+            const tx = self.db.transaction(store, 'readwrite');
+            const req = tx.objectStore(store).delete(id);
+            req.onsuccess = () => {
+                if (navigator.onLine && typeof window.DawaSync !== 'undefined' && window.DawaSync.enqueueOperation &&
+                    typeof window.DawaTenant !== 'undefined' && window.DawaTenant.getToken) {
+                    window.DawaSync.enqueueOperation(store, 'delete', id, { id: id });
+                }
+                resolve();
+            };
+            req.onerror = () => reject(req.error);
+        }));
+    },
+    getSalesByDateRange(start, end) {
+        return this.getAll('sales').then(sales => {
+            const s = new Date(start), e = new Date(end);
+            e.setHours(23,59,59,999);
+            return sales.filter(sale => {
+                const d = new Date(sale.date);
+                return d >= s && d <= e;
+            });
+        });
+    },
+    getSaleItems(saleId) {
+        return this.getAll('saleItems').then(items => items.filter(i => i.saleId === saleId));
+    },
+    setPharmacyId(id) { this.currentPharmacyId = id; },
+    getCurrentPharmacyId() { return this.currentPharmacyId; },
+    clearAll() {
+        var self = this;
+        return this.init().then(() => {
+            const stores = ['products','sales','saleItems','patients','batches','controlledLogs','labTests','expenses'];
+            return Promise.all(stores.map(store => {
+                return new Promise((resolve, reject) => {
+                    const tx = self.db.transaction(store, 'readwrite');
+                    tx.clear();
+                    tx.oncomplete = () => resolve();
+                    tx.onerror = () => reject(tx.error);
+                });
+            }));
+        });
+    }
 };
 
 // =============================================================
@@ -1192,7 +1433,7 @@ const db = {
 class ReceiptFormatter {
     constructor() {
         this.shopName = localStorage.getItem('yetu_shop_name') || 'Dawa Smart';
-        this.address = localStorage.getItem('yetu_shop_address') || '7 Cheptais · 📞 0740289362';
+        this.address = localStorage.getItem('yetu_shop_address') || '7 Cheptais · 📞 0759324463';
         this.kraPin = localStorage.getItem('yetu_kra_pin') || 'P-2025-001';
         this.footer = localStorage.getItem('yetu_receipt_footer') || 'Thank you for choosing Dawa Smart!';
         this.vatRate = parseFloat(localStorage.getItem('yetu_vat_rate')) || 0;
@@ -1497,14 +1738,38 @@ function clearBackdate() {
 }
 
 // ===== LOGIN =====
-function handleLogin(){
-    const username = document.getElementById('loginUsername').value.trim();
-    const password = document.getElementById('loginPassword').value.trim();
-    const errorEl = document.getElementById('loginError');
+async function handleLogin(){
+    var username = document.getElementById('loginUsername').value.trim();
+    var password = document.getElementById('loginPassword').value.trim();
+    var errorEl = document.getElementById('loginError');
     errorEl.className='error-msg';
     if(!username || !password){errorEl.textContent='Please enter both fields';errorEl.className='error-msg show';return;}
-    const user = findUser(username,password);
-    if(!user){ loginAttempts++; errorEl.textContent='❌ Wrong username or password. Attempt '+loginAttempts+'/5'; errorEl.className='error-msg show'; if(loginAttempts>=5){ errorEl.textContent='Too many attempts. Locked 30s.'; document.getElementById('loginUsername').disabled = true; document.getElementById('loginPassword').disabled = true; setTimeout(()=>{document.getElementById('loginUsername').disabled=false;document.getElementById('loginPassword').disabled=false;loginAttempts=0;errorEl.textContent='';errorEl.className='error-msg';},30000); } return; }
+
+    // Authenticate via Worker API (uses hashed credentials server-side)
+    var authResult = null;
+    if (typeof window.DawaTenant !== 'undefined' && window.DawaTenant.authenticate) {
+        authResult = await window.DawaTenant.authenticate(username, password);
+        if (!authResult.success) {
+            loginAttempts++;
+            errorEl.textContent='❌ '+authResult.error+'. Attempt '+loginAttempts+'/5';
+            errorEl.className='error-msg show';
+            if(loginAttempts>=5){ errorEl.textContent='Too many attempts. Locked 30s.'; document.getElementById('loginUsername').disabled = true; document.getElementById('loginPassword').disabled = true; setTimeout(()=>{document.getElementById('loginUsername').disabled=false;document.getElementById('loginPassword').disabled=false;loginAttempts=0;errorEl.textContent='';errorEl.className='error-msg';},30000); }
+            return;
+        }
+    }
+
+    // Fallback to local-only auth if offline / no Worker configured
+    var user = findUser(username,password);
+    if(!user && (!authResult || !authResult.success)){
+        loginAttempts++; errorEl.textContent='❌ Wrong username or password. Attempt '+loginAttempts+'/5'; errorEl.className='error-msg show'; if(loginAttempts>=5){ errorEl.textContent='Too many attempts. Locked 30s.'; document.getElementById('loginUsername').disabled = true; document.getElementById('loginPassword').disabled = true; setTimeout(()=>{document.getElementById('loginUsername').disabled=false;document.getElementById('loginPassword').disabled=false;loginAttempts=0;errorEl.textContent='';errorEl.className='error-msg';},30000); }
+        return;
+    }
+
+    // Use auth result if available (for token + pharmacy context)
+    if (authResult && authResult.success) {
+        user = authResult.user;
+    }
+
     if(!user.verified){errorEl.textContent='⚠️ Account not verified. Contact developer.';errorEl.className='error-msg show';return;}
 
      // === DEMO LICENSE ENFORCEMENT ===
@@ -1526,14 +1791,22 @@ function handleLogin(){
             }
         }
     }
-        // Allow login — trial may not have started yet, that's fine.
-    }
 
     loginAttempts=0; currentUser = user;
     document.getElementById('loginPage').style.display='none';
     document.getElementById('appContainer').className='app-container show';
     document.getElementById('currentUserDisplay').textContent=user.fullName;
     document.getElementById('currentRoleDisplay').textContent=user.role.charAt(0).toUpperCase()+user.role.slice(1);
+    // Show admin navigation and panel for developer role
+    var adminNavBtn = document.getElementById('adminNavBtn');
+    if (adminNavBtn) { adminNavBtn.style.display = user.role === 'developer' ? 'block' : 'none'; }
+    if (user.role === 'developer') { setTimeout(function(){ fetchAdminData(); }, 500); }
+    // Fetch and display pharmacy memberships
+    if (typeof window.DawaTenant !== 'undefined' && window.DawaTenant.fetchMemberships) {
+        window.DawaTenant.fetchMemberships().then(() => {
+            refreshWorkspaceSwitcher();
+        });
+    }
     loadPharmacySettings(); updatePharmacyDisplay();
     updateDemoUI();
     setupTrialWarnings();
@@ -1543,12 +1816,17 @@ function handleLogin(){
 
 function handleLogout(){
     currentUser=null;
+    if (typeof window.DawaTenant !== 'undefined' && window.DawaTenant.logout) {
+        window.DawaTenant.logout();
+    }
     document.getElementById('appContainer').className='app-container';
     document.getElementById('loginPage').style.display='flex';
     var badge = document.getElementById('headerDemoBadge');
     if (badge) badge.style.display='none';
+    var switcher = document.getElementById('pharmacySwitcher');
+    if (switcher) { switcher.style.display='none'; switcher.innerHTML=''; }
      showToast('Logged out');
- }
+  }
 
 // ===== DEMO UI HELPERS =====
 function updateDemoUI(){
@@ -1727,10 +2005,19 @@ function resetDemoData(){
     });
 }
 function loadPharmacySettings() {
-    const stored = localStorage.getItem('yetu_pharmacy');
-    if (stored) { try { const settings = JSON.parse(stored); document.getElementById('shopName').value = settings.name || 'Dawa Smart'; document.getElementById('shopAddress').value = settings.address || '7 Cheptais · 📞 0740289362'; document.getElementById('kraPin').value = settings.kraPin || 'P-2025-001'; document.getElementById('receiptFooter').value = settings.footer || 'Thank you for choosing Dawa Smart!'; document.getElementById('vatRate').value = settings.vatRate || 0; document.getElementById('headerPharmacyName').textContent = settings.name || 'Dawa Smart'; document.getElementById('currentPharmacyDisplay').textContent = settings.name || 'Dawa Smart'; document.getElementById('loginTitle').textContent = settings.name || 'Dawa Smart'; vatRate = parseFloat(settings.vatRate) || 0; document.getElementById('vatRateDisplay').textContent = vatRate; receiptFormatter.shopName = settings.name || 'Dawa Smart'; receiptFormatter.address = settings.address || '7 Cheptais · 📞 0740289362'; receiptFormatter.kraPin = settings.kraPin || 'P-2025-001'; receiptFormatter.footer = settings.footer || 'Thank you for choosing Dawa Smart!'; receiptFormatter.vatRate = vatRate; } catch(e) {} } }
+    // Use tenant-scoped storage key if pharmacy context is available
+    var pharmId = (typeof window.DawaTenant !== 'undefined' && window.DawaTenant.getCurrentPharmacyId)
+        ? window.DawaTenant.getCurrentPharmacyId() : null;
+    var storageKey = pharmId ? 'yetu_pharmacy_' + pharmId : 'yetu_pharmacy';
+    const stored = localStorage.getItem(storageKey);
+    if (stored) { try { const settings = JSON.parse(stored); document.getElementById('shopName').value = settings.name || 'Dawa Smart'; document.getElementById('shopAddress').value = settings.address || '7 Cheptais · 📞 0759324463'; document.getElementById('kraPin').value = settings.kraPin || 'P-2025-001'; document.getElementById('receiptFooter').value = settings.footer || 'Thank you for choosing Dawa Smart!'; document.getElementById('vatRate').value = settings.vatRate || 0; document.getElementById('headerPharmacyName').textContent = settings.name || 'Dawa Smart'; document.getElementById('currentPharmacyDisplay').textContent = settings.name || 'Dawa Smart'; document.getElementById('loginTitle').textContent = settings.name || 'Dawa Smart'; vatRate = parseFloat(settings.vatRate) || 0; document.getElementById('vatRateDisplay').textContent = vatRate; receiptFormatter.shopName = settings.name || 'Dawa Smart'; receiptFormatter.address = settings.address || '7 Cheptais · 📞 0759324463'; receiptFormatter.kraPin = settings.kraPin || 'P-2025-001'; receiptFormatter.footer = settings.footer || 'Thank you for choosing Dawa Smart!'; receiptFormatter.vatRate = vatRate; } catch(e) {} } }
 function updatePharmacyDisplay() { const name = document.getElementById('shopName').value || 'Dawa Smart'; document.getElementById('headerPharmacyName').textContent = name; document.getElementById('currentPharmacyDisplay').textContent = name; }
-function saveSettings(){ if(!adminGuard('save settings')) return; const settings = { name: document.getElementById('shopName').value.trim() || 'Dawa Smart', address: document.getElementById('shopAddress').value.trim() || '7 Cheptais · 📞 0740289362', kraPin: document.getElementById('kraPin').value.trim() || 'P-2025-001', footer: document.getElementById('receiptFooter').value.trim() || 'Thank you for choosing Dawa Smart!', vatRate: parseFloat(document.getElementById('vatRate').value) || 0 }; localStorage.setItem('yetu_pharmacy', JSON.stringify(settings)); vatRate = settings.vatRate; document.getElementById('vatRateDisplay').textContent = vatRate; receiptFormatter.shopName = settings.name; receiptFormatter.address = settings.address; receiptFormatter.kraPin = settings.kraPin; receiptFormatter.footer = settings.footer; receiptFormatter.vatRate = vatRate; updatePharmacyDisplay(); showToast('Settings saved!','success'); }
+function saveSettings(){ if(!adminGuard('save settings')) return;
+    // Use tenant-scoped storage key
+    var pharmId = (typeof window.DawaTenant !== 'undefined' && window.DawaTenant.getCurrentPharmacyId)
+        ? window.DawaTenant.getCurrentPharmacyId() : null;
+    var storageKey = pharmId ? 'yetu_pharmacy_' + pharmId : 'yetu_pharmacy';
+    const settings = { name: document.getElementById('shopName').value.trim() || 'Dawa Smart', address: document.getElementById('shopAddress').value.trim() || '7 Cheptais · 📞 0759324463', kraPin: document.getElementById('kraPin').value.trim() || 'P-2025-001', footer: document.getElementById('receiptFooter').value.trim() || 'Thank you for choosing Dawa Smart!', vatRate: parseFloat(document.getElementById('vatRate').value) || 0 }; localStorage.setItem(storageKey, JSON.stringify(settings)); vatRate = settings.vatRate; document.getElementById('vatRateDisplay').textContent = vatRate; receiptFormatter.shopName = settings.name; receiptFormatter.address = settings.address; receiptFormatter.kraPin = settings.kraPin; receiptFormatter.footer = settings.footer; receiptFormatter.vatRate = vatRate; updatePharmacyDisplay(); showToast('Settings saved!','success'); }
 
 // ===== USER MANAGEMENT =====
 function loadUsers(){ 
@@ -3080,6 +3367,40 @@ function initApp(){
         document.getElementById('categoryFilter').addEventListener('change',loadProducts);
         document.getElementById('patientSearch').addEventListener('input',loadPatients);
         if(!navigator.onLine)document.getElementById('offlineBadge').style.display='inline';
+        // Update sync status indicator
+        if (typeof window.DawaSync !== 'undefined') {
+          var syncStatus = window.DawaSync.getStatus();
+          updateSyncIndicator(syncStatus);
+          window.addEventListener('dawaSyncStatus', function(e) {
+            updateSyncIndicator(e.detail);
+          });
+        }
+        function updateSyncIndicator(status) {
+          var badge = document.getElementById('syncBadge');
+          var text = document.getElementById('syncStatusText');
+          var icon = document.getElementById('syncIcon');
+          if (!badge || !text || !icon) return;
+          badge.style.display = 'flex';
+          text.textContent = status.status || 'Sync';
+          icon.className = 'fas fa-sync-alt';
+          if (status.status === 'synced') {
+            badge.style.background = 'rgba(22, 163, 74, 0.15)';
+            icon.className = 'fas fa-check-circle';
+            text.textContent = 'Synced';
+          } else if (status.status === 'syncing') {
+            icon.className = 'fas fa-sync-alt fa-spin';
+            text.textContent = 'Syncing (' + status.pending + ')';
+          } else if (status.status === 'offline') {
+            badge.style.background = 'rgba(245, 158, 11, 0.15)';
+            icon.className = 'fas fa-wifi-slash';
+            text.textContent = 'Offline';
+          } else if (status.status === 'pending' || status.status === 'failed') {
+            badge.style.background = 'rgba(245, 158, 11, 0.15)';
+            text.textContent = (status.pending || 0) + ' pending';
+          } else if (status.status === 'local-only') {
+            badge.style.display = 'none';
+          }
+        }
         document.getElementById('drugDbCount').textContent = totalDrugs + ' drugs';
         renderDrugSearchResultsMain();
         loadCreditDashboard();
@@ -3095,6 +3416,13 @@ function initApp(){
         if (isDemo()) {
             if (startFreshBtn) startFreshBtn.style.display = 'none';
             if (clearAllBtn) clearAllBtn.style.display = 'none';
+        }
+
+        // Refresh workspace switcher
+        if (typeof window.DawaTenant !== 'undefined' && window.DawaTenant.fetchMemberships) {
+            window.DawaTenant.fetchMemberships().then(() => {
+                refreshWorkspaceSwitcher();
+            });
         }
         console.log('⚕️ Dawa Smart v1.0.0 ready with ' + totalDrugs + ' drugs!');
          showToast('⚕️ Dawa Smart v1.0.0 ready!','success');
@@ -3169,15 +3497,122 @@ window.triggerMpesaSTK=triggerMpesaSTK;window.isAdmin=isAdmin;window.isDemo=isDe
 window.resetDemoData=resetDemoData;window.updateDemoUI=updateDemoUI;window.renderDemoBanner=renderDemoBanner;
 window.contactSalesWhatsApp=contactSalesWhatsApp;window.contactSupportEmail=contactSupportEmail;window.exitDemo=exitDemo;window.resetDemoTrialAndReload=resetDemoTrialAndReload;window.checkLoginTrialStatus=checkLoginTrialStatus;
 window.updateLicenseInfoDisplay=updateLicenseInfoDisplay;
+window.DawaSync=window.DawaSync;window.DawaSupabase=window.DawaSupabase;
+window.DawaTenant=window.DawaTenant;
+
+// ─── Workspace Switcher ───
+async function refreshWorkspaceSwitcher(){
+    var switcher = document.getElementById('pharmacySwitcher');
+    if (!switcher) return;
+    if (typeof window.DawaTenant === 'undefined' || !window.DawaTenant.getMemberships) return;
+
+    var memberships = window.DawaTenant.getMemberships();
+    if (memberships.length <= 1) {
+        switcher.style.display = 'none';
+        return;
+    }
+
+    var current = window.DawaTenant.getCurrentPharmacy();
+    var html = '';
+    memberships.forEach(function(m) {
+        var p = m.pharmacy || {};
+        html += '<option value="' + p.id + '" ' + (current && current.id === p.id ? 'selected' : '') + '>' + p.name + '</option>';
+    });
+    switcher.innerHTML = html;
+    switcher.style.display = 'inline-block';
+}
+
+async function switchWorkspace(pharmacyId){
+    if (!pharmacyId || typeof window.DawaTenant === 'undefined') return;
+    try {
+        await window.DawaTenant.switchPharmacy(pharmacyId);
+        refreshWorkspaceSwitcher();
+        loadProducts(); loadPatients(); loadCustomers(); loadProductSearch();
+        updateStats(); updateProductGrid(); updatePricingDashboard();
+        loadLabTests(); loadUsers(); loadCreditDashboard();
+        showToast('Switched to ' + window.DawaTenant.getCurrentPharmacy().name, 'success');
+    } catch(e) {
+        showToast('Switch failed: ' + e.message, 'error');
+    }
+}
+window.switchWorkspace=switchWorkspace;window.refreshWorkspaceSwitcher=refreshWorkspaceSwitcher;
+
+// ─── Connection Status Listeners ───
+function updateOfflineBadge(){
+    var badge = document.getElementById('offlineBadge');
+    if (!badge) return;
+    if (!navigator.onLine) {
+        badge.style.display = 'inline';
+    } else {
+        badge.style.display = 'none';
+        // Trigger sync when coming back online
+        if (typeof window.DawaSync !== 'undefined' && window.DawaSync.syncNow) {
+            setTimeout(function(){ window.DawaSync.syncNow(); }, 500);
+        }
+    }
+}
+window.addEventListener('online', updateOfflineBadge);
+window.addEventListener('offline', updateOfflineBadge);
+
 window.editSale=editSale;window.deleteSale=deleteSale;window.adjustCredit=adjustCredit;
 window.toggleNegotiation=toggleNegotiation;window.applyAllNegotiations=applyAllNegotiations;window.clearAllNegotiations=clearAllNegotiations;
 window.toggleBackdate=toggleBackdate;window.applyBackdate=applyBackdate;window.clearBackdate=clearBackdate;
 window.toggleRevenueInsight=toggleRevenueInsight;window.updateRevenueInsight=updateRevenueInsight;
 window.updateNegotiatedPrice=updateNegotiatedPrice;
 
-document.getElementById('loginPassword').value = 'DEMO2026';
-document.getElementById('loginUsername').value = 'DEMO';
-document.getElementById('loginDemoHint').style.display = 'block';
+  document.getElementById('loginPassword').value = 'DEMO2026';
+  document.getElementById('loginUsername').value = 'DEMO';
+  var _hint = document.getElementById('loginDemoHint'); if (_hint) _hint.style.display = 'block';
+
+window.fillAdminLogin = function() {
+    handleLogin();
+};
+
+window.fetchAdminData = async function() {
+    if (!window.DawaTenant || !window.DawaTenant.getToken) return;
+    var token = window.DawaTenant.getToken();
+    if (!token) return;
+    try {
+        var [pharmResponse, membersResponse] = await Promise.all([
+            fetch('https://dawa-smart-api.rashidjumachepkwony.workers.dev/api/admin/pharmacies', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            }),
+            fetch('https://dawa-smart-api.rashidjumachepkwony.workers.dev/api/admin/members', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            })
+        ]);
+        var pharmacies = pharmResponse.ok ? await pharmResponse.json() : { pharmacies: [] };
+        var members = membersResponse.ok ? await membersResponse.json() : { members: [] };
+        renderAdminPanel(pharmacies.pharmacies || [], members.members || []);
+    } catch (e) {
+        console.error('[Admin] Failed to fetch admin data:', e);
+    }
+};
+
+window.renderAdminPanel = function(pharmacies, members) {
+    var pharmacyList = document.getElementById('adminPharmacyList');
+    var memberList = document.getElementById('adminMemberList');
+    if (pharmacyList) {
+        pharmacyList.innerHTML = pharmacies.map(function(p) {
+            return '<tr><td>' + (p.id || '').substring(0,8) + '</td><td>' + (p.name||'') + '</td><td>' + (p.slug||'') + '</td><td>' + (p.status||'') + '</td><td>' + (p.created_at ? new Date(p.created_at).toLocaleDateString() : '') + '</td></tr>';
+        }).join('');
+    }
+    if (memberList) {
+        memberList.innerHTML = members.map(function(m) {
+            return '<tr><td>' + (m.auth_user_id||m.id||'') + '</td><td>' + (m.email||'') + '</td><td>' + (m.role||'') + '</td><td>' + (m.status||'') + '</td><td>' + (m.pharmacy && m.pharmacy.name ? m.pharmacy.name : (m.pharmacy_id||'')) + '</td></tr>';
+        }).join('');
+    }
+    var panel = document.getElementById('adminPanel');
+    if (panel) { panel.style.display = 'block'; }
+};
+
+window.scrollToLogin = function() {
+    document.getElementById('loginForm').scrollIntoView({ behavior: 'smooth' });
+};
+
+window.openWhatsAppChat = function() {
+    window.open('https://wa.me/254759324463', '_blank');
+};
 
 window.addEventListener('load', function(){
     const splash = document.getElementById('splash');
