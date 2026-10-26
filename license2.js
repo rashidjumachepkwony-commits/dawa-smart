@@ -1,6 +1,5 @@
-﻿// UNIQUE-LICENSE-V2
 /*!
- * Dawa Smart â€“ License & Trial Manager
+ * Dawa Smart – License & Trial Manager
  * ====================================
  * Centralized licensing and trial system for the Dawa Smart demo.
  *
@@ -10,8 +9,8 @@
  * by restoring an old backup.
  *
  * Future extensibility:
- *   - validateLocalLicense()  â†’ offline key validation
- *   - validateRemoteLicense() â†’ server-side activation (future)
+ *   - validateLocalLicense()  → offline key validation
+ *   - validateRemoteLicense() → server-side activation (future)
  *   - License types: monthly / annual / lifetime (future)
  *
  * Security note: This is a client-side offline application. Frontend
@@ -95,7 +94,7 @@
     return this._ensureLicense();
   };
 
-  // Activate the demo trial â€” called on first successful DEMO login.
+  // Activate the demo trial — called on first successful DEMO login.
   // trialStart and trialExpiry are set once and never reset.
   LicenseManager.prototype.activateDemoTrial = function () {
     var license = this.getLicense();
@@ -129,7 +128,7 @@
     }
   };
 
-  // â”€â”€â”€ Status queries â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Status queries ──────────────────────────────────────────
 
   LicenseManager.prototype.isDemoMode = function () {
     return this.getLicense().mode === 'demo';
@@ -178,7 +177,7 @@
     return this.getLicense().trialExpiry;
   };
 
-  // â”€â”€â”€ Core checks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Core checks ─────────────────────────────────────────────
 
   // Detect system-clock tampering by comparing the stored lastSeen
   // with the current time.  A small tolerance accommodates legitimate
@@ -193,7 +192,7 @@
       return true;
     }
     // Clock leaped forward by an implausibly large amount (more than 1 day
-    // in a single check) â€” possible fast-forward tampering.
+    // in a single check) — possible fast-forward tampering.
     if (now > last + DAY_MS + CLOCK_TOLERANCE_MS) {
       // Verify by checking if we are past the trial expiry we expected.
       // Allow it only if the trial genuinely expires naturally.
@@ -262,18 +261,20 @@
     if (splash) splash.style.display = 'none';
 
     if (expiryScreen) {
-      var title = document.getElementById('licenseExpiryTitle');
-      var msg = document.getElementById('licenseExpiryMessage');
-      var sub = document.getElementById('licenseExpirySub');
-      if (title) title.textContent = reason === 'tampered'
-        ? 'DAWA SMART â€” CLOCK ANOMALY DETECTED'
-        : 'DAWA SMART DEMO EXPIRED';
-      if (msg) msg.textContent = reason === 'tampered'
-        ? 'System time appears to have been modified. The demo cannot continue until the system clock is corrected.'
-        : 'Your 14-day demonstration period has ended.';
-      if (sub) sub.textContent = 'Thank you for evaluating Dawa Smart.';
-      expiryScreen.classList.add('show');
-    }
+       var title = document.getElementById('licenseExpiryTitle');
+       var msg = document.getElementById('licenseExpiryMessage');
+       var sub = document.getElementById('licenseExpirySub');
+       if (title) title.textContent = reason === 'tampered'
+         ? 'DAWA SMART — CLOCK ANOMALY DETECTED'
+         : 'DAWA SMART DEMO EXPIRED';
+       if (msg) msg.textContent = reason === 'tampered'
+         ? 'System time appears to have been modified. The demo cannot continue until the system clock is corrected.'
+         : 'Your 14-day demonstration period has ended.';
+       if (sub) sub.textContent = reason === 'tampered'
+         ? 'Please correct your system clock to continue.'
+         : 'Click "START FRESH DEMO" to reset your trial and get a new 14-day period. Each device gets its own independent demo.';
+       expiryScreen.classList.add('show');
+     }
     return false;
   };
 
@@ -295,7 +296,7 @@
     return { valid: false, licenseType: null, expiry: null };
   };
 
-  // Main gatekeeper â€” ask before allowing protected functionality.
+  // Main gatekeeper — ask before allowing protected functionality.
   LicenseManager.prototype.canUseApplication = function () {
     // Production / developer users always have full access
     if (window.currentUser && (window.currentUser.role === 'developer' || window.currentUser.role === 'admin')) {
@@ -311,11 +312,11 @@
       return { allowed: true, reason: 'demo', daysRemaining: this.getTrialDaysRemaining() };
     }
 
-    // Unauthenticated or unknown role â€” allow login screen only
+    // Unauthenticated or unknown role — allow login screen only
     return { allowed: false, reason: 'no_session' };
   };
 
-  // â”€â”€â”€ Display helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Display helpers ─────────────────────────────────────────
 
   LicenseManager.prototype.getLicenseInfo = function () {
     var license = this.getLicense();
@@ -340,7 +341,7 @@
     };
   };
 
-  // â”€â”€â”€ Warning thresholds â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Warning thresholds ────────────────────────────────────────
 
   LicenseManager.prototype.getWarningThreshold = function () {
     var days = this.getTrialDaysRemaining();
@@ -370,7 +371,7 @@
     } catch (e) {}
   };
 
-  // â”€â”€â”€ UI rendering â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── UI rendering ─────────────────────────────────────────────
 
   LicenseManager.prototype.updateDemoIndicator = function () {
     var info = this.getLicenseInfo();
@@ -382,10 +383,10 @@
       var badge = document.getElementById('demoHeaderBadge');
       if (badge) {
         if (info.daysRemaining > 0) {
-          badge.textContent = 'DEMO â€¢ ' + info.daysRemaining + ' DAY' + (info.daysRemaining > 1 ? 'S' : '') + ' LEFT';
+          badge.textContent = 'DEMO • ' + info.daysRemaining + ' DAY' + (info.daysRemaining > 1 ? 'S' : '') + ' LEFT';
           badge.className = 'demo-badge';
         } else if (info.lessThan24h) {
-          badge.textContent = 'DEMO â€¢ < 1 DAY LEFT';
+          badge.textContent = 'DEMO • < 1 DAY LEFT';
           badge.className = 'demo-badge demo-warning';
         } else {
           badge.textContent = 'DEMO EXPIRED';
@@ -398,10 +399,10 @@
     // Dashboard indicator
     if (indicator) {
       if (info.daysRemaining > 0) {
-        indicator.textContent = 'DEMO MODE â€¢ ' + info.daysRemaining + ' DAY' + (info.daysRemaining > 1 ? 'S' : '') + ' LEFT';
+        indicator.textContent = 'DEMO MODE • ' + info.daysRemaining + ' DAY' + (info.daysRemaining > 1 ? 'S' : '') + ' LEFT';
         indicator.className = 'demo-banner';
       } else if (info.lessThan24h) {
-        indicator.textContent = 'DEMO MODE â€¢ ' + info.hoursRemaining + 'h ' + info.minutesRemaining + 'm REMAINING';
+        indicator.textContent = 'DEMO MODE • ' + info.hoursRemaining + 'h ' + info.minutesRemaining + 'm REMAINING';
         indicator.className = 'demo-banner demo-banner-warning';
       } else {
         indicator.style.display = 'none';
@@ -429,7 +430,7 @@
     this.markWarningShown(threshold);
   };
 
-  // â”€â”€â”€ Reset demo data (demo data only â€” never touches license) â”€â”€
+  // ─── Reset demo data (demo data only — never touches license) ──
 
   LicenseManager.prototype.resetDemoData = function () {
     var stores = ['products', 'sales', 'saleItems', 'patients', 'batches', 'labTests', 'expenses', 'controlledLogs'];
@@ -450,7 +451,7 @@
     });
   };
 
-  // â”€â”€â”€ Dev testing panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Dev testing panel ───────────────────────────────────────
 
   LicenseManager.prototype.isDevMode = function () {
     try {
@@ -521,11 +522,17 @@
      return true;
    };
 
-   LicenseManager.prototype.resetDemoTrial = function () {
-     localStorage.removeItem(this.key);
-     this._ensureLicense();
-     return true;
-   };
+    LicenseManager.prototype.resetDemoTrial = function () {
+      localStorage.removeItem(this.key);
+      localStorage.removeItem('dawasmartz_device_id');
+      localStorage.removeItem(this.key + '_warn_less-than-24h');
+      localStorage.removeItem(this.key + '_warn_1-day');
+      localStorage.removeItem(this.key + '_warn_2-days');
+      localStorage.removeItem(this.key + '_warn_3-days');
+      localStorage.removeItem(this.key + '_warn_7-days');
+      this._ensureLicense();
+      return true;
+    };
 
    LicenseManager.prototype.isTrialExpired = function () {
      var license = this.getLicense();
@@ -557,7 +564,7 @@
     }
   };
 
-  // â”€â”€â”€ Standalone function aliases (for inline onclick handlers) â”€
+  // ─── Standalone function aliases (for inline onclick handlers) ─
 
   function initializeLicense() { return licenseManager.initializeLicense(); }
   function getLicenseStatus() { return licenseManager.getLicenseInfo(); }
@@ -574,7 +581,7 @@
   function resetDemoTrial() { return licenseManager.resetDemoTrial(); }
   function isTrialExpired() { return licenseManager.isTrialExpired(); }
 
-  // â”€â”€â”€ Global exposure â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─── Global exposure ──────────────────────────────────────────
 
   var licenseManager = new LicenseManager();
 
@@ -611,7 +618,7 @@
           _presses = [];
           var enabled = licenseManager.toggleDevMode();
           if (typeof showToast === 'function') {
-            showToast('ðŸ”§ License dev mode ' + (enabled ? 'enabled' : 'disabled'), 'info');
+            showToast('🔧 License dev mode ' + (enabled ? 'enabled' : 'disabled'), 'info');
           }
           if (enabled) {
             licenseManager.showDevPanel();
