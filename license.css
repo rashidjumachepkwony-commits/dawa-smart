@@ -196,39 +196,83 @@
 }
 
 .license-expiry-card .btn-expiry {
-  background: #f59e0b;
-  color: #1e293b;
+  background: #D9A10B;
+  color: #000000;
   border: none;
-  padding: 12px 24px;
+  padding: 14px 28px;
   border-radius: 12px;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   cursor: pointer;
-  transition: 0.2s;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   gap: 8px;
+  flex: 1;
+  min-width: 180px;
 }
 
 .license-expiry-card .btn-expiry:hover {
-  background: #d97706;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  background: #C79200;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(217, 161, 11, 0.3);
+}
+
+.license-expiry-card .btn-expiry.btn-license-primary {
+  background: #D9A10B;
+  color: #000000;
+  font-size: 15px;
+  padding: 14px 28px;
+}
+
+.license-expiry-card .btn-expiry.btn-reset-trial {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.license-expiry-card .btn-expiry.btn-reset-trial:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px);
+}
+
+.license-expiry-card .btn-expiry.btn-support {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.license-expiry-card .btn-expiry.btn-support:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
 }
 
 .license-expiry-card .btn-expiry.exit-btn {
-  background: rgba(255, 255, 255, 0.15);
-  color: #fff;
+  background: rgba(220, 38, 38, 0.15);
+  color: #fca5a5;
+  border: 1px solid rgba(220, 38, 38, 0.3);
 }
 
 .license-expiry-card .btn-expiry.exit-btn:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(220, 38, 38, 0.3);
+  transform: translateY(-2px);
 }
 
 .license-expiry-card .expiry-footer {
   margin-top: 24px;
   font-size: 11px;
   color: rgba(255, 255, 255, 0.5);
+}
+
+.license-expiry-card .expiry-note {
+  margin-top: 20px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.75);
+  line-height: 1.5;
 }
 
 /* ---- Developer license testing panel ---- */
