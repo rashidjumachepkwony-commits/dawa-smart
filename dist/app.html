@@ -1777,24 +1777,22 @@ async function handleLogin(){
     if(!user.verified){errorEl.textContent='⚠️ Account not verified. Contact developer.';errorEl.className='error-msg show';return;}
 
      // === DEMO LICENSE ENFORCEMENT ===
-    // Trial is NOT activated on login — it starts when the user makes
-    // their first sale (the moment they "start using" the app).
-    if (user.role === 'demo') {
-        var check = licenseManager.checkTrialExpiry();
-        if (check.expired) {
-            errorEl.className='error-msg';
-            errorEl.textContent='';
-            licenseManager.enforceLicenseLock(check.tampered ? 'tampered' : 'expired');
-            return;
-        }
-        // If trial not yet started, show welcome hint
-        var demoHint = document.getElementById('loginDemoHint');
-        if (demoHint) {
-            var licenseInfo = licenseManager.getLicenseInfo();
-            if (!licenseInfo.trialStart) {
-            }
-        }
-    }
+     // Each DEMO login gets a fresh 14-day trial. If the trial on this
+     // browser/device has expired, reset it automatically so every user
+     // experiences a clean, independent demo environment.
+     if (user.role === 'demo') {
+         var check = licenseManager.checkTrialExpiry();
+         if (check.expired) {
+             licenseManager.resetDemoTrial();
+             check = licenseManager.checkTrialExpiry();
+         }
+         if (check.expired) {
+             errorEl.className='error-msg';
+             errorEl.textContent='';
+             licenseManager.enforceLicenseLock(check.tampered ? 'tampered' : 'expired');
+             return;
+         }
+     }
 
     loginAttempts=0; currentUser = user;
     document.getElementById('loginPage').style.display='none';
@@ -1966,20 +1964,14 @@ function exitDemo(){
 // ─── Reset Demo Trial (for expired trials, allows fresh start) ───
 function resetDemoTrialAndReload(){
     if (!isDemo()) return;
-    if (!confirm('Reset your demo trial? You will get a fresh 14-day trial period.')) return;
     licenseManager.resetDemoTrial();
-    showToast('Demo trial reset! Starting fresh 14-day trial.', 'success');
+    showToast('Fresh 14-day demo started! Enjoy Dawa Smart.', 'success');
     window.location.reload();
 }
 
 function checkLoginTrialStatus(){
-    var container = document.getElementById('resetDemoBtnContainer');
-    if (!container) return;
-    if (typeof licenseManager !== 'undefined' && isDemo() && licenseManager.isTrialExpired()) {
-        container.style.display = 'block';
-    } else {
-        container.style.display = 'none';
-    }
+    // Auto-reset is now handled on DEMO login — each user gets a fresh 14-day trial.
+    // The reset button container is hidden automatically.
 }
 
 // ─── Reset Demo Data (demo-only, does NOT touch license) ──────
