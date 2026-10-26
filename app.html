@@ -904,14 +904,18 @@
       <div class="expiry-icon"><i class="fas fa-prescription-bottle-medical"></i></div>
       <h1 id="licenseExpiryTitle">DAWA SMART DEMO EXPIRED</h1>
       <p class="expiry-message" id="licenseExpiryMessage">Your 14-day demonstration period has ended.</p>
-      <p class="expiry-sub" id="licenseExpirySub">Thank you for evaluating Dawa Smart.</p>
+      <p class="expiry-sub" id="licenseExpirySub">Each device gets its own independent 14-day demo. Start fresh to continue evaluating.</p>
       <div class="expiry-actions">
-        <button class="btn-expiry" onclick="contactSalesWhatsApp()"><i class="fab fa-whatsapp"></i> REQUEST A LICENSE</button>
-        <button class="btn-expiry" onclick="contactSupportEmail()"><i class="fas fa-envelope"></i> CONTACT SUPPORT</button>
+        <button class="btn-expiry btn-license-primary" onclick="contactSalesWhatsApp()"><i class="fab fa-whatsapp"></i> GET A LICENSED ACCOUNT</button>
+        <button class="btn-expiry btn-reset-trial" onclick="resetDemoTrialAndReload()"><i class="fas fa-sync-alt"></i> START FRESH DEMO</button>
+        <button class="btn-expiry btn-support" onclick="contactSupportEmail()"><i class="fas fa-envelope"></i> CONTACT SUPPORT</button>
         <button class="btn-expiry exit-btn" onclick="exitDemo()"><i class="fas fa-sign-out-alt"></i> EXIT DEMO</button>
       </div>
+      <div class="expiry-note">
+        Your license and trial data is stored locally in this browser only. Resetting the demo will clear your current trial and start a new 14-day period.
+      </div>
       <div class="expiry-footer">
-        Dawa Smart v<span id="licenseExpiryVersion">1.0.0</span> · License & trial data is stored locally and is not reset by backup/restore.
+        Dawa Smart v<span id="licenseExpiryVersion">1.0.0</span> · License data is stored locally and is not reset by backup/restore.
       </div>
     </div>
   </div>
@@ -1944,7 +1948,7 @@ function startDemoTicker(){
 // ─── Contact / sales helpers ───────────────────────────────────
 function contactSalesWhatsApp(){
     var msg = 'Hello, I have completed the Dawa Smart 14-day demo and would like information about purchasing a license.';
-    var url = 'https://wa.me/254740289362?text=' + encodeURIComponent(msg);
+    var url = 'https://wa.me/254759324463?text=' + encodeURIComponent(msg);
     window.open(url, '_blank');
 }
 

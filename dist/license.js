@@ -261,18 +261,20 @@
     if (splash) splash.style.display = 'none';
 
     if (expiryScreen) {
-      var title = document.getElementById('licenseExpiryTitle');
-      var msg = document.getElementById('licenseExpiryMessage');
-      var sub = document.getElementById('licenseExpirySub');
-      if (title) title.textContent = reason === 'tampered'
-        ? 'DAWA SMART — CLOCK ANOMALY DETECTED'
-        : 'DAWA SMART DEMO EXPIRED';
-      if (msg) msg.textContent = reason === 'tampered'
-        ? 'System time appears to have been modified. The demo cannot continue until the system clock is corrected.'
-        : 'Your 14-day demonstration period has ended.';
-      if (sub) sub.textContent = 'Thank you for evaluating Dawa Smart.';
-      expiryScreen.classList.add('show');
-    }
+       var title = document.getElementById('licenseExpiryTitle');
+       var msg = document.getElementById('licenseExpiryMessage');
+       var sub = document.getElementById('licenseExpirySub');
+       if (title) title.textContent = reason === 'tampered'
+         ? 'DAWA SMART — CLOCK ANOMALY DETECTED'
+         : 'DAWA SMART DEMO EXPIRED';
+       if (msg) msg.textContent = reason === 'tampered'
+         ? 'System time appears to have been modified. The demo cannot continue until the system clock is corrected.'
+         : 'Your 14-day demonstration period has ended.';
+       if (sub) sub.textContent = reason === 'tampered'
+         ? 'Please correct your system clock to continue.'
+         : 'Click "START FRESH DEMO" to reset your trial and get a new 14-day period. Each device gets its own independent demo.';
+       expiryScreen.classList.add('show');
+     }
     return false;
   };
 
@@ -520,11 +522,17 @@
      return true;
    };
 
-   LicenseManager.prototype.resetDemoTrial = function () {
-     localStorage.removeItem(this.key);
-     this._ensureLicense();
-     return true;
-   };
+    LicenseManager.prototype.resetDemoTrial = function () {
+      localStorage.removeItem(this.key);
+      localStorage.removeItem('dawasmartz_device_id');
+      localStorage.removeItem(this.key + '_warn_less-than-24h');
+      localStorage.removeItem(this.key + '_warn_1-day');
+      localStorage.removeItem(this.key + '_warn_2-days');
+      localStorage.removeItem(this.key + '_warn_3-days');
+      localStorage.removeItem(this.key + '_warn_7-days');
+      this._ensureLicense();
+      return true;
+    };
 
    LicenseManager.prototype.isTrialExpired = function () {
      var license = this.getLicense();
