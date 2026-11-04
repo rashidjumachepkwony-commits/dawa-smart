@@ -71,6 +71,12 @@
     .section-title{text-align:center;font-size:14px;font-weight:700;color:#0f172a;margin:20px 0 12px;text-transform:uppercase;letter-spacing:0.5px}
     .section-subtitle{text-align:center;font-size:12px;color:#64748b;margin-bottom:24px}
     .error-msg{background:#fee2e2;color:#b91c1c;padding:10px;border-radius:10px;margin-bottom:16px;display:none;font-size:13px;text-align:center}
+.error-msg.show{display:block}
+.login-step-indicator{background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:500;min-height:24px;display:none;transition:all 0.2s}
+.login-step-indicator.show{display:block}
+.login-step-indicator.info{background:#e0f2fe;color:#0369a1;border-color:#bae6fd}
+.login-step-indicator.success{background:#dcfce7;color:#166534;border-color:#86efac}
+.login-step-indicator.warning{background:#fef3c7;color:#92400e;border-color:#fcd34d}
     .app-container{display:none;background:#f4f7fc;min-height:100vh}
     .app-container.show{display:block}
     .header{background:linear-gradient(135deg,#0b6e4f,#064e3b);color:#fff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;position:sticky;top:0;z-index:100}
@@ -120,6 +126,8 @@
     .btn-blue:hover{background:#1d4ed8}
     .btn-purple{background:#7c3aed}
     .btn-purple:hover{background:#6d28d9}
+    .btn-teal{background:#0d9488}
+    .btn-teal:hover{background:#0f7d76}
     .btn-sm{padding:4px 12px;font-size:11px}
     .btn:disabled{opacity:0.5;cursor:not-allowed;transform:none!important;box-shadow:none!important}
     .search-bar{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center}
@@ -389,6 +397,7 @@
     <!-- LOGIN FORM -->
     <div style="background:#f8fafc;border-radius:16px;padding:24px;border:1px solid #e2e8f0">
       <div id="loginError" class="error-msg"></div>
+      <div id="loginStepIndicator" class="login-step-indicator" style="margin-bottom:12px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:500;min-height:24px;display:none;"></div>
       <div id="loginForm">
         <div class="demo-badge-container" style="background:#f0fdf4;border:2px solid #16a34a;border-radius:16px;padding:14px 16px;margin:14px 0;text-align:center;">
           <div style="font-size:13px;font-weight:700;color:#15803d">14-DAY FREE DEMO</div>
@@ -403,6 +412,9 @@
           </div>
         </div>
         <button class="btn-login" onclick="handleLogin()"><i class="fas fa-sign-in-alt"></i> LOGIN</button>
+        <div style="text-align:center;margin-top:8px;font-size:11px;color:#94a3b8">
+          <button type="button" class="btn btn-sm" onclick="debugShowUsers()" style="margin-top:4px;background:#fef3c7;color:#92400e;border:1px solid #fcd34d;"><i class="fas fa-bug"></i> Debug: Show Users</button>
+        </div>
         <div style="text-align:center;margin-top:12px;font-size:12px;color:#94a3b8">Admin? Enter your credentials above to access the admin panel.</div>
       </div>
     </div>
@@ -436,8 +448,9 @@
     <button data-page="patients" title="EMR: manage patient and customer records" aria-label="EMR"><i class="fas fa-user-md"></i> EMR</button>
     <button data-page="lab" title="Lab: manage laboratory tests and results" aria-label="Laboratory"><i class="fas fa-flask"></i> Lab</button>
     <button data-page="users" title="Users: manage staff accounts and access" aria-label="Users"><i class="fas fa-user-shield"></i> Users</button>
-    <button data-page="drugdb" title="Drug Database: search medicine information" aria-label="Drug Database"><i class="fas fa-database"></i> Drug DB</button>
-    <button data-page="reports" title="Reports: generate sales and financial reports" aria-label="Reports"><i class="fas fa-chart-bar"></i> Reports</button>
+     <button data-page="drugdb" title="Drug Database: search medicine information" aria-label="Drug Database"><i class="fas fa-database"></i> Drug DB</button>
+     <button data-page="drugcatalogue" title="Drugs: manage drug catalogue, categories, and forms" aria-label="Drugs"><i class="fas fa-pills"></i> Drugs</button>
+     <button data-page="reports" title="Reports: generate sales and financial reports" aria-label="Reports"><i class="fas fa-chart-bar"></i> Reports</button>
     <button data-page="settings" title="Settings: configure pharmacy and data backups" aria-label="Settings"><i class="fas fa-cog"></i> Settings</button>
   </div>
 
@@ -448,8 +461,12 @@
       <div class="stat-card"><div class="number" id="todaySales">0</div><div class="label">Today's Sales</div></div>
       <div class="stat-card"><div class="number" id="todayRevenue">KES 0.00</div><div class="label">Today's Revenue</div></div>
       <div class="stat-card"><div class="number" id="totalProducts">0</div><div class="label">Total Products</div></div>
-      <div class="stat-card"><div class="number" id="totalStockValue">KES 0.00</div><div class="label">Stock Value</div></div>
+      <div class="stat-card"><div class="number" id="totalStockValue">KES 0.00</div><div style="font-size:10px;" class="label">Stock Value</div></div>
+      <div class="stat-card"><div class="number" id="expiringDrugsCount" style="color:#dc2626;font-size:18px;">0</div><div class="label">Expiring Soon</div></div>
+      <div class="stat-card"><div class="number" id="lowStockDrugsCount" style="color:#f59e0b;font-size:18px;">0</div><div class="label">Low Stock Drugs</div></div>
     </div>
+    <!-- Drug Alerts Banner -->
+    <div id="drugAlertsBanner" style="margin-bottom:14px;"></div>
     <div class="pos-layout">
       <div class="pos-top">
         <div class="pos-cart-area card card-shadow" id="posCartArea">
@@ -557,6 +574,7 @@
               <button class="btn" onclick="scanBarcode()" title="Scan barcode"><i class="fas fa-barcode"></i></button>
               <button class="btn btn-success" onclick="quickAddProduct()" title="Quick add product"><i class="fas fa-bolt"></i></button>
               <button class="btn btn-purple" onclick="showDrugDatabaseSearch()" title="Open drug database"><i class="fas fa-database"></i></button>
+              <button class="btn btn-teal" onclick="showSmartDrugSearch()" title="Smart drug search with cascading filters"><i class="fas fa-search-plus"></i></button>
             </div>
           </div>
           <div class="product-categories" id="productCategories">
@@ -588,6 +606,7 @@
         <button class="btn" onclick="openProductModal()"><i class="fas fa-plus"></i> Add</button>
         <button class="btn btn-success" onclick="addProductBatch()"><i class="fas fa-layer-group"></i> Batch</button>
         <button class="btn btn-purple" onclick="showDrugDatabaseSearch()"><i class="fas fa-database"></i> Drug DB</button>
+        <button class="btn btn-teal" onclick="showSmartDrugSearch()" title="Smart drug search with cascading filters"><i class="fas fa-search-plus"></i> Smart Drug Search</button>
       </div>
       <div id="inventoryList" class="grid"></div>
     </div>
@@ -794,26 +813,155 @@
     </div>
   </div>
 
+  <!-- DRUG CATALOGUE -->
+  <div id="page-drugcatalogue" class="page">
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title"><i class="fas fa-pills"></i> Drug Catalogue & Inventory Management</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+        <button class="btn btn-gold" onclick="openDrugCategoryModal()"><i class="fas fa-folder-plus"></i> New Category</button>
+        <button class="btn btn-gold" onclick="openDrugFormModal()"><i class="fas fa-cube"></i> New Form</button>
+        <button class="btn btn-gold" onclick="openDrugModal()"><i class="fas fa-medical-notes"></i> New Drug</button>
+        <button class="btn btn-gold" onclick="openBatchModal()"><i class="fas fa-boxes"></i> Receive Batch</button>
+        <button class="btn btn-gold" onclick="openSupplierModal()"><i class="fas fa-truck"></i> New Supplier</button>
+        <span style="font-size:12px;color:#64748b;margin-left:auto;" id="drugStockSummary">Loading...</span>
+      </div>
+    </div>
+
+    <!-- Dashboard Alerts -->
+    <div id="drugAlerts" style="margin-bottom:16px;"></div>
+
+    <!-- Tabs for switching between views -->
+    <div class="tabs" style="margin-bottom:16px;">
+      <button class="active" onclick="showDrugTab('categories')">Categories</button>
+      <button onclick="showDrugTab('forms')">Forms</button>
+      <button onclick="showDrugTab('drugs')">Drug Master</button>
+      <button onclick="showDrugTab('batches')">Batch Inventory</button>
+      <button onclick="showDrugTab('suppliers')">Suppliers</button>
+      <button onclick="showDrugTab('stock_mvt')">Stock Movements</button>
+    </div>
+
+    <!-- Category Management -->
+    <div id="drugTab-categories" class="drug-tab-content" style="display:block;">
+      <div class="search-bar">
+        <input type="text" id="drugCategorySearch" placeholder="🔍 Search categories..." oninput="renderDrugCategories()">
+      </div>
+      <div id="drugCategoryList" class="grid" style="max-height:400px;overflow-y:auto;"></div>
+    </div>
+
+    <!-- Drug Form Management -->
+    <div id="drugTab-forms" class="drug-tab-content" style="display:none;">
+      <div class="search-bar">
+        <input type="text" id="drugFormSearch" placeholder="🔍 Search forms..." oninput="renderDrugForms()">
+      </div>
+      <div id="drugFormList" class="grid" style="max-height:400px;overflow-y:auto;"></div>
+    </div>
+
+    <!-- Drug Master List -->
+    <div id="drugTab-drugs" class="drug-tab-content" style="display:none;">
+      <div class="search-bar">
+        <input type="text" id="drugSearch" placeholder="🔍 Search drugs by name, generic, or strength..." oninput="renderDrugs()">
+        <select id="drugCategoryFilter" onchange="renderDrugs()" style="max-width:200px;">
+          <option value="all">All Categories</option>
+        </select>
+        <select id="drugStatusFilter" onchange="renderDrugs()" style="max-width:120px;">
+          <option value="all">All Status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </div>
+      <div id="drugList" class="grid" style="max-height:400px;overflow-y:auto;"></div>
+    </div>
+
+    <!-- Batch Inventory -->
+    <div id="drugTab-batches" class="drug-tab-content" style="display:none;">
+      <div class="search-bar">
+        <input type="text" id="batchSearch" placeholder="🔍 Search batches by drug, batch number, or supplier..." oninput="renderDrugBatches()">
+        <select id="batchExpiryFilter" onchange="renderDrugBatches()" style="max-width:150px;">
+          <option value="all">All Status</option>
+          <option value="expired">Expired</option>
+          <option value="low">Low Stock</option>
+          <option value="active">Active</option>
+        </select>
+      </div>
+      <div id="drugBatchList" class="grid" style="max-height:400px;overflow-y:auto;"></div>
+    </div>
+
+    <!-- Suppliers -->
+    <div id="drugTab-suppliers" class="drug-tab-content" style="display:none;">
+      <div class="search-bar">
+        <input type="text" id="supplierSearch" placeholder="🔍 Search suppliers..." oninput="renderSuppliers()">
+      </div>
+      <div id="supplierList" class="grid" style="max-height:400px;overflow-y:auto;"></div>
+    </div>
+
+    <!-- Stock Movement History -->
+    <div id="drugTab-stock_mvt" class="drug-tab-content" style="display:none;">
+      <div class="search-bar">
+        <input type="text" id="stockMvtSearch" placeholder="🔍 Search movements by drug or batch..." oninput="renderStockMovements()">
+        <select id="mvtTypeFilter" onchange="renderStockMovements()" style="max-width:150px;">
+          <option value="all">All Types</option>
+          <option value="receive">Receives</option>
+          <option value="sell">Sales</option>
+          <option value="adjust">Adjustments</option>
+          <option value="destroy">Destructions</option>
+        </select>
+      </div>
+      <div id="stockMovementList" class="grid" style="max-height:400px;overflow-y:auto;"></div>
+    </div>
+  </div>
+
   <!-- REPORTS -->
   <div id="page-reports" class="page">
     <div class="card">
-      <div class="card-title"><i class="fas fa-chart-bar"></i> Reports & eTIMS</div>
-      <div class="tabs">
-        <button class="active" onclick="loadReport('daily')">Daily</button>
-        <button onclick="loadReport('weekly')">Weekly</button>
-        <button onclick="loadReport('monthly')">Monthly</button>
-        <button onclick="loadReport('custom')">Custom</button>
+      <div class="card-title"><i class="fas fa-chart-bar"></i> Reports &amp; Analytics</div>
+
+      <!-- Period Selection Tabs -->
+      <div class="tabs" id="reportTabs">
+        <button class="active" data-period="daily" onclick="selectReportPeriod('daily')">Daily</button>
+        <button data-period="weekly" onclick="selectReportPeriod('weekly')">Weekly</button>
+        <button data-period="monthly" onclick="selectReportPeriod('monthly')">Monthly</button>
+        <button data-period="quarterly" onclick="selectReportPeriod('quarterly')">Quarterly</button>
+        <button data-period="yearly" onclick="selectReportPeriod('yearly')">Yearly</button>
+        <button data-period="custom" onclick="selectReportPeriod('custom')">Custom</button>
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px;">
+
+      <!-- Date Range & Action Controls -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px;" id="reportControls">
         <input type="date" id="reportStart" style="padding:6px 10px;border:2px solid #e2e8f0;border-radius:8px;font-size:12px;">
         <span>to</span>
         <input type="date" id="reportEnd" style="padding:6px 10px;border:2px solid #e2e8f0;border-radius:8px;font-size:12px;">
-        <button class="btn" onclick="generateCustomReport()"><i class="fas fa-file-alt"></i> Gen</button>
-        <button class="btn btn-success" onclick="printReport()" title="Print report"><i class="fas fa-print"></i></button>
-        <button class="btn btn-blue" onclick="generateKRAeTIMS()" title="Export KRA eTIMS report"><i class="fas fa-file-invoice"></i> KRA</button>
+        <button class="btn btn-gold" onclick="generateReportFromUI()"><i class="fas fa-file-alt"></i> Generate</button>
+        <button class="btn btn-success" onclick="downloadReportPDF()" title="Download PDF"><i class="fas fa-file-pdf"></i> PDF</button>
+        <button class="btn btn-blue" onclick="exportReportCSV()" title="Export CSV"><i class="fas fa-file-csv"></i> CSV</button>
+        <button class="btn btn-purple" onclick="exportReportExcel()" title="Export Excel"><i class="fas fa-file-excel"></i> Excel</button>
+        <button class="btn btn-blue" onclick="printReport()" title="Print report"><i class="fas fa-print"></i> Print</button>
+        <button class="btn btn-gold" onclick="saveReportArchive()" title="Save Report Snapshot"><i class="fas fa-save"></i> Save</button>
+        <button class="btn" onclick="openArchiveManager()" title="View Saved Reports"><i class="fas fa-folder-open"></i> Archives</button>
+        <span class="sync-warning" id="syncWarningBadge" style="display:none;">⚠️ Unsynced transactions may affect report accuracy</span>
       </div>
     </div>
+
+    <!-- Summary Cards -->
+    <div class="stats-grid" id="reportSummaryCards" style="margin-bottom:16px;"></div>
+
+    <!-- Report Output -->
     <div id="reportResults"></div>
+
+    <!-- Archive Manager Modal -->
+    <div id="archiveManagerModal" class="modal">
+      <div class="modal-content" style="max-width:900px;">
+        <span class="modal-close" onclick="document.getElementById('archiveManagerModal').classList.remove('show')">&times;</span>
+        <h2>Report Archives</h2>
+        <div style="margin-bottom:12px;">
+          <input type="text" id="archiveSearch" placeholder="🔍 Search by name or type..." oninput="loadArchives()" style="width:70%;">
+          <select id="archiveTypeFilter" onchange="loadArchives()" style="max-width:150px;">
+            <option value="all">All Types</option>
+          </select>
+          <button class="btn btn-sm" onclick="loadArchives()">Filter</button>
+        </div>
+        <div id="archiveList" style="max-height:500px;overflow-y:auto;"></div>
+      </div>
+    </div>
   </div>
 
   <!-- SETTINGS -->
@@ -894,7 +1042,22 @@
 
   <div id="labModal" class="modal"><div class="modal-content"><span class="modal-close" onclick="document.getElementById('labModal').classList.remove('show')">&times;</span><h2 id="labModalTitle">New Lab Test</h2><form onsubmit="saveLabTest();return false;"><input type="hidden" id="labId"><div class="form-group"><label>Patient Name *</label><input type="text" id="labPatientName" list="labPatientList" required placeholder="Patient name"><datalist id="labPatientList"></datalist></div><div class="form-group"><label>Test Type *</label><select id="labTestType" required><option value="Blood Count">Blood Count</option><option value="Malaria Test">Malaria Test</option><option value="Urinalysis">Urinalysis</option><option value="Liver Function">Liver Function</option><option value="Kidney Function">Kidney Function</option><option value="Thyroid Test">Thyroid Test</option><option value="COVID-19">COVID-19</option><option value="Other">Other</option></select></div><div class="form-group"><label>Requested By</label><input type="text" id="labRequestedBy" placeholder="Doctor name"></div><div class="form-group"><label>Notes</label><textarea id="labNotes" rows="2" placeholder="Additional notes..."></textarea></div><div class="form-group"><label>Status</label><select id="labStatus"><option value="pending">Pending</option><option value="in-progress">In Progress</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option></select></div><div class="form-group"><label>Results</label><textarea id="labResults" rows="2" placeholder="Test results..."></textarea></div><button type="submit" class="btn"><i class="fas fa-save"></i> Save Test</button></form></div></div>
 
-  <div id="userModal" class="modal"><div class="modal-content"><span class="modal-close" onclick="document.getElementById('userModal').classList.remove('show')">&times;</span><h2 id="userModalTitle">Add User</h2><form onsubmit="saveUser();return false;"><input type="hidden" id="userId"><input type="hidden" id="userPaid"><div class="form-group"><label>Full Name *</label><input type="text" id="userFullName" required></div><div class="form-group"><label>Username *</label><input type="text" id="userUsername" required></div><div class="form-group"><label>Email</label><input type="email" id="userEmail"></div><div class="form-group"><label>Phone</label><input type="text" id="userPhone"></div><div class="form-group"><label>Role *</label><select id="userRole"><option value="cashier">Cashier</option><option value="pharmacist">Pharmacist</option><option value="lab">Lab Technician</option><option value="doctor">Doctor</option><option value="manager">Manager</option><option value="admin">Admin</option></select></div><div class="form-group"><label>Password *</label><input type="password" id="userPassword" required placeholder="Min 8 chars"></div><div class="form-group"><label>Status</label><select id="userStatus"><option value="active">Active</option><option value="inactive">Inactive</option></select></div><button type="submit" class="btn"><i class="fas fa-save"></i> Save</button></form></div></div>
+  <div id="userModal" class="modal"><div class="modal-content"><span class="modal-close" onclick="document.getElementById('userModal').classList.remove('show')">&times;</span><h2 id="userModalTitle">Add User</h2><form onsubmit="return saveUser(event);"><input type="hidden" id="userId"><input type="hidden" id="userPaid"><div class="form-group"><label>Full Name *</label><input type="text" id="userFullName" required></div><div class="form-group"><label>Username *</label><input type="text" id="userUsername" required></div><div class="form-group"><label>Email</label><input type="email" id="userEmail"></div><div class="form-group"><label>Phone</label><input type="text" id="userPhone"></div><div class="form-group"><label>Role *</label><select id="userRole"><option value="cashier">Cashier</option><option value="pharmacist">Pharmacist</option><option value="lab">Lab Technician</option><option value="doctor">Doctor</option><option value="manager">Manager</option><option value="admin">Admin</option></select></div><div class="form-group"><label>Password *</label><input type="password" id="userPassword" required placeholder="Min 8 chars"></div><div class="form-group"><label>Status</label><select id="userStatus"><option value="active">Active</option><option value="inactive">Inactive</option></select></div><button type="submit" class="btn"><i class="fas fa-save"></i> Save</button></form></div></div>
+
+  <!-- DRUG CATEGORY MODAL -->
+  <div id="drugCategoryModal" class="modal"><div class="modal-content"><span class="modal-close" onclick="document.getElementById('drugCategoryModal').classList.remove('show')">&times;</span><h2 id="drugCategoryModalTitle">New Category</h2><form onsubmit="saveDrugCategory();return false;"><input type="hidden" id="drugCategoryId"><div class="form-group"><label>Category Name *</label><input type="text" id="drugCategoryName" required placeholder="e.g. Antibiotics"></div><div class="form-group"><label>Description</label><textarea id="drugCategoryDescription" rows="2" placeholder="Brief description of this therapeutic class..."></textarea></div><div class="form-group"><label>Status</label><select id="drugCategoryStatus"><option value="active">Active</option><option value="inactive">Inactive</option></select></div><button type="submit" class="btn btn-gold"><i class="fas fa-save"></i> Save</button></form></div></div>
+
+  <!-- DRUG FORM MODAL -->
+  <div id="drugFormModal" class="modal"><div class="modal-content"><span class="modal-close" onclick="document.getElementById('drugFormModal').classList.remove('show')">&times;</span><h2 id="drugFormModalTitle">New Form</h2><form onsubmit="saveDrugForm();return false;"><input type="hidden" id="drugFormId"><div class="form-group"><label>Form Name *</label><input type="text" id="drugFormName" required placeholder="e.g. Tablet"></div><div class="form-group"><label>Description</label><textarea id="drugFormDescription" rows="2" placeholder="Description of the dosage form..."></textarea></div><div class="form-group"><label>Status</label><select id="drugFormStatus"><option value="active">Active</option><option value="inactive">Inactive</option></select></div><button type="submit" class="btn btn-gold"><i class="fas fa-save"></i> Save</button></form></div></div>
+
+  <!-- DRUG MODAL -->
+  <div id="drugModal" class="modal"><div class="modal-content"><span class="modal-close" onclick="document.getElementById('drugModal').classList.remove('show')">&times;</span><h2 id="drugModalTitle">New Drug</h2><form onsubmit="saveDrug();return false;"><input type="hidden" id="drugId"><div class="form-group"><label>Drug Name *</label><input type="text" id="drugName" required placeholder="Brand/Generic name"></div><div class="form-group"><label>Generic Name</label><input type="text" id="drugGenericName" placeholder="Generic/International Non-Proprietary Name"></div><div class="form-group"><label>Brand Name</label><input type="text" id="drugBrandName" placeholder="Manufacturer brand name"></div><div class="form-row"><div class="form-group"><label>Strength</label><input type="text" id="drugStrength" placeholder="e.g. 500mg, 10mg/ml"></div><div class="form-group"><label>Category</label><select id="drugCategorySelect" style="max-width:200px;"></select></div></div><div class="form-row"><div class="form-group"><label>Dosage Form</label><select id="drugFormSelect" style="max-width:200px;"></select></div><div class="form-group"><label>Route of Administration</label><input type="text" id="drugRoute" placeholder="e.g. Oral, IV, Topical"></div></div><div class="form-row"><div class="form-group"><label>Manufacturer</label><input type="text" id="drugManufacturer"></div><div class="form-group"><label>Barcode</label><input type="text" id="drugBarcode"></div></div><div class="form-group"><label>Registration Number</label><input type="text" id="drugRegistrationNumber" placeholder="Pharmacy Board registration number"></div><div class="form-group"><label>Prescription Status</label><select id="drugPrescriptionStatus"><option value="pharmacy">Pharmacy-only</option><option value="otc">Over-the-counter</option><option value="prescription">Prescription-only</option></select></div><div class="form-row"><div class="form-group"><label>Reorder Level</label><input type="number" id="drugReorderLevel" placeholder="0" min="0"></div><div class="form-group"><label>Status</label><select id="drugStatus"><option value="active">Active</option><option value="inactive">Inactive</option></select></div></div><div class="form-group"><label>Description</label><textarea id="drugDescription" rows="2" placeholder="Additional notes about this drug..."></textarea></div><button type="submit" class="btn btn-gold"><i class="fas fa-save"></i> Save Drug</button></form></div></div>
+
+  <!-- BATCH RECEIVE MODAL -->
+  <div id="batchModal" class="modal"><div class="modal-content"><span class="modal-close" onclick="document.getElementById('batchModal').classList.remove('show')">&times;</span><h2>Receive Drug Batch</h2><form onsubmit="saveDrugBatch();return false;"><input type="hidden" id="batchId"><div class="form-group"><label>Drug *</label><select id="batchDrugSelect" required style="width:100%;padding:8px 12px;border:2px solid #e2e8f0;border-radius:10px;"></select></div><div class="form-row"><div class="form-group"><label>Batch Number *</label><input type="text" id="batchNumber" required placeholder="e.g. BN2025-001"></div><div class="form-group"><label>Supplier</label><select id="batchSupplierSelect" style="max-width:200px;"></select></div></div><div class="form-row"><div class="form-group"><label>Quantity Received *</label><input type="number" id="batchQuantity" required placeholder="0" min="1"></div><div class="form-group"><label>Unit (packs/tablets) *</label><input type="text" id="batchUnit" required placeholder="e.g. tablets"></div></div><div class="form-row"><div class="form-group"><label>Manufacturing Date</label><input type="date" id="batchMfgDate"></div><div class="form-group"><label>Expiry Date *</label><input type="date" id="batchExpiry" required></div></div><div class="form-row"><div class="form-group"><label>Purchase Price (KES) *</label><input type="number" id="batchBuyingPrice" step="0.01" required placeholder="0.00"></div><div class="form-group"><label>Selling Price (KES) *</label><input type="number" id="batchSellingPrice" step="0.01" required placeholder="0.00"></div></div><button type="submit" class="btn btn-gold"><i class="fas fa-save"></i> Receive Stock</button></form></div></div>
+
+  <!-- SUPPLIER MODAL -->
+  <div id="supplierModal" class="modal"><div class="modal-content"><span class="modal-close" onclick="document.getElementById('supplierModal').classList.remove('show')">&times;</span><h2 id="supplierModalTitle">New Supplier</h2><form onsubmit="saveSupplier();return false;"><input type="hidden" id="supplierId"><div class="form-group"><label>Supplier Name *</label><input type="text" id="supplierName" required placeholder="e.g. MedPharma Ltd"></div><div class="form-row"><div class="form-group"><label>Phone</label><input type="text" id="supplierPhone" placeholder="e.g. 0759324463"></div><div class="form-group"><label>Email</label><input type="email" id="supplierEmail"></div></div><div class="form-group"><label>Address</label><textarea id="supplierAddress" rows="2" placeholder="Physical address or P.O. Box..."></textarea></div><div class="form-group"><label>License Number</label><input type="text" id="supplierLicenseNumber" placeholder="Business registration / pharmacy license"></div><div class="form-group"><label>Status</label><select id="supplierStatus"><option value="active">Active</option><option value="inactive">Inactive</option></select></div><button type="submit" class="btn btn-gold"><i class="fas fa-save"></i> Save Supplier</button></form></div></div>
 
   <div id="toast" class="toast"><span id="toastMessage"></span></div>
  </div>
@@ -944,10 +1107,13 @@
     </div>
   </div>
 
-  <script src="license2.js"></script>
-  <script src="tenant2.js"></script>
-  <script src="sync-queue2.js"></script>
-  <script src="supabase2.js"></script>
+   <script src="license2.js"></script>
+   <script src="tenant2.js"></script>
+   <script src="sync-queue2.js"></script>
+   <script src="supabase2.js"></script>
+   <script src="reporting.js"></script>
+   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+   <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@5.0.2/dist/jspdf.plugin.autotable.min.js"></script>
 
 <script>
 // =============================================================
@@ -1300,12 +1466,12 @@ const db = {
     init() {
         var self = this;
         return new Promise((resolve, reject) => {
-            const req = indexedDB.open('YetuPharmcareDB', 5);
+            const req = indexedDB.open('YetuPharmcareDB', 6);
             req.onerror = () => reject('DB error');
             req.onsuccess = () => { self.db = req.result; resolve(); };
             req.onupgradeneeded = (e) => {
                 const d = e.target.result;
-                const stores = ['products','sales','saleItems','patients','batches','controlledLogs','labTests','expenses','users'];
+                const stores = ['products','sales','saleItems','patients','batches','controlledLogs','labTests','expenses','users','drugCategories','drugForms','drugs','drugBatches','drugStockMovements','suppliers','reportArchives'];
                 stores.forEach(s => {
                     if (!d.objectStoreNames.contains(s)) {
                         const store = d.createObjectStore(s, { keyPath: 'id' });
@@ -1419,7 +1585,7 @@ const db = {
     clearAll() {
         var self = this;
         return this.init().then(() => {
-            const stores = ['products','sales','saleItems','patients','batches','controlledLogs','labTests','expenses'];
+            const stores = ['products','sales','saleItems','patients','batches','controlledLogs','labTests','expenses','drugCategories','drugForms','drugs','drugBatches','drugStockMovements','suppliers','reportArchives'];
             return Promise.all(stores.map(store => {
                 return new Promise((resolve, reject) => {
                     const tx = self.db.transaction(store, 'readwrite');
@@ -1566,7 +1732,12 @@ function formatCurrency(value){const amount=Number(value)||0; return 'KES '+amou
 function formatDate(value){if(!value)return '—';const d=new Date(value);if(Number.isNaN(d.getTime()))return value;return d.toLocaleDateString('en-KE',{year:'numeric',month:'short',day:'numeric'});}
 function formatShortDate(value){if(!value)return '—';const d=new Date(value);if(Number.isNaN(d.getTime()))return value;return d.toLocaleDateString('en-KE',{day:'2-digit',month:'short',year:'2-digit'});}
 function showToast(message,type='info'){ const toast=document.getElementById('toast'); const messageEl=document.getElementById('toastMessage'); if(!toast||!messageEl){return;} messageEl.textContent=message; toast.className='toast show ' + (type || 'info'); clearTimeout(showToast.timer); showToast.timer=setTimeout(()=>{toast.className='toast';},2600); }
-function findUser(u,p){return users.find(user => user.username === u && user.password === p && user.status === 'active');}
+function findUser(u,p){
+    const user = users.find(user => user.username === u && user.status === 'active');
+    if (!user) return { found: false, reason: 'User not found or inactive' };
+    if (user.password !== p) return { found: false, reason: 'Incorrect password', user: user };
+    return { found: true, user: user };
+}
 
 // ===== NEGOTIATION CONTROLS =====
 function toggleNegotiation() {
@@ -1750,37 +1921,81 @@ async function handleLogin(){
     errorEl.className='error-msg';
     if(!username || !password){errorEl.textContent='Please enter both fields';errorEl.className='error-msg show';return;}
 
-    // Authenticate via Worker API (uses hashed credentials server-side)
-    var authResult = null;
-    if (typeof window.DawaTenant !== 'undefined' && window.DawaTenant.authenticate) {
-        authResult = await window.DawaTenant.authenticate(username, password);
-        if (!authResult.success) {
-            loginAttempts++;
-            errorEl.textContent='❌ '+authResult.error+'. Attempt '+loginAttempts+'/5';
-            errorEl.className='error-msg show';
-            if(loginAttempts>=5){ errorEl.textContent='Too many attempts. Locked 30s.'; document.getElementById('loginUsername').disabled = true; document.getElementById('loginPassword').disabled = true; setTimeout(()=>{document.getElementById('loginUsername').disabled=false;document.getElementById('loginPassword').disabled=false;loginAttempts=0;errorEl.textContent='';errorEl.className='error-msg';},30000); }
-            return;
-        }
+    console.log('[Login] Starting login for:', username);
+    showLoginStep('🔍 Checking credentials...', 'info');
+
+    // Ensure users array is loaded from localStorage
+    if (!window.users || window.users.length === 0) {
+        console.log('[Login] Users array empty, reloading from storage...');
+        loadUsersFromStorage();
+        showLoginStep('🔄 Loading user database...', 'info');
+        await new Promise(r => setTimeout(r, 100));
     }
 
-    // Fallback to local-only auth if offline / no Worker configured
-    var user = findUser(username,password);
+    // Try Worker API authentication first (for Supabase-backed users)
+    var authResult = null;
+    var workerAvailable = typeof window.DawaTenant !== 'undefined' && window.DawaTenant.authenticate;
+    console.log('[Login] Worker available:', workerAvailable);
+    if (workerAvailable) {
+        showLoginStep('🌐 Trying server authentication...', 'info');
+        try {
+            authResult = await window.DawaTenant.authenticate(username, password);
+            console.log('[Login] Worker auth result:', authResult);
+        } catch (e) {
+            console.error('[Login] Worker auth error:', e);
+            authResult = { success: false, error: e.message };
+        }
+        if (authResult && authResult.success) {
+            showLoginStep('✅ Server authentication successful', 'success');
+        } else {
+            showLoginStep('⚠️ Server auth failed, trying local...', 'warning');
+        }
+    } else {
+        showLoginStep('📱 Server unavailable, using local auth...', 'info');
+    }
+
+    // Fallback to local-only auth (localStorage users)
+    console.log('[Login] Searching local users for:', username);
+    console.log('[Login] Available users:', (window.users || []).map(u => u.username));
+    var findResult = findUser(username,password);
+    console.log('[Login] Local auth result:', findResult.found ? 'FOUND' : 'NOT FOUND - ' + findResult.reason);
+    var user = findResult.found ? findResult.user : null;
+
     if(!user && (!authResult || !authResult.success)){
-        loginAttempts++; errorEl.textContent='❌ Wrong username or password. Attempt '+loginAttempts+'/5'; errorEl.className='error-msg show'; if(loginAttempts>=5){ errorEl.textContent='Too many attempts. Locked 30s.'; document.getElementById('loginUsername').disabled = true; document.getElementById('loginPassword').disabled = true; setTimeout(()=>{document.getElementById('loginUsername').disabled=false;document.getElementById('loginPassword').disabled=false;loginAttempts=0;errorEl.textContent='';errorEl.className='error-msg';},30000); }
+        loginAttempts++; 
+        var errorMsg = '❌ ';
+        if (findResult.reason) {
+            errorMsg += findResult.reason;
+        } else {
+            errorMsg += 'Wrong username or password';
+        }
+        errorMsg += '. Attempt '+loginAttempts+'/5';
+        errorEl.textContent = errorMsg; 
+        errorEl.className='error-msg show'; 
+        if(loginAttempts>=5){ 
+            errorEl.textContent='Too many attempts. Locked 30s.'; 
+            document.getElementById('loginUsername').disabled = true; 
+            document.getElementById('loginPassword').disabled = true; 
+            setTimeout(()=>{document.getElementById('loginUsername').disabled=false;document.getElementById('loginPassword').disabled=false;loginAttempts=0;errorEl.textContent='';errorEl.className='error-msg';},30000); 
+        }
+        hideLoginStep();
         return;
     }
 
     // Use auth result if available (for token + pharmacy context)
     if (authResult && authResult.success) {
         user = authResult.user;
+        console.log('[Login] Using Worker auth user:', user);
     }
 
-    if(!user.verified){errorEl.textContent='⚠️ Account not verified. Contact developer.';errorEl.className='error-msg show';return;}
+    if(!user.verified){
+        errorEl.textContent='⚠️ Account not verified. Contact developer.'; 
+        errorEl.className='error-msg show'; 
+        hideLoginStep();
+        return;
+    }
 
      // === DEMO LICENSE ENFORCEMENT ===
-     // Each DEMO login gets a fresh 14-day trial. If the trial on this
-     // browser/device has expired, reset it automatically so every user
-     // experiences a clean, independent demo environment.
      if (user.role === 'demo') {
          var check = licenseManager.checkTrialExpiry();
          if (check.expired) {
@@ -1791,30 +2006,71 @@ async function handleLogin(){
              errorEl.className='error-msg';
              errorEl.textContent='';
              licenseManager.enforceLicenseLock(check.tampered ? 'tampered' : 'expired');
+             hideLoginStep();
              return;
          }
      }
 
-    loginAttempts=0; currentUser = user;
+    loginAttempts=0; 
+    currentUser = user;
+    console.log('[Login] Login successful for:', user.fullName, 'role:', user.role);
+    showLoginStep('✅ Welcome ' + user.fullName + '!', 'success');
+    
     document.getElementById('loginPage').style.display='none';
     document.getElementById('appContainer').className='app-container show';
     document.getElementById('currentUserDisplay').textContent=user.fullName;
     document.getElementById('currentRoleDisplay').textContent=user.role.charAt(0).toUpperCase()+user.role.slice(1);
-    // Show admin navigation and panel for developer role
     var adminNavBtn = document.getElementById('adminNavBtn');
     if (adminNavBtn) { adminNavBtn.style.display = user.role === 'developer' ? 'block' : 'none'; }
     if (user.role === 'developer') { setTimeout(function(){ fetchAdminData(); }, 500); }
-    // Fetch and display pharmacy memberships
     if (typeof window.DawaTenant !== 'undefined' && window.DawaTenant.fetchMemberships) {
-        window.DawaTenant.fetchMemberships().then(() => {
-            refreshWorkspaceSwitcher();
-        });
+        window.DawaTenant.fetchMemberships().then(() => { refreshWorkspaceSwitcher(); });
     }
     loadPharmacySettings(); updatePharmacyDisplay();
     updateDemoUI();
     setupTrialWarnings();
     showToast('Welcome '+user.fullName+'!','success');
     initApp();
+    setTimeout(hideLoginStep, 1000);
+}
+
+function showLoginStep(message, type) {
+    var stepEl = document.getElementById('loginStepIndicator');
+    if (!stepEl) return;
+    stepEl.textContent = message;
+    stepEl.className = 'login-step-indicator show ' + type;
+    console.log('[Login Step]', type.toUpperCase(), ':', message);
+}
+
+function hideLoginStep() {
+    var stepEl = document.getElementById('loginStepIndicator');
+    if (!stepEl) return;
+    stepEl.className = 'login-step-indicator';
+}
+
+function hideLoginStep() {
+    var stepEl = document.getElementById('loginStepIndicator');
+    if (!stepEl) return;
+    stepEl.className = 'login-step-indicator';
+}
+
+function debugShowUsers() {
+    loadUsersFromStorage();
+    var userList = (window.users || []).map(u => ({
+        username: u.username,
+        fullName: u.fullName,
+        role: u.role,
+        status: u.status,
+        hasPassword: !!u.password,
+        password: u.password // for debugging only
+    }));
+    console.table(userList);
+    var msg = 'Total users: ' + userList.length + '\n\n';
+    userList.forEach(u => {
+        msg += u.username + ' (' + u.role + ') - ' + u.status + ' - pass: ' + (u.password || 'EMPTY') + '\n';
+    });
+    alert(msg);
+    showToast('Check console for full table', 'info');
 }
 
 function handleLogout(){
@@ -2021,14 +2277,13 @@ function loadUsers(){
     const search = document.getElementById('userSearch').value.toLowerCase(); 
     const roleFilter = document.getElementById('userRoleFilter').value; 
     const container = document.getElementById('userList'); 
-    let filtered = users.filter(u => u.username !== 'developer'); 
+    let filtered = users.filter(u => u.username !== 'RASHID' && u.username !== 'DEMO'); 
     if(search) filtered = filtered.filter(u=>u.fullName.toLowerCase().includes(search)||u.username.toLowerCase().includes(search)); 
     if(roleFilter !== 'all') filtered = filtered.filter(u=>u.role===roleFilter); 
     document.getElementById('totalUsers').textContent=users.length; 
     if(filtered.length===0){container.innerHTML='<div class="empty"><i class="fas fa-users"></i><p>No users</p></div>';return;} 
     container.innerHTML = filtered.map(u=>{ 
         const roleClass=u.role; 
-         const isAdminUser = u.username === 'RASHID';
          const isProtected = u.username === 'RASHID' || u.username === 'DEMO';
         return '<div class="item-card" style="border-left-color:'+(u.status==='active'?'#0b6e4f':'#f59e0b')+';">'+ 
             '<div style="display:flex;justify-content:space-between;align-items:start;">'+ 
@@ -2042,18 +2297,107 @@ function loadUsers(){
             '<button class="btn btn-sm btn-blue" onclick="editUser(\''+u.id+'\')"><i class="fas fa-edit"></i></button>'+
             '<button class="btn btn-sm btn-danger" onclick="deleteUser(\''+u.id+'\')"><i class="fas fa-trash"></i></button>'+
             '</div>' : '')+
-            (isAdminUser ? '<span style="font-size:10px;color:#0b6e4f;font-weight:600;">👑 Primary Admin</span>' : '')+
+            (u.username === 'RASHID' ? '<span style="font-size:10px;color:#0b6e4f;font-weight:600;">👑 Primary Admin</span>' : '')+
             (u.username === 'DEMO' ? '<span style="font-size:10px;color:#f59e0b;font-weight:600;">👁️ Demo Account</span>' : '')+
             '</div></div>'; 
     }).join(''); 
 }
 function openUserModal(user, isPaid){ if(!adminGuard('manage users')) return; const modal=document.getElementById('userModal'); document.getElementById('userModalTitle').textContent=user?'Edit User':(isPaid?'Add Paid User':'Add User'); document.getElementById('userId').value=user?user.id:''; document.getElementById('userFullName').value=user?user.fullName:''; document.getElementById('userUsername').value=user?user.username:''; document.getElementById('userEmail').value=user?user.email||'':''; document.getElementById('userPhone').value=user?user.phone||'':''; document.getElementById('userRole').value=user?user.role:'cashier'; document.getElementById('userPassword').value=''; document.getElementById('userPassword').required=!user; document.getElementById('userStatus').value=user?user.status:'active'; document.getElementById('userPaid').value=isPaid?'1':''; modal.classList.add('show'); }
 function openPaidUserModal(){ openUserModal(null, true); }
-function saveUser(){ if(!adminGuard('save user')) return; const id=document.getElementById('userId').value||generateId(); const fullName=document.getElementById('userFullName').value.trim(); const username=document.getElementById('userUsername').value.trim(); const email=document.getElementById('userEmail').value.trim(); const phone=document.getElementById('userPhone').value.trim(); const role=document.getElementById('userRole').value; const password=document.getElementById('userPassword').value.trim(); const status=document.getElementById('userStatus').value; const isPaid=document.getElementById('userPaid').value==='1'; if(!fullName||!username){showToast('Fill required fields','error');return;} if(!password){showToast('Password required','error');return;} if(password.length<8){showToast('Password 8+ chars','error');return;} const existing=users.find(u=>u.username===username&&u.id!==id); if(existing){showToast('Username taken','error');return;} const user={id,fullName,username,password:password,email:email||undefined,phone:phone||undefined,role,status,pharmacy:document.getElementById('shopName').value||'Dawa Smart',verified:true,paid:isPaid,paidDate:isPaid?new Date().toISOString():undefined}; const idx=users.findIndex(u=>u.id===id); if(idx>=0){ user.password = password || users[idx].password; users[idx]=user;showToast('User updated!','success');} else {users.push(user);if(isPaid){showToast('✅ Paid user added! '+username+' / '+password+' — Payment confirmed.','success');}else{showToast('User added! Credentials: '+username+' / '+password,'success');}} document.getElementById('userModal').classList.remove('show'); document.getElementById('userPaid').value=''; loadUsers(); saveUsersToStorage(); }
+function saveUser(e){ 
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    console.log('[saveUser] Starting save...');
+    if(!adminGuard('save user')) { console.log('[saveUser] Admin guard failed'); return false; }
+    const id=document.getElementById('userId').value||generateId();
+    const fullName=document.getElementById('userFullName').value.trim();
+    const username=document.getElementById('userUsername').value.trim();
+    const email=document.getElementById('userEmail').value.trim();
+    const phone=document.getElementById('userPhone').value.trim();
+    const role=document.getElementById('userRole').value;
+    const password=document.getElementById('userPassword').value.trim();
+    const status=document.getElementById('userStatus').value;
+    const isPaid=document.getElementById('userPaid').value==='1';
+    console.log('[saveUser] Form data:', {id, fullName, username, email, role, status, isPaid});
+    if(!fullName||!username){showToast('Fill required fields','error');return false;}
+    if(!password){showToast('Password required','error');return false;}
+    if(password.length<8){showToast('Password 8+ chars','error');return false;}
+    const existing=users.find(u=>u.username===username&&u.id!==id);
+    if(existing){showToast('Username taken','error');return false;}
+    const user={id,fullName,username,password:password,email:email||undefined,phone:phone||undefined,role,status,pharmacy:document.getElementById('shopName').value||'Dawa Smart',verified:true,paid:isPaid,paidDate:isPaid?new Date().toISOString():undefined,createdAt:new Date().toISOString()};
+    const idx=users.findIndex(u=>u.id===id);
+    if(idx>=0){ 
+        user.password = password || users[idx].password; 
+        users[idx]=user; 
+        showToast('User updated!','success'); 
+    } else { 
+        users.push(user); 
+        showCredentialsModal(username, password, fullName, role, isPaid); 
+    }
+    document.getElementById('userModal').classList.remove('show');
+    document.getElementById('userPaid').value='';
+    loadUsers(); 
+    saveUsersToStorage();
+    console.log('[saveUser] Save complete');
+    return false;
+}
 function editUser(id){const user=users.find(u=>u.id===id);if(user)openUserModal(user);}
 function deleteUser(id){if(!adminGuard('delete user')) return;if(id === 'user_rashidjuma'){showToast('Cannot delete primary developer','error');return;}if(id === 'user_demo'){showToast('Cannot delete demo account','error');return;}if(!confirm('Delete this user?'))return;users=users.filter(u=>u.id!==id);saveUsersToStorage();loadUsers();showToast('User deleted','success');}
 function saveUsersToStorage(){localStorage.setItem('yetu_users',JSON.stringify(users));}
-function loadUsersFromStorage(){ const stored=localStorage.getItem('yetu_users'); if(stored){ const parsed=JSON.parse(stored); const hasMain = parsed.some(u=>u.username === 'RASHID'); const hasDemo = parsed.some(u=>u.username === 'DEMO'); if(hasMain && hasDemo) users = parsed; else { users = []; if(!hasMain) users.push(SINGLE_USER); if(!hasDemo) users.push(DEMO_USER); users = users.concat(parsed.filter(u=>u.username !== 'RASHID' && u.username !== 'DEMO')); } saveUsersToStorage(); } }
+function loadUsersFromStorage(){ const stored=localStorage.getItem('yetu_users'); if(stored){ const parsed=JSON.parse(stored); const hasMain = parsed.some(u=>u.username === 'RASHID'); const hasDemo = parsed.some(u=>u.username === 'DEMO'); let baseUsers = []; if(!hasMain) baseUsers.push(SINGLE_USER); if(!hasDemo) baseUsers.push(DEMO_USER); // Preserve all added users (not RASHID/DEMO) const addedUsers = parsed.filter(u=>u.username !== 'RASHID' && u.username !== 'DEMO'); users = baseUsers.concat(addedUsers); saveUsersToStorage(); } }
+
+function showCredentialsModal(username, password, fullName, role, isPaid) {
+    const modal = document.createElement('div');
+    modal.className = 'modal show';
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width:420px;">
+            <span class="modal-close" onclick="this.closest('.modal').remove()">&times;</span>
+            <h2 style="margin-top:0;color:#0b6e4f;"><i class="fas fa-key"></i> User Created Successfully</h2>
+            <p style="color:#64748b;">Credentials for <strong>${escapeHtml(fullName)}</strong> (${escapeHtml(role)}):</p>
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin:16px 0;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                    <span style="color:#64748b;font-size:12px;">Username</span>
+                    <span style="font-family:monospace;font-weight:600;color:#0b6e4f;" id="credUsername">${escapeHtml(username)}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;">
+                    <span style="color:#64748b;font-size:12px;">Password</span>
+                    <span style="font-family:monospace;font-weight:600;color:#dc2626;" id="credPassword">${escapeHtml(password)}</span>
+                </div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button class="btn btn-success" onclick="copyToClipboard('credUsername')"><i class="fas fa-copy"></i> Copy Username</button>
+                <button class="btn btn-warning" onclick="copyToClipboard('credPassword')"><i class="fas fa-copy"></i> Copy Password</button>
+                <button class="btn btn-blue" onclick="shareCredentialsWhatsApp('${escapeHtml(username)}','${escapeHtml(password)}','${escapeHtml(fullName)}')"><i class="fab fa-whatsapp"></i> WhatsApp</button>
+                <button class="btn" onclick="this.closest('.modal').remove()"><i class="fas fa-check"></i> Done</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+function copyToClipboard(elementId) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    const text = el.textContent;
+    navigator.clipboard.writeText(text).then(() => {
+        showToast('Copied to clipboard!', 'success');
+    }).catch(() => {
+        showToast('Failed to copy', 'error');
+    });
+}
+
+function shareCredentialsWhatsApp(username, password, fullName) {
+    const phone = document.getElementById('shopPhone')?.value || '254759324463';
+    const message = encodeURIComponent(
+        `🔐 Dawa Smart Login Credentials\n\n` +
+        `Hello ${fullName},\n\n` +
+        `Your login credentials:\n` +
+        `Username: ${username}\n` +
+        `Password: ${password}\n\n` +
+        `Please login at: ${window.location.origin}\n\n` +
+        `Keep these credentials secure!`
+    );
+    window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
+}
 
 // ===== EXPENSES =====
 function saveExpense(){ if(!adminGuard('save expense')) return; const type = document.getElementById('expenseType').value; const amount = parseFloat(document.getElementById('expenseAmount').value); const desc = document.getElementById('expenseDesc').value.trim(); if(!type || !amount || amount <= 0){ showToast('Please fill expense details','error'); return; } const expense = { id: generateId(), type: type, amount: amount, description: desc, date: new Date().toISOString() }; db.add('expenses', expense).then(()=>{ showToast('Expense saved!','success'); document.getElementById('expenseType').value='lunch'; document.getElementById('expenseAmount').value=''; document.getElementById('expenseDesc').value=''; loadExpensesForDate(new Date().toISOString().split('T')[0]); loadExpensesPeriod('daily'); }).catch(()=> showToast('Error saving expense','error')); }
@@ -2274,7 +2618,26 @@ function updateProductGrid(){
 
 function scanBarcode(){const code=prompt('📷 Enter barcode:');if(code){document.getElementById('productSearch').value=code;searchProducts();const product=products.find(p=>p.sku===code);if(product)addToCart(product.id);}}
 function quickAddProduct(){ if(!adminGuard('add product')) return; const name=prompt('Product name:');if(!name)return; const buyingPrice=parseFloat(prompt('Buying price (KES):'))||0; const sellingPrice=parseFloat(prompt('Selling price (KES):'));if(!sellingPrice||sellingPrice<=0)return; const quantity=parseInt(prompt('Quantity:'));if(!quantity||quantity<=0)return; const category=prompt('Category (antibiotics/pain-relief/antimalarial/vitamins/chronic/controlled/other):')||'other'; const product={id:generateId(),name:name,sku:'SKU-'+Date.now().toString(36).toUpperCase(),category:category,buyingPrice:buyingPrice,sellingPrice:sellingPrice,price:sellingPrice,quantity:quantity,controlled:false,badge:category}; db.add('products',product).then(()=>{showToast('✅ '+name+' added!','success');loadProducts();loadProductSearch();updateProductGrid();updatePricingDashboard();}).catch(e=>showToast('Error: '+e.message,'error')); }
-function searchProducts(){ const query=document.getElementById('productSearch').value.toLowerCase().trim(); const results=document.getElementById('searchResults'); if(!query){results.style.display='none';results.innerHTML='';return;} const matches=products.filter(p=>p.name.toLowerCase().includes(query)||(p.sku&&p.sku.toLowerCase().includes(query))||(p.generic&&p.generic.toLowerCase().includes(query))).slice(0,10); if(matches.length===0){results.style.display='block';results.innerHTML='<div style="padding:8px;color:#64748b;font-size:12px;">No products</div>';return;} results.style.display='block'; results.innerHTML=matches.map(p=>'<div onclick="addToCart(\''+p.id+'\')" style="display:flex;justify-content:space-between;padding:6px 12px;border-bottom:1px solid #f1f5f9;cursor:pointer;transition:0.2s;font-size:12px;" onmouseover="this.style.background=\'#f8fafc\'" onmouseout="this.style.background=\'white\'">'+'<div><strong>'+p.name+'</strong><span style="color:#64748b;margin-left:8px;">Stock: '+p.quantity+'</span>'+(p.generic?'<span style="color:#0b6e4f;margin-left:6px;">💊 '+p.generic+'</span>':'')+' <span class="drug-badge '+(p.badge||'otc')+'" style="font-size:7px;">'+(p.badge||'otc').toUpperCase()+'</span></div>'+'<div style="color:#0b6e4f;font-weight:700;">'+formatCurrency(p.sellingPrice||p.price||0)+'</div></div>').join(''); }
+function searchProducts(){ const query=document.getElementById('productSearch').value.toLowerCase().trim(); const results=document.getElementById('searchResults'); if(!query){results.style.display='none';results.innerHTML='';return;} const matches=products.filter(p=>p.name.toLowerCase().includes(query)||(p.sku&&p.sku.toLowerCase().includes(query))||(p.generic&&p.generic.toLowerCase().includes(query))).slice(0,10); if(matches.length===0){ const drugMatches = (window.drugs || []).filter(d => !d.deleted_at && (d.generic_name||'').toLowerCase().includes(query)||(d.brand_name||'').toLowerCase().includes(query)||(d.drug_name||'').toLowerCase().includes(query)).slice(0,10); if(drugMatches.length === 0){results.style.display='block';results.innerHTML='<div style="padding:8px;color:#64748b;font-size:12px;">No products</div>';return;} results.style.display='block'; results.innerHTML=`<div style="padding:6px 12px;background:#f0fdf4;border-bottom:1px solid #dcfce7;font-size:11px;color:#166534;">Drug Catalogue</div>`+drugMatches.map(d=>'<div onclick="selectDrugFromSmartSearch(\''+d.id+'\')" style="display:flex;justify-content:space-between;padding:6px 12px;border-bottom:1px solid #f1f5f9;cursor:pointer;transition:0.2s;font-size:12px;" onmouseover="this.style.background=\'#f8fafc\'" onmouseout="this.style.background=\'white\'">'+'<div><strong>'+d.drug_name+'</strong><span style="color:#64748b;margin-left:8px;font-size:10px;">'+d.generic_name+' '+d.strength+'</span></div>'+'<div style="color:#0b6e4f;font-weight:700;">'+formatCurrency(d.selling_price||0)+'</div></div>').join(''); return; } results.style.display='block'; results.innerHTML=matches.map(p=>'<div onclick="addToCart(\''+p.id+'\')" style="display:flex;justify-content:space-between;padding:6px 12px;border-bottom:1px solid #f1f5f9;cursor:pointer;transition:0.2s;font-size:12px;" onmouseover="this.style.background=\'#f8fafc\'" onmouseout="this.style.background=\'white\'">'+'<div><strong>'+p.name+'</strong><span style="color:#64748b;margin-left:8px;">Stock: '+p.quantity+'</span>'+(p.generic?'<span style="color:#0b6e4f;margin-left:6px;">💊 '+p.generic+'</span>':'')+' <span class="drug-badge '+(p.badge||'otc')+'" style="font-size:7px;">'+(p.badge||'otc').toUpperCase()+'</span></div>'+'<div style="color:#0b6e4f;font-weight:700;">'+formatCurrency(p.sellingPrice||p.price||0)+'</div></div>').join(''); }
+function selectDrugFromSmartSearch(drugId) {
+    const drug = (window.drugs || []).find(d => d.id === drugId);
+    if (!drug) return;
+    const stockSummary = window.drugStockSummary?.[drugId];
+    if (!stockSummary || stockSummary.total_quantity <= 0) {
+        showToast(drug.drug_name + ' is out of stock', 'error');
+        return;
+    }
+    const batch = getBestBatchForDrug(drugId, 1);
+    if (!batch) {
+        showToast('No available batches for ' + drug.drug_name, 'error');
+        return;
+    }
+    addToCartFromSmartDrug(drug, batch);
+    showToast(drug.drug_name + ' added to cart', 'success');
+    document.getElementById('productSearch').value = '';
+    document.getElementById('searchResults').style.display = 'none';
+}
+
 function addToCart(productId){ 
     const product=products.find(p=>p.id===productId); 
     if(!product){showToast('Product not found','error');return;} 
@@ -2295,6 +2658,7 @@ function addToCart(productId){
         cart.push({
             id:generateId(),
             productId:product.id,
+            drugId:product.drugId || product.drug_id || null,
             name:product.name,
             price:originalPrice,
             originalPrice:originalPrice,
@@ -2312,6 +2676,60 @@ function addToCart(productId){
 
 function removeFromCart(id){cart=cart.filter(item=>item.id!==id);delete negotiatedPrices[id];renderCart();}
 function updateQty(id,delta){const item=cart.find(i=>i.id===id);if(!item)return;const newQty=item.quantity+delta;if(newQty<1){removeFromCart(id);return;}if(newQty>item.maxQty){showToast('Not enough stock','error');return;}item.quantity=newQty;renderCart();}
+
+// FEFO stock deduction: deduct from batches with earliest expiry first
+async function deductDrugStockFifo(item) {
+    if (!item.drugId) return;
+    const batches = await db.getAll('drugBatches');
+    const today = new Date().toISOString().split('T')[0];
+    // FEFO: sort by expiry_date ascending, filter non-expired with remaining > 0
+    const candidateBatches = batches
+        .filter(b => b.drug_id === item.drugId && !b.deleted_at &&
+            (b.expiry_date >= today || b.expiry_date == null) &&
+            b.quantity_remaining > 0)
+        .sort((a, b) => new Date(a.expiry_date || '9999') - new Date(b.expiry_date || '9999'));
+
+    let remaining = item.quantity;
+    const movements = [];
+    const pharmacyId = getCurrentPharmacyId?.() || window.DawaTenant?.getCurrentPharmacyId?.();
+
+    for (const batch of candidateBatches) {
+        if (remaining <= 0) break;
+        const deducted = Math.min(remaining, batch.quantity_remaining);
+        const before = batch.quantity_remaining;
+        const after = before - deducted;
+        batch.quantity_remaining = after;
+        batch.revision = (batch.revision || 0) + 1;
+        batch.updated_at = new Date().toISOString();
+        await db.update('drugBatches', batch);
+
+        movements.push({
+            id: 'dsm_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8),
+            drug_id: item.drugId,
+            batch_id: batch.id,
+            movement_type: 'sell',
+            quantity: -deducted,
+            quantity_before: before,
+            quantity_after: after,
+            unit_price: batch.selling_price || 0,
+            reference_type: 'sale',
+            notes: 'Sale transaction',
+            user_name: window.currentUser || 'Pharmacy Staff',
+            pharmacyId: pharmacyId,
+            created_at: new Date().toISOString()
+        });
+        remaining -= deducted;
+    }
+
+    if (remaining > 0) {
+        console.warn('Insufficient FEFO stock for drug', item.drugId, 'short by', remaining);
+    }
+
+    // Record stock movements
+    await Promise.all(movements.map(m => db.add('drugStockMovements', m)));
+    // Update stock summary
+    if (typeof updateDrugStockSummary === 'function') updateDrugStockSummary();
+}
 
 function renderCart(){
     const container=document.getElementById('cartItems');
@@ -2578,6 +2996,7 @@ function processPayment(){
                     return db.update('products',product);
                 }
             }))
+            .then(() => deductDrugStockFifo(item))
         );
         return Promise.all(promises);
     })
@@ -2930,7 +3349,7 @@ function showDrugDatabaseSearch() {
     renderDrugSearchResults(); 
 }
 function renderDrugSearchResults() { 
-    const search = document.getElementById('drugDbSearch'); 
+    const search = document.getElementById('drugDbSearch');
     const resultsContainer = document.getElementById('drugDbResults'); 
     if (!search || !resultsContainer) return; 
     const query = search.value.trim(); 
@@ -2968,11 +3387,891 @@ function renderDrugSearchResultsMain() {
     resultsContainer.innerHTML = results.slice(0, 100).map((drug, i) => `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px;border-bottom:1px solid #f1f5f9;"><div><strong style="font-size:13px;">${drug.name}</strong><span style="color:#64748b;margin-left:8px;font-size:11px;">${drug.generic}</span>${drug.controlled ? '<span class="controlled-badge">🚫 Controlled</span>' : ''}<span class="drug-badge ${drug.badge||'otc'}" style="margin-left:4px;">${(drug.badge||'otc').toUpperCase()}</span></div><div style="display:flex;gap:8px;align-items:center;"><span style="font-size:11px;color:#0b6e4f;font-weight:600;">KES ${drug.minPrice} - ${drug.maxPrice}</span><button class="btn btn-sm btn-success" onclick='addDrugToInventory(${JSON.stringify(drug)})'><i class="fas fa-plus"></i></button></div></div>`).join(''); 
 }
 
+// ===== SMART DRUG SEARCH & CASCADING DROPDOWNS =====
+// State for the smart drug selection modal
+window.smartDrugState = {
+    genericName: '',
+    strength: '',
+    formId: '',
+    brandName: '',
+    filteredDrugs: []
+};
+
+function showSmartDrugSearch() {
+    if (!window.drugs || window.drugs.length === 0) {
+        showToast('Loading drug catalogue...', 'info');
+        loadDrugs();
+    }
+    window.smartDrugState = {
+        genericName: '',
+        strength: '',
+        formId: '',
+        brandName: '',
+        filteredDrugs: []
+    };
+    const modal = document.createElement('div');
+    modal.id = 'smartDrugModal';
+    modal.className = 'modal show';
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 900px;">
+            <span class="modal-close" onclick="document.getElementById('smartDrugModal').classList.remove('show')">&times;</span>
+            <h2 style="margin-top:0;"><i class="fas fa-search-plus"></i> Smart Drug Search</h2>
+            <p style="color:#64748b;font-size:13px;margin-bottom:16px;">Search by generic name, brand, strength, or dosage form.</p>
+
+            <!-- Main Search -->
+            <div class="search-bar" style="margin-bottom: 0;">
+                <input type="text" id="smartDrugSearch" placeholder="🔍 Search drugs... (e.g. Amoxicillin, 500mg, Capsule)" oninput="onSmartDrugSearchInput()">
+                <button class="btn btn-blue" onclick="performSmartDrugSearch()" style="display:none;" id="smartSearchBtn"><i class="fas fa-search"></i> Search</button>
+            </div>
+
+            <!-- Cascading Dropdowns -->
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:16px;">
+                <div class="form-group">
+                    <label>1. Generic Name</label>
+                    <select id="smartGenericSelect" onchange="onGenericChange()">
+                        <option value="">All Generics</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>2. Strength</label>
+                    <select id="smartStrengthSelect" onchange="onStrengthChange()">
+                        <option value="">All Strengths</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>3. Dosage Form</label>
+                    <select id="smartFormSelect" onchange="onFormChange()">
+                        <option value="">All Forms</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>4. Brand</label>
+                    <select id="smartBrandSelect" onchange="onBrandChange()">
+                        <option value="">All Brands</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Results -->
+            <div style="margin-top:20px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                    <h3 style="font-size:14px;margin:0;">Matching Variations</h3>
+                    <span id="smartResultCount" style="font-size:12px;color:#64748b;"></span>
+                </div>
+                <div id="smartDrugResults" style="max-height:350px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:8px;"></div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    initSmartDrugDropdowns();
+    performSmartDrugSearch();
+}
+
+function initSmartDrugDropdowns() {
+    const generics = [...new Set((window.drugs || []).map(d => d.generic_name).filter(Boolean))].sort();
+    const genericSelect = document.getElementById('smartGenericSelect');
+    genericSelect.innerHTML = '<option value="">All Generics</option>';
+    generics.forEach(g => {
+        genericSelect.innerHTML += `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`;
+    });
+
+    const strengths = [...new Set((window.drugs || []).map(d => d.strength).filter(Boolean))].sort();
+    const strengthSelect = document.getElementById('smartStrengthSelect');
+    strengthSelect.innerHTML = '<option value="">All Strengths</option>';
+    strengths.forEach(s => {
+        strengthSelect.innerHTML += `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`;
+    });
+
+    const brands = [...new Set((window.drugs || []).map(d => d.brand_name).filter(Boolean))].sort();
+    const brandSelect = document.getElementById('smartBrandSelect');
+    brandSelect.innerHTML = '<option value="">All Brands</option>';
+    brands.forEach(b => {
+        brandSelect.innerHTML += `<option value="${escapeHtml(b)}">${escapeHtml(b)}</option>`;
+    });
+
+    const formSelect = document.getElementById('smartFormSelect');
+    formSelect.innerHTML = '<option value="">All Forms</option>';
+    (window.drugForms || []).forEach(f => {
+        formSelect.innerHTML += `<option value="${f.id}">${escapeHtml(f.name)}</option>`;
+    });
+}
+
+function onSmartDrugSearchInput() {
+    const query = document.getElementById('smartDrugSearch').value.trim().toLowerCase();
+    applySmartDrugFilters(query);
+}
+
+function performSmartDrugSearch() {
+    const query = document.getElementById('smartDrugSearch').value.trim().toLowerCase();
+    applySmartDrugFilters(query);
+}
+
+function applySmartDrugFilters(searchQuery) {
+    const allDrugs = window.drugs || [];
+    let filtered = allDrugs.filter(d => !d.deleted_at && (d.status || 'active') === 'active');
+
+    if (searchQuery) {
+        filtered = filtered.filter(d =>
+            (d.generic_name || '').toLowerCase().includes(searchQuery) ||
+            (d.brand_name || '').toLowerCase().includes(searchQuery) ||
+            (d.drug_name || '').toLowerCase().includes(searchQuery) ||
+            (d.strength || '').toLowerCase().includes(searchQuery)
+        );
+    }
+
+    if (window.smartDrugState.genericName) {
+        filtered = filtered.filter(d => d.generic_name === window.smartDrugState.genericName);
+    }
+    if (window.smartDrugState.strength) {
+        filtered = filtered.filter(d => d.strength === window.smartDrugState.strength);
+    }
+    if (window.smartDrugState.formId) {
+        filtered = filtered.filter(d => d.form_id === window.smartDrugState.formId);
+    }
+    if (window.smartDrugState.brandName) {
+        filtered = filtered.filter(d => d.brand_name === window.smartDrugState.brandName);
+    }
+
+    window.smartDrugState.filteredDrugs = filtered;
+    renderSmartDrugResults(filtered);
+}
+
+function onGenericChange() {
+    const val = document.getElementById('smartGenericSelect').value;
+    window.smartDrugState.genericName = val;
+    populateFilteredStrengths();
+    populateFilteredForms();
+    populateFilteredBrands();
+    applySmartDrugFilters(null);
+}
+
+function onStrengthChange() {
+    const val = document.getElementById('smartStrengthSelect').value;
+    window.smartDrugState.strength = val;
+    populateFilteredForms();
+    populateFilteredBrands();
+    applySmartDrugFilters(null);
+}
+
+function onFormChange() {
+    const val = document.getElementById('smartFormSelect').value;
+    window.smartDrugState.formId = val;
+    populateFilteredBrands();
+    applySmartDrugFilters(null);
+}
+
+function onBrandChange() {
+    const val = document.getElementById('smartBrandSelect').value;
+    window.smartDrugState.brandName = val;
+    applySmartDrugFilters(null);
+}
+
+function populateFilteredStrengths() {
+    const allDrugs = window.drugs || [];
+    let pool = allDrugs.filter(d => !d.deleted_at);
+    if (window.smartDrugState.genericName) {
+        pool = pool.filter(d => d.generic_name === window.smartDrugState.genericName);
+    }
+    const strengths = [...new Set(pool.map(d => d.strength).filter(Boolean))].sort();
+    const select = document.getElementById('smartStrengthSelect');
+    select.innerHTML = '<option value="">All Strengths</option>';
+    strengths.forEach(s => {
+        select.innerHTML += `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`;
+    });
+}
+
+function populateFilteredForms() {
+    const allDrugs = window.drugs || [];
+    let pool = allDrugs.filter(d => !d.deleted_at);
+    if (window.smartDrugState.genericName) {
+        pool = pool.filter(d => d.generic_name === window.smartDrugState.genericName);
+    }
+    if (window.smartDrugState.strength) {
+        pool = pool.filter(d => d.strength === window.smartDrugState.strength);
+    }
+    const forms = [...new Set(pool.map(d => d.form_id).filter(Boolean))];
+    const select = document.getElementById('smartFormSelect');
+    select.innerHTML = '<option value="">All Forms</option>';
+    forms.forEach(fid => {
+        const form = (window.drugForms || []).find(f => f.id === fid);
+        select.innerHTML += `<option value="${fid}">${escapeHtml(form ? form.name : fid)}</option>`;
+    });
+}
+
+function populateFilteredBrands() {
+    const allDrugs = window.drugs || [];
+    let pool = allDrugs.filter(d => !d.deleted_at);
+    if (window.smartDrugState.genericName) {
+        pool = pool.filter(d => d.generic_name === window.smartDrugState.genericName);
+    }
+    if (window.smartDrugState.strength) {
+        pool = pool.filter(d => d.strength === window.smartDrugState.strength);
+    }
+    if (window.smartDrugState.formId) {
+        pool = pool.filter(d => d.form_id === window.smartDrugState.formId);
+    }
+    const brands = [...new Set(pool.map(d => d.brand_name).filter(Boolean))].sort();
+    const select = document.getElementById('smartBrandSelect');
+    select.innerHTML = '<option value="">All Brands</option>';
+    brands.forEach(b => {
+        select.innerHTML += `<option value="${escapeHtml(b)}">${escapeHtml(b)}</option>`;
+    });
+}
+
+function renderSmartDrugResults(drugs) {
+    const container = document.getElementById('smartDrugResults');
+    const countEl = document.getElementById('smartResultCount');
+    if (!container) return;
+    countEl.textContent = drugs.length + ' variation(s)';
+    if (drugs.length === 0) {
+        container.innerHTML = '<div class="empty" style="padding:30px;text-align:center;"><i class="fas fa-search" style="font-size:32px;color:#cbd5e1;"></i><p style="margin-top:8px;color:#94a3b8;">No matching drugs found</p></div>';
+        return;
+    }
+    container.innerHTML = drugs.map(d => {
+        const form = (window.drugForms || []).find(f => f.id === d.form_id);
+        const category = (window.drugCategories || []).find(c => c.id === d.category_id);
+        const stockSummary = window.drugStockSummary?.[d.id];
+        const stockQty = stockSummary?.total_quantity || 0;
+        const batchInfo = getBestBatchForDrug(d.id, 1);
+        const batchText = batchInfo ? `Batch: ${batchInfo.batch_number}, Exp: ${formatDate(batchInfo.expiry_date)}` : 'No stock batches';
+        return `<div style="padding:10px;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;">
+            <div style="flex:1;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <strong style="font-size:13px;">${escapeHtml(d.drug_name || d.generic_name || '')}</strong>
+                    <span class="drug-badge ${d.badge || 'otc'}" style="font-size:7px;">${(d.badge || 'otc').toUpperCase()}</span>
+                </div>
+                <div style="font-size:11px;color:#64748b;margin-top:2px;">
+                    ${d.generic_name ? '💊 Generic: ' + escapeHtml(d.generic_name) + ' | ' : ''}
+                    ${d.strength ? '💪 Strength: ' + escapeHtml(d.strength) + ' | ' : ''}
+                    ${form ? '📦 ' + escapeHtml(form.name) + ' | ' : ''}
+                    ${d.brand_name ? '🏷️ Brand: ' + escapeHtml(d.brand_name) : ''}
+                </div>
+                <div style="font-size:10px;color:#94a3b8;margin-top:2px;">${batchText}</div>
+            </div>
+            <div style="text-align:right;margin-left:8px;">
+                <div style="color:#0b6e4f;font-weight:700;">${formatCurrency(d.selling_price || 0)}</div>
+                <div style="font-size:11px;color:#64748b;">Stock: ${stockQty}</div>
+                ${stockQty > 0 ? `<button class="btn btn-sm btn-success" onclick="selectSmartDrugFromResults('${d.id}')" style="margin-top:4px;"><i class="fas fa-plus"></i> Add to Cart</button>` : `<button class="btn btn-sm" style="margin-top:4px;" disabled><i class="fas fa-times"></i> Out of Stock</button>`}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function selectSmartDrugFromResults(drugId) {
+    const drug = (window.drugs || []).find(d => d.id === drugId);
+    if (!drug) return;
+    const stockSummary = window.drugStockSummary?.[drugId];
+    if (!stockSummary || stockSummary.total_quantity <= 0) {
+        showToast('This drug is out of stock', 'error');
+        return;
+    }
+    const batch = getBestBatchForDrug(drugId, 1);
+    if (!batch) {
+        showToast('No available batches for this drug', 'error');
+        return;
+    }
+    addToCartFromSmartDrug(drug, batch);
+    showToast(drug.drug_name + ' added to cart', 'success');
+    document.getElementById('smartDrugModal').classList.remove('show');
+}
+
+function getBestBatchForDrug(drugId, qty) {
+    const batches = window.drugBatches || [];
+    const today = new Date().toISOString().split('T')[0];
+    const candidateBatches = batches
+        .filter(b => b.drug_id === drugId && !b.deleted_at &&
+            b.quantity_remaining > 0 &&
+            (b.expiry_date >= today || b.expiry_date == null))
+        .sort((a, b) => new Date(a.expiry_date || '9999') - new Date(b.expiry_date || '9999'));
+    return candidateBatches.length > 0 ? candidateBatches[0] : null;
+}
+
+function addToCartFromSmartDrug(drug, batch) {
+    const existing = cart.find(item => item.productId === ('prod_' + drug.id));
+    if (existing) {
+        if (existing.quantity >= (window.drugStockSummary?.[drug.id]?.total_quantity || 0)) {
+            showToast('Not enough stock', 'error');
+            return;
+        }
+        existing.quantity++;
+    } else {
+        const stockQty = window.drugStockSummary?.[drug.id]?.total_quantity || 0;
+        cart.push({
+            id: generateId(),
+            productId: 'prod_' + drug.id,
+            drugId: drug.id,
+            name: drug.drug_name || drug.generic_name,
+            price: drug.selling_price || 0,
+            originalPrice: drug.selling_price || 0,
+            buyingPrice: drug.buying_price || 0,
+            quantity: 1,
+            maxQty: stockQty,
+            controlled: drug.prescription_status === 'prescription',
+            drugName: drug.drug_name || drug.generic_name,
+            genericName: drug.generic_name,
+            brandName: drug.brand_name,
+            strength: drug.strength,
+            dosageForm: (window.drugForms || []).find(f => f.id === drug.form_id)?.name || '',
+            batchNumber: batch.batch_number,
+            expiryDate: formatDate(batch.expiry_date),
+            stockQty: stockQty,
+            unitPrice: batch.selling_price || drug.selling_price || 0,
+            buyingPrice: batch.purchase_price || 0
+        });
+    }
+    document.getElementById('productSearch').value = '';
+    document.getElementById('searchResults').style.display = 'none';
+    renderCart();
+}
+
+function refreshSmartDrugStockSummary() {
+    const drugs = window.drugs || [];
+    const batches = window.drugBatches || [];
+    window.drugStockSummary = {};
+    drugs.forEach(d => {
+        const drugBatches = batches.filter(b => b.drug_id === d.id && !b.deleted_at);
+        const totalQty = drugBatches.reduce((sum, b) => sum + (b.quantity_remaining || 0), 0);
+        const expiredBatches = drugBatches.filter(b => b.expiry_date && new Date(b.expiry_date) < new Date());
+        window.drugStockSummary[d.id] = {
+            total_quantity: totalQty,
+            total_batches: drugBatches.length,
+            total_current_value: drugBatches.reduce((sum, b) => sum + (b.quantity_remaining * (b.selling_price || 0)), 0),
+            is_expired: expiredBatches.length > 0,
+            nearest_expiry_date: drugBatches.length > 0 ? new Date(Math.min(...drugBatches.map(b => new Date(b.expiry_date || '9999')))) : null
+        };
+    });
+}
+
 // ===== REPORTS =====
 function loadReport(period){ const now=new Date();let start,end; if(period==='daily'){start=now.toISOString().split('T')[0];end=now.toISOString().split('T')[0];} else if(period==='weekly'){const ws=new Date(now);ws.setDate(now.getDate()-now.getDay());start=ws.toISOString().split('T')[0];end=now.toISOString().split('T')[0];} else if(period==='monthly'){start=new Date(now.getFullYear(),now.getMonth(),1).toISOString().split('T')[0];end=now.toISOString().split('T')[0];} else return; document.getElementById('reportStart').value=start;document.getElementById('reportEnd').value=end;generateCustomReport(); }
 function generateCustomReport(){ const start=document.getElementById('reportStart').value; const end=document.getElementById('reportEnd').value; if(!start||!end){showToast('Select dates','error');return;} Promise.all([db.getSalesByDateRange(start,end), db.getAll('expenses'), db.getAll('saleItems')]).then(([sales, expenses, saleItems]) => { const totalRevenue=sales.reduce((sum,s)=>sum+(s.total||0),0); const totalExpenses=expenses.filter(e=>e.date&&e.date>=start&&e.date<=end).reduce((sum,e)=>sum+e.amount,0); const profit=totalRevenue-totalExpenses; const container=document.getElementById('reportResults'); let productSales=[]; saleItems.forEach(item => { const existing=productSales.find(p=>p.productId===item.productId); if(existing){existing.sold+=item.quantity;existing.revenue+=item.price*item.quantity;}else{const product=products.find(p=>p.id===item.productId);productSales.push({productId:item.productId,name:product?product.name:item.name||'Unknown',sold:item.quantity,revenue:item.price*item.quantity});}}); const top=productSales.sort((a,b)=>b.revenue-a.revenue).slice(0,10); const methods={};sales.forEach(s=>{const m=s.method||'cash';methods[m]=(methods[m]||0)+s.total;}); const daily={};sales.forEach(s=>{const d=s.date.split('T')[0];daily[d]=(daily[d]||0)+s.total;}); const dailyArr=Object.entries(daily).sort(); if(sales.length === 0) { container.innerHTML = '<div class="empty" style="padding:40px;"><i class="fas fa-chart-bar" style="font-size:48px;"></i><p style="margin-top:12px;font-size:16px;font-weight:600;color:#1e293b;">No Sales Data</p><p style="color:#94a3b8;">Start making sales to see reports and analytics here.</p></div>'; return; } container.innerHTML='<div class="stats-grid">'+ '<div class="stat-card"><div class="number">'+sales.length+'</div><div class="label">Sales</div></div>'+ '<div class="stat-card"><div class="number">'+formatCurrency(totalRevenue)+'</div><div class="label">Revenue</div></div>'+ '<div class="stat-card"><div class="number">'+formatCurrency(totalExpenses)+'</div><div class="label">Expenses</div></div>'+ '<div class="stat-card"><div class="number" style="color:'+(profit>=0?'#16a34a':'#dc2626')+';">'+formatCurrency(profit)+'</div><div class="label">Profit</div></div></div>'+ '<div class="report-section" style="margin-top:12px;"><h3 style="font-size:14px;color:#0f172a;">🏆 Top Products</h3>'+(top.length===0?'<p>No sales</p>':'')+'<table style="width:100%;border-collapse:collapse;font-size:12px;"><thead><tr style="background:#f1f5f9;"><th style="padding:6px 8px;text-align:left;">Product</th><th style="padding:6px 8px;text-align:left;">Sold</th><th style="padding:6px 8px;text-align:left;">Revenue</th></tr></thead><tbody>'+top.map(p=>'<tr><td style="padding:6px 8px;border-bottom:1px solid #f1f5f9;">'+p.name+'</td><td style="padding:6px 8px;border-bottom:1px solid #f1f5f9;">'+p.sold+'</td><td style="padding:6px 8px;border-bottom:1px solid #f1f5f9;">'+formatCurrency(p.revenue)+'</td></tr>').join('')+'</tbody></table></div>'+ '<div class="report-section" style="margin-top:12px;"><h3 style="font-size:14px;color:#0f172a;">💳 Payment Methods</h3>'+(Object.keys(methods).length===0?'<p>No data</p>':'')+'<table style="width:100%;border-collapse:collapse;font-size:12px;"><thead><tr style="background:#f1f5f9;"><th style="padding:6px 8px;text-align:left;">Method</th><th style="padding:6px 8px;text-align:left;">Amount</th></tr></thead><tbody>'+Object.entries(methods).map(m=>'<tr><td style="padding:6px 8px;border-bottom:1px solid #f1f5f9;">'+m[0].toUpperCase()+'</td><td style="padding:6px 8px;border-bottom:1px solid #f1f5f9;">'+formatCurrency(m[1])+'</td></tr>').join('')+'</tbody></table></div>'+ (dailyArr.length?'<div class="report-section" style="margin-top:12px;"><h3 style="font-size:14px;color:#0f172a;">📊 Daily Summary</h3><table style="width:100%;border-collapse:collapse;font-size:12px;"><thead><tr style="background:#f1f5f9;"><th style="padding:6px 8px;text-align:left;">Date</th><th style="padding:6px 8px;text-align:left;">Revenue</th></tr></thead><tbody>'+dailyArr.map(d=>'<tr><td style="padding:6px 8px;border-bottom:1px solid #f1f5f9;">'+formatDate(d[0])+'</td><td style="padding:6px 8px;border-bottom:1px solid #f1f5f9;">'+formatCurrency(d[1])+'</td></tr>').join('')+'</tbody></table></div>':''); if (isEditor() && sales.length > 0) { container.innerHTML += '<div style="margin-top:16px;"><button class="btn btn-blue" onclick="showRecentSales()"><i class="fas fa-clock"></i> View All Sales</button></div>'; } }); }
 function printReport(){const content=document.getElementById('reportResults');const pw=window.open('','_blank','width=800,height=600');if(pw){pw.document.write('<html><head><title>Dawa Smart Report</title><style>body{font-family:Arial;padding:20px;font-size:13px;}table{width:100%;border-collapse:collapse;}th,td{padding:6px 8px;border:1px solid #ddd;text-align:left;}th{background:#f5f5f5;}</style></head><body><h1>Dawa Smart – Sales Report</h1><p><strong>📍 '+document.getElementById('shopAddress').value+'</strong></p>'+content.innerHTML+'<p style="margin-top:16px;color:#64748b;font-size:11px;">Generated: '+new Date().toLocaleString()+'</p><button onclick="window.print()" style="padding:8px 16px;margin:8px 0;background:#0b6e4f;color:#fff;border:none;border-radius:5px;cursor:pointer;">Print</button></body></html>');pw.document.close();}}
 function generateKRAeTIMS(){ const start=document.getElementById('reportStart').value; const end=document.getElementById('reportEnd').value; if(!start||!end){showToast('Select date range','error');return;} db.getSalesByDateRange(start,end).then(sales=>{ if(sales.length === 0) { showToast('No sales data for this period','warning'); return; } const total=sales.reduce((sum,s)=>sum+(s.total||0),0); const vat=sales.reduce((sum,s)=>sum+((s.vat||0)),0); const kraData={period:{from:start,to:end},totalSales:sales.length,totalRevenue:total,totalVAT:vat,sales:sales.map(s=>({receipt:s.receiptNumber,date:s.date,amount:s.total,method:s.method,customer:s.customer,customerPhone:s.customerPhone,isBackdated:s.isBackdated||false,negotiated:s.negotiated||false}))}; const blob=new Blob([JSON.stringify(kraData,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a');a.href=url;a.download='kra-etims-'+start+'-to-'+end+'.json';a.click();URL.revokeObjectURL(url); showToast('📄 KRA eTIMS report exported (JSON)','success'); }); }
+
+// ===== ENHANCED REPORTING ENGINE =====
+let currentReportData = null;
+let currentReportPeriod = 'daily';
+let currentReportStartDate = '';
+let currentReportEndDate = '';
+
+function selectReportPeriod(period) {
+    currentReportPeriod = period;
+    const now = new Date();
+
+    // Set date inputs based on period
+    const startInput = document.getElementById('reportStart');
+    const endInput = document.getElementById('reportEnd');
+
+    if (period === 'daily') {
+        const today = now.toISOString().split('T')[0];
+        startInput.value = today;
+        endInput.value = today;
+    } else if (period === 'weekly') {
+        const dayOfWeek = now.getDay();
+        const monday = new Date(now);
+        monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+        startInput.value = monday.toISOString().split('T')[0];
+        endInput.value = now.toISOString().split('T')[0];
+    } else if (period === 'monthly') {
+        const first = new Date(now.getFullYear(), now.getMonth(), 1);
+        const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        startInput.value = first.toISOString().split('T')[0];
+        endInput.value = last.toISOString().split('T')[0];
+    } else if (period === 'quarterly') {
+        const quarter = Math.floor(now.getMonth() / 3);
+        const first = new Date(now.getFullYear(), quarter * 3, 1);
+        const last = new Date(now.getFullYear(), quarter * 3 + 3, 0);
+        startInput.value = first.toISOString().split('T')[0];
+        endInput.value = last.toISOString().split('T')[0];
+    } else if (period === 'yearly') {
+        startInput.value = now.getFullYear() + '-01-01';
+        endInput.value = now.toISOString().split('T')[0];
+    } else if (period === 'custom') {
+        // Keep existing values or set defaults
+        if (!startInput.value) startInput.value = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        if (!endInput.value) endInput.value = now.toISOString().split('T')[0];
+    }
+
+    // Update active tab
+    document.querySelectorAll('#reportTabs button').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.period === period);
+    });
+}
+
+function checkAndShowSyncWarning() {
+    const syncStatus = window.DawaReporting?.checkSyncStatus?.();
+    const warningEl = document.getElementById('syncWarningBadge');
+    if (warningEl && syncStatus?.hasUnsynced) {
+        warningEl.style.display = 'inline';
+        warningEl.textContent = '⚠️ ' + syncStatus.pendingSync + ' transactions pending sync — report may be incomplete';
+    } else if (warningEl) {
+        warningEl.style.display = 'none';
+    }
+}
+
+async function generateReportFromUI() {
+    const start = document.getElementById('reportStart').value;
+    const end = document.getElementById('reportEnd').value;
+    if (!start || !end) { showToast('Please select date range', 'error'); return; }
+
+    checkAndShowSyncWarning();
+
+    showToast('Generating report...', 'info');
+
+    const report = await window.DawaReporting.generateReport(
+        currentReportPeriod,
+        start,
+        end,
+        'financial'
+    );
+
+    currentReportData = report;
+    currentReportStartDate = start;
+    currentReportEndDate = end;
+
+    renderReport(report);
+    renderSummaryCards(report.summary);
+}
+
+function renderSummaryCards(summary) {
+    const container = document.getElementById('reportSummaryCards');
+    if (!container) return;
+
+    const cards = [
+        { label: 'Total Sales', value: window.DawaReporting.formatCurrency(summary.total_sales), color: '#0b6e4f' },
+        { label: 'Cash Sales', value: window.DawaReporting.formatCurrency(summary.cash_sales), color: '#2563eb' },
+        { label: 'M-Pesa Sales', value: window.DawaReporting.formatCurrency(summary.mpesa_sales), color: '#059669' },
+        { label: 'Card Sales', value: window.DawaReporting.formatCurrency(summary.card_sales + summary.card_sales), color: '#7c3aed' },
+        { label: 'Credit Sales', value: window.DawaReporting.formatCurrency(summary.credit_sales), color: '#d97706' },
+        { label: 'COGS', value: window.DawaReporting.formatCurrency(summary.cost_of_goods_sold), color: '#dc2626' },
+        { label: 'Gross Profit', value: window.DawaReporting.formatCurrency(summary.gross_profit), color: '#059669' },
+        { label: 'Net Profit', value: window.DawaReporting.formatCurrency(summary.net_profit), color: '#0f7173' }
+    ];
+
+    container.innerHTML = cards.map(c =>
+        '<div class="stat-card">' +
+        '<div class="number" style="color:' + c.color + '">' + c.value + '</div>' +
+        '<div class="label">' + c.label + '</div>' +
+        '</div>'
+    ).join('');
+}
+
+function renderReport(report) {
+    const s = report.summary;
+    let html = '<div style="overflow-x:auto;">';
+
+    // Period info
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">' +
+        '<h3 style="font-size:16px;color:#0f172a;">Report: ' +
+        window.DawaReporting.formatDate(report.start_date) + ' to ' + window.DawaReporting.formatDate(report.end_date) +
+        '</h3>' +
+        '<span style="font-size:11px;color:#64748b;">Generated: ' + window.DawaReporting.formatDateTime(report.generated_at) + '</span>' +
+        '</div>';
+
+    // Payment Method Breakdown
+    html += '<div style="margin-bottom:20px;">';
+    html += '<h4 style="font-size:14px;color:#0f172a;margin-bottom:8px;">📊 Sales by Payment Method</h4>';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:12px;">';
+    html += '<thead><tr style="border-bottom:2px solid #e2e8f0;"><th style="text-align:left;padding:6px;">Method</th><th style="text-align:right;padding:6px;">Amount</th><th style="text-align:right;padding:6px;">%</th></tr></thead>';
+    html += '<tbody>';
+    const totalSales = s.total_sales;
+    Object.entries(report.sales_by_method || {}).forEach(([method, amount]) => {
+        const pct = totalSales > 0 ? ((amount / totalSales) * 100).toFixed(1) : '0';
+        html += '<tr style="border-bottom:1px solid #f1f5f9;">' +
+            '<td style="padding:6px;">' + escapeHtml(method) + '</td>' +
+            '<td style="padding:6px;text-align:right;">' + window.DawaReporting.formatCurrency(amount) + '</td>' +
+            '<td style="padding:6px;text-align:right;">' + pct + '%</td>' +
+            '</tr>';
+    });
+    html += '</tbody></table>';
+    html += '</div>';
+
+    // Two-column layout for details
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">';
+
+    // Left column: Categories + Cashiers
+    html += '<div>';
+
+    html += '<h4 style="font-size:14px;color:#0f172a;margin-bottom:8px;">📦 Sales by Category</h4>';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:12px;">';
+    html += '<thead><tr style="border-bottom:2px solid #e2e8f0;"><th style="text-align:left;padding:6px;">Category</th><th style="text-align:right;padding:6px;">Revenue</th><th style="text-align:right;padding:6px;">Qty</th></tr></thead>';
+    html += '<tbody>';
+    Object.entries(report.sales_by_category || {}).forEach(([cat, data]) => {
+        html += '<tr style="border-bottom:1px solid #f1f5f9;">' +
+            '<td style="padding:6px;">' + escapeHtml(cat) + '</td>' +
+            '<td style="padding:6px;text-align:right;">' + window.DawaReporting.formatCurrency(data.revenue) + '</td>' +
+            '<td style="padding:6px;text-align:right;">' + data.quantity + '</td>' +
+            '</tr>';
+    });
+    html += '</tbody></table></div>';
+
+    html += '<h4 style="font-size:14px;color:#0f172a;margin:16px 0 8px;">💰 Sales by Cashier</h4>';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:12px;">';
+    html += '<thead><tr style="border-bottom:2px solid #e2e8f0;"><th style="text-align:left;padding:6px;">Cashier</th><th style="text-align:right;padding:6px;">Revenue</th><th style="text-align:right;padding:6px;">Transactions</th></tr></thead>';
+    html += '<tbody>';
+    Object.entries(report.sales_by_cashier || {}).forEach(([cashier, data]) => {
+        html += '<tr style="border-bottom:1px solid #f1f5f9;">' +
+            '<td style="padding:6px;">' + escapeHtml(cashier) + '</td>' +
+            '<td style="padding:6px;text-align:right;">' + window.DawaReporting.formatCurrency(data.revenue) + '</td>' +
+            '<td style="padding:6px;text-align:right;">' + data.count + '</td>' +
+            '</tr>';
+    });
+    html += '</tbody></table>';
+    html += '</div>';
+
+    // Right column: Best sellers + Most profitable
+    html += '<div>';
+
+    html += '<h4 style="font-size:14px;color:#0f172a;margin-bottom:8px;">🏆 Best Selling Products</h4>';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:12px;">';
+    html += '<thead><tr style="border-bottom:2px solid #e2e8f0;"><th style="text-align:left;padding:6px;">Product</th><th style="text-align:right;padding:6px;">Qty</th><th style="text-align:right;padding:6px;">Revenue</th><th style="text-align:right;padding:6px;">Profit</th></tr></thead>';
+    html += '<tbody>';
+    (report.best_selling || []).forEach(p => {
+        html += '<tr style="border-bottom:1px solid #f1f5f9;">' +
+            '<td style="padding:6px;">' + escapeHtml(p.name) + '</td>' +
+            '<td style="padding:6px;text-align:right;">' + p.quantity + '</td>' +
+            '<td style="padding:6px;text-align:right;">' + window.DawaReporting.formatCurrency(p.revenue) + '</td>' +
+            '<td style="padding:6px;text-align:right;" style="color:' + (p.profit >= 0 ? '#059669' : '#dc2626') + '">' + window.DawaReporting.formatCurrency(p.profit) + '</td>' +
+            '</tr>';
+    });
+    html += '</tbody></table></div>';
+
+    html += '<h4 style="font-size:14px;color:#0f172a;margin:16px 0 8px;">💎 Most Profitable Products</h4>';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:12px;">';
+    html += '<thead><tr style="border-bottom:2px solid #e2e8f0;"><th style="text-align:left;padding:6px;">Product</th><th style="text-align:right;padding:6px;">Profit</th><th style="text-align:right;padding:6px;">Revenue</th><th style="text-align:right;padding:6px;">Qty</th></tr></thead>';
+    html += '<tbody>';
+    (report.most_profitable || []).forEach(p => {
+        html += '<tr style="border-bottom:1px solid #f1f5f9;">' +
+            '<td style="padding:6px;">' + escapeHtml(p.name) + '</td>' +
+            '<td style="padding:6px;text-align:right;color:' + (p.profit >= 0 ? '#059669' : '#dc2626') + '">' + window.DawaReporting.formatCurrency(p.profit) + '</td>' +
+            '<td style="padding:6px;text-align:right;">' + window.DawaReporting.formatCurrency(p.revenue) + '</td>' +
+            '<td style="padding:6px;text-align:right;">' + p.quantity + '</td>' +
+            '</tr>';
+    });
+    html += '</tbody></table></div>';
+    html += '</div>'; // end grid
+
+    // Financial Summary Breakdown
+    html += '<div style="margin-top:20px;">';
+    html += '<h4 style="font-size:14px;color:#0f172a;margin-bottom:8px;">📈 Financial Summary</h4>';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:12px;">';
+    html += '<thead><tr style="border-bottom:2px solid #e2e8f0;"><th style="text-align:left;padding:6px;">Item</th><th style="text-align:right;padding:6px;">Amount (KES)</th></tr></thead>';
+    html += '<tbody>';
+    html += '<tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:6px;">Total Sales Revenue</td><td style="padding:6px;text-align:right;">' + window.DawaReporting.formatCurrency(s.total_sales) + '</td></tr>';
+    html += '<tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:6px;">Cash Sales</td><td style="padding:6px;text-align:right;">' + window.DawaReporting.formatCurrency(s.cash_sales) + '</td></tr>';
+    html += '<tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:6px;">M-Pesa Sales</td><td style="padding:6px;text-align:right;">' + window.DawaReporting.formatCurrency(s.mpesa_sales) + '</td></tr>';
+    html += '<tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:6px;">Card Sales</td><td style="padding:6px;text-align:right;">' + window.DawaReporting.formatCurrency(s.card_sales) + '</td></tr>';
+    html += '<tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:6px;">Credit Sales</td><td style="padding:6px;text-align:right;">' + window.DawaReporting.formatCurrency(s.credit_sales) + '</td></tr>';
+    html += '<tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:6px;">Credit Payments Received</td><td style="padding:6px;text-align:right;">' + window.DawaReporting.formatCurrency(s.credit_payments_received) + '</td></tr>';
+    html += '<tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:6px;">Outstanding Credit Balances</td><td style="padding:6px;text-align:right;">-' + window.DawaReporting.formatCurrency(s.outstanding_credit_balances) + '</td></tr>';
+    html += '<tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:6px;font-weight:600;">Cost of Goods Sold</td><td style="padding:6px;text-align:right;font-weight:600;">' + window.DawaReporting.formatCurrency(s.cost_of_goods_sold) + '</td></tr>';
+    html += '<tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:6px;font-weight:600;color:#059669;">Gross Profit</td><td style="padding:6px;text-align:right;font-weight:600;color:#059669;">' + window.DawaReporting.formatCurrency(s.gross_profit) + '</td></tr>';
+    html += '<tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:6px;">Operating Expenses</td><td style="padding:6px;text-align:right;">-' + window.DawaReporting.formatCurrency(s.total_expenses) + '</td></tr>';
+    html += '<tr style="border-bottom:2px solid #e2e8f0;"><td style="padding:6px;font-weight:600;">Net Operating Profit</td><td style="padding:6px;text-align:right;font-weight:600;">' + window.DawaReporting.formatCurrency(s.net_profit) + '</td></tr>';
+    html += '<tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:6px;">Total Stock Value</td><td style="padding:6px;text-align:right;">' + window.DawaReporting.formatCurrency(s.total_stock_value) + '</td></tr>';
+    html += '</tbody></table></div>';
+
+    // Low stock + expired
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px;">';
+    html += '<div><h4 style="font-size:14px;color:#0f172a;margin-bottom:8px;">⚠️ Low Stock Products (' + s.low_stock_count + ')</h4>';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:12px;">';
+    html += '<thead><tr style="border-bottom:2px solid #e2e8f0;"><th style="text-align:left;padding:4px;">Product</th><th style="text-align:right;padding:4px;">Stock</th><th style="text-align:right;padding:4px;">Selling</th></tr></thead><tbody>';
+    (report.low_stock_products || []).slice(0, 10).forEach(p => {
+        html += '<tr style="border-bottom:1px solid #f1f5f9;">' +
+            '<td style="padding:4px;">' + escapeHtml(p.name) + '</td>' +
+            '<td style="padding:4px;text-align:right;">' + p.quantity + '</td>' +
+            '<td style="padding:4px;text-align:right;">' + window.DawaReporting.formatCurrency(p.selling_price) + '</td>' +
+            '</tr>';
+    });
+    html += '</tbody></table></div>';
+
+    html += '<div><h4 style="font-size:14px;color:#0f172a;margin-bottom:8px;">⏱️ Expired/Near-Expiry (' + s.expired_batch_count + ' expired, ' + s.near_expiry_count + ' near-expiry)</h4>';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:12px;">';
+    html += '<thead><tr style="border-bottom:2px solid #e2e8f0;"><th style="text-align:left;padding:4px;">Product</th><th style="text-align:left;padding:4px;">Batch</th><th style="text-align:left;padding:4px;">Expiry</th><th style="text-align:right;padding:4px;">Qty</th></tr></thead><tbody>';
+    (report.expired_batches || []).slice(0, 10).forEach(b => {
+        html += '<tr style="border-bottom:1px solid #f1f5f9;">' +
+            '<td style="padding:4px;">' + escapeHtml(b.product_name) + '</td>' +
+            '<td style="padding:4px;">' + escapeHtml(b.batch_number) + '</td>' +
+            '<td style="padding:4px;">' + window.DawaReporting.formatDate(b.expiry_date) + '</td>' +
+            '<td style="padding:4px;text-align:right;">' + b.quantity_remaining + '</td>' +
+            '</tr>';
+    });
+    html += '</tbody></table></div>';
+    html += '</div>';
+
+    // Outstanding credit
+    html += '<div style="margin-top:20px;"><h4 style="font-size:14px;color:#0f172a;margin-bottom:8px;">💳 Outstanding Credit Balances</h4>';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:12px;">';
+    html += '<thead><tr style="border-bottom:2px solid #e2e8f0;"><th style="text-align:left;padding:4px;">Customer</th><th style="text-align:left;padding:4px;">Phone</th><th style="text-align:right;padding:4px;">Credit</th><th style="text-align:right;padding:4px;">Limit</th></tr></thead><tbody>';
+    (report.patient_credit || []).forEach(p => {
+        html += '<tr style="border-bottom:1px solid #f1f5f9;">' +
+            '<td style="padding:4px;">' + escapeHtml(p.name) + '</td>' +
+            '<td style="padding:4px;">' + escapeHtml(p.phone || '-') + '</td>' +
+            '<td style="padding:4px;text-align:right;color:#dc2626;">' + window.DawaReporting.formatCurrency(p.credit) + '</td>' +
+            '<td style="padding:4px;text-align:right;">' + window.DawaReporting.formatCurrency(p.credit_limit) + '</td>' +
+            '</tr>';
+    });
+    html += '</tbody></table></div>';
+
+    html += '</div>'; // end container
+    document.getElementById('reportResults').innerHTML = html;
+    showToast('✅ Report generated successfully', 'success');
+}
+
+async function downloadReportPDF() {
+    if (!currentReportData) { showToast('Generate a report first', 'error'); return; }
+
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('p', 'mm', 'a4');
+        const s = currentReportData.summary;
+
+        // Brand header
+        doc.setFillColor(11, 110, 79);
+        doc.rect(0, 0, 210, 25);
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(16);
+        doc.text('Dawa Smart Pharmacy', 105, 12, { align: 'center' });
+        doc.setFontSize(9);
+        doc.setTextColor(255, 255, 255);
+        doc.text(document.getElementById('shopAddress').value || '7 Cheptais · 📞 0759324463', 105, 20, { align: 'center' });
+
+        // Reset color
+        doc.setTextColor(15, 23, 42);
+        doc.setFontSize(14);
+        doc.text('Financial Report', 105, 35, { align: 'center' });
+
+        doc.setFontSize(10);
+        doc.setTextColor(100, 116, 128);
+        doc.text('Period: ' + window.DawaReporting.formatDate(currentReportData.start_date) +
+            ' to ' + window.DawaReporting.formatDate(currentReportData.end_date) +
+            ' | Generated: ' + window.DawaReporting.formatDateTime(currentReportData.generated_at),
+            105, 42, { align: 'center' });
+
+        doc.autoTable({
+            startY: 50,
+            theme: 'striped',
+            styles: { fontSize: 8 },
+            headStyles: { fillColor: [11, 110, 79] },
+            body: [
+                ['Total Sales Revenue', window.DawaReporting.formatCurrency(s.total_sales)],
+                ['Cash Sales', window.DawaReporting.formatCurrency(s.cash_sales)],
+                ['M-Pesa Sales', window.DawaReporting.formatCurrency(s.mpesa_sales)],
+                ['Card Sales', window.DawaReporting.formatCurrency(s.card_sales)],
+                ['Credit Sales', window.DawaReporting.formatCurrency(s.credit_sales)],
+                ['Credit Payments Received', window.DawaReporting.formatCurrency(s.credit_payments_received)],
+                ['Outstanding Credit', '-' + window.DawaReporting.formatCurrency(s.outstanding_credit_balances)],
+                ['Cost of Goods Sold', window.DawaReporting.formatCurrency(s.cost_of_goods_sold)],
+                ['Gross Profit', window.DawaReporting.formatCurrency(s.gross_profit)],
+                ['Operating Expenses', '-' + window.DawaReporting.formatCurrency(s.total_expenses)],
+                ['Net Operating Profit', window.DawaReporting.formatCurrency(s.net_profit)],
+                ['Total Stock Value', window.DawaReporting.formatCurrency(s.total_stock_value)]
+            ],
+            columns: [
+                { header: 'Item', dataKey: 'item' },
+                { header: 'Amount (KES)', dataKey: 'amount' }
+            ]
+        });
+
+        // Best selling products table
+        if ((currentReportData.best_selling || []).length > 0) {
+            doc.autoTable({
+                startY: doc.lastAutoTable.finalY + 10,
+                theme: 'striped',
+                styles: { fontSize: 8 },
+                headStyles: { fillColor: [11, 110, 79] },
+                head: [['Best Selling Products']],
+                body: (currentReportData.best_selling || []).map(p => [
+                    escapeHtml(p.name),
+                    'Qty: ' + p.quantity,
+                    'Rev: ' + window.DawaReporting.formatCurrency(p.revenue),
+                    'Profit: ' + window.DawaReporting.formatCurrency(p.profit)
+                ])
+            });
+        }
+
+        // Transaction details
+        if ((currentReportData.transactions || []).length > 0) {
+            doc.autoTable({
+                startY: doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : 80,
+                theme: 'striped',
+                styles: { fontSize: 6 },
+                headStyles: { fillColor: [11, 110, 79] },
+                head: [['Receipt', 'Date', 'Customer', 'Method', 'Total', 'Payment', 'Credit']],
+                body: (currentReportData.transactions || []).map(t => [
+                    escapeHtml(t.receipt_number || '-'),
+                    window.DawaReporting.formatDate(t.date),
+                    escapeHtml(t.customer || '-'),
+                    escapeHtml(t.method || '-'),
+                    window.DawaReporting.formatCurrency(t.total),
+                    window.DawaReporting.formatCurrency(t.payment),
+                    window.DawaReporting.formatCurrency(t.credit_amount)
+                ])
+            });
+        }
+
+        // Footer with page numbers
+        const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY : 80;
+        doc.setFontSize(7);
+        doc.setTextColor(150, 156, 169);
+        doc.text('Page 1', 105, 285, { align: 'center' });
+
+        const blob = doc.output('blob');
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'dawa-smart-report-' + currentReportData.start_date + '-to-' + currentReportData.end_date + '.pdf';
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('✅ PDF downloaded successfully', 'success');
+    } catch (e) {
+        console.error('PDF generation error:', e);
+        showToast('❌ PDF download failed: ' + e.message, 'error');
+    }
+}
+
+async function exportReportCSV() {
+    if (!currentReportData) { showToast('Generate a report first', 'error'); return; }
+    const csv = window.DawaReporting.generateCSV(currentReportData);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'dawa-smart-report-' + currentReportData.start_date + '-to-' + currentReportData.end_date + '.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('✅ CSV exported', 'success');
+}
+
+async function exportReportExcel() {
+    if (!currentReportData) { showToast('Generate a report first', 'error'); return; }
+    const csv = window.DawaReporting.generateExcelCSV(currentReportData);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'dawa-smart-report-' + currentReportData.start_date + '-to-' + currentReportData.end_date + '.xls';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('✅ Excel exported', 'success');
+}
+
+async function saveReportArchive() {
+    if (!currentReportData) { showToast('Generate a report first', 'error'); return; }
+    if (!isEditor()) { showToast('Administrator access required', 'error'); return; }
+
+    try {
+        const archive = await window.DawaReporting.saveReportSnapshot(currentReportData);
+        showToast('✅ Report snapshot saved!', 'success');
+    } catch (e) {
+        console.error('Save report archive error:', e);
+        showToast('❌ Failed to save: ' + e.message, 'error');
+    }
+}
+
+async function loadArchives() {
+    if (!isAdmin()) return;
+    const search = document.getElementById('archiveSearch')?.value.toLowerCase() || '';
+    const archives = await window.DawaReporting.getReportArchives({
+        search,
+        reportType: document.getElementById('archiveTypeFilter')?.value || 'all'
+    });
+
+    const container = document.getElementById('archiveList');
+    if (!container) return;
+
+    if (archives.length === 0) {
+        container.innerHTML = '<div class="empty"><i class="fas fa-folder-open"></i><p>No saved reports found</p></div>';
+        return;
+    }
+
+    // Populate type filter options
+    const typeSelect = document.getElementById('archiveTypeFilter');
+    if (typeSelect && !typeSelect.hasChildNodes() || (typeSelect && typeSelect.children.length <= 1)) {
+        const types = [...new Set(archives.map(a => a.report_type))];
+        typeSelect.innerHTML = '<option value="all">All Types</option>' +
+            types.map(t => '<option value="' + t + '">' + escapeHtml(t) + '</option>').join('');
+    }
+
+    container.innerHTML = archives.map(a => {
+        const s = a.report_data?.summary || {};
+        return '<div class="item-card">' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+            '<div>' +
+            '<h4 style="font-size:14px; margin:0;">' + escapeHtml(a.report_name || 'Unnamed Report') + '</h4>' +
+            '<div class="meta" style="font-size:11px;color:#64748b;">Type: ' + escapeHtml(a.report_type || 'N/A') + ' | Period: ' +
+            window.DawaReporting.formatDate(a.start_date) + ' to ' + window.DawaReporting.formatDate(a.end_date) + '</div>' +
+            '<div class="meta" style="font-size:10px;color:#94a3b8;">Generated: ' + window.DawaReporting.formatDateTime(a.created_at) +
+            ' by ' + escapeHtml(a.generated_by || 'Unknown') + '</div>' +
+            '</div>' +
+            '<div style="text-align:right;">' +
+            '<div style="font-weight:600;font-size:13px;">' + window.DawaReporting.formatCurrency(s.total_sales) + '</div>' +
+            '<div style="font-size:10px;color:#64748b;">' + window.DawaReporting.formatCurrency(s.net_profit) + ' net</div>' +
+            '</div>' +
+            '</div>' +
+            '<div class="actions" style="margin-top:8px;">' +
+            '<button class="btn btn-sm btn-blue" onclick="viewArchive(\'' + a.id + '\')"><i class="fas fa-eye"></i> View</button> ' +
+            '<button class="btn btn-sm btn-gold" onclick="downloadArchivePDF(\'' + a.id + '\')"><i class="fas fa-file-pdf"></i> PDF</button> ' +
+            (a.pdf_storage_path ? '<button class="btn btn-sm btn-blue" onclick="downloadArchiveStoredPDF(\'' + a.id + '\')"><i class="fas fa-download"></i> Download Stored PDF</button>' : '') +
+            '</div></div>';
+    }).join('');
+}
+
+async function viewArchive(archiveId) {
+    const report = await window.DawaReporting.getReportSnapshot(archiveId);
+    if (!report) { showToast('Report not found', 'error'); return; }
+    currentReportData = report;
+    currentReportStartDate = report.start_date;
+    currentReportEndDate = report.end_date;
+    document.getElementById('reportStart').value = report.start_date;
+    document.getElementById('reportEnd').value = report.end_date;
+    currentReportPeriod = report.report_type || 'custom';
+    renderReport(report);
+    renderSummaryCards(report.summary);
+    document.getElementById('archiveManagerModal').classList.remove('show');
+}
+
+async function downloadArchivePDF(archiveId) {
+    const report = await window.DawaReporting.getReportSnapshot(archiveId);
+    if (!report) { showToast('Report not found', 'error'); return; }
+    currentReportData = report;
+    await downloadReportPDF();
+}
+
+async function downloadArchiveStoredPDF(archiveId) {
+    const archive = await window.db.getById('reportArchives', archiveId);
+    if (!archive || !archive.pdf_storage_path) {
+        showToast('No PDF stored for this archive', 'error');
+        return;
+    }
+    if (window.supabaseClient) {
+        try {
+            const { data } = await window.supabaseClient.storage
+                .from('reports')
+                .download(archive.pdf_storage_path);
+            const url = URL.createObjectURL(data);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'dawa-smart-archive-' + archiveId + '.pdf';
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('✅ PDF downloaded', 'success');
+        } catch (e) {
+            showToast('❌ Download failed: ' + e.message, 'error');
+        }
+    }
+}
+
+function openArchiveManager() {
+    loadArchives();
+    document.getElementById('archiveManagerModal').classList.add('show');
+}
+
+// Preserve existing loadReport function for backward compat
+function loadReport(period) {
+    selectReportPeriod(period);
+    generateReportFromUI();
+}
 
 // ===== SAMPLE DATA =====
 function loadSampleData(){ 
@@ -3182,25 +4481,76 @@ function loadSampleData(){
 function updateStats(){ 
     Promise.all([
         db.getSalesByDateRange(new Date().toISOString().split('T')[0], new Date().toISOString().split('T')[0]),
-        db.getAll('products')
-    ]).then(([sales, allProducts]) => { 
-        const total = sales.reduce((sum,s)=>sum+(s.total||0),0); 
-        const todaySalesEl = document.getElementById('todaySales'); 
-        const todayRevenueEl = document.getElementById('todayRevenue'); 
+        db.getAll('products'),
+        db.getAll('drugBatches')
+    ]).then(([sales, allProducts, batches]) => {
+        const total = sales.reduce((sum,s)=>sum+(s.total||0),0);
+        const todaySalesEl = document.getElementById('todaySales');
+        const todayRevenueEl = document.getElementById('todayRevenue');
         const totalProductsEl = document.getElementById('totalProducts');
         const totalStockValueEl = document.getElementById('totalStockValue');
-        if(todaySalesEl) todaySalesEl.textContent = sales.length; 
-        if(todayRevenueEl) todayRevenueEl.textContent = formatCurrency(total); 
+        if(todaySalesEl) todaySalesEl.textContent = sales.length;
+        if(todayRevenueEl) todayRevenueEl.textContent = formatCurrency(total);
         if(totalProductsEl) totalProductsEl.textContent = (allProducts || []).length;
         if(totalStockValueEl) {
             const stockValue = (allProducts || []).reduce((sum, p) => sum + ((p.buyingPrice || 0) * (p.quantity || 0)), 0);
             totalStockValueEl.textContent = formatCurrency(stockValue);
         }
-    }).catch(e => console.error('updateStats error:', e)); 
+
+        // Drug alerts
+        const today = new Date();
+        const soonThreshold = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+        const expEl = document.getElementById('expiringDrugsCount');
+        const lowEl = document.getElementById('lowStockDrugsCount');
+        const expiringSoon = (batches || []).filter(b =>
+            !b.deleted_at && b.quantity_remaining > 0 &&
+            b.expiry_date && new Date(b.expiry_date) >= today && new Date(b.expiry_date) <= soonThreshold
+        );
+        const lowStock = (batches || []).filter(b =>
+            !b.deleted_at && b.quantity_remaining > 0 &&
+            b.quantity_remaining <= (b.reorder_level || 10)
+        );
+        if(expEl) expEl.textContent = expiringSoon.length;
+        if(lowEl) lowEl.textContent = lowStock.length;
+        const batchEl = document.getElementById('drugAlertsBanner');
+        if(batchEl){
+            let alerts = [];
+            if(expiringSoon.length > 0) alerts.push('⚠️ '+expiringSoon.length+' batch(es) expiring within 30 days');
+            if(lowStock.length > 0) alerts.push('🔴 '+lowStock.length+' batch(es) low stock');
+            batchEl.innerHTML = alerts.length ? '<div style="background:rgba(245,158,11,0.1);border:1px solid #f59e0b;border-radius:8px;padding:8px 12px;font-size:12px;">'+alerts.join(' | ')+'</div>' : '';
+        }
+    }).catch(e => console.error('updateStats error:', e));
+}
+
+// ===== DRUG ALERT BANNER =====
+function renderDrugAlertBanner() {
+    const batchEl = document.getElementById('drugAlertsBanner');
+    const expEl = document.getElementById('expiringDrugsCount');
+    const lowEl = document.getElementById('lowStockDrugsCount');
+    if(!batchEl) return;
+
+    db.getAll('drugBatches').then(batches => {
+        const today = new Date();
+        const soonThreshold = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+        const expiringSoon = (batches || []).filter(b =>
+            !b.deleted_at && b.quantity_remaining > 0 &&
+            b.expiry_date && new Date(b.expiry_date) >= today && new Date(b.expiry_date) <= soonThreshold
+        );
+        const lowStock = (batches || []).filter(b =>
+            !b.deleted_at && b.quantity_remaining > 0 &&
+            b.quantity_remaining <= (b.reorder_level || 10)
+        );
+        if(expEl) expEl.textContent = expiringSoon.length;
+        if(lowEl) lowEl.textContent = lowStock.length;
+        let alerts = [];
+        if(expiringSoon.length > 0) alerts.push('⚠️ '+expiringSoon.length+' expiring soon');
+        if(lowStock.length > 0) alerts.push('🔴 '+lowStock.length+' low stock');
+        batchEl.innerHTML = alerts.length ? '<div style="background:rgba(245,158,11,0.1);border:1px solid #f59e0b;border-radius:8px;padding:8px 12px;font-size:12px;">'+alerts.join(' | ')+'</div>' : '';
+    }).catch(() => {});
 }
 
 // ===== CLEAR ALL DATA =====
-function clearAllData(){ if(!adminGuard('clear all data')) return; if(!confirm('⚠️ Delete ALL data?'))return; if(!confirm('⚠️ FINAL: Type "CONFIRM"'))return; showToast('Clearing...','warning'); const stores=['products','sales','saleItems','patients','batches','labTests','expenses']; const promises=stores.map(store=>db.getAll(store).then(items=>{const deletes=items.map(item=>db.delete(store,item.id));return Promise.all(deletes);})); Promise.all(promises).then(()=>{showToast('All data cleared!','success');loadProducts();loadPatients();loadCustomers();loadProductSearch();updateStats();updateProductGrid();updatePricingDashboard();loadLabTests();}).catch(()=>showToast('Error clearing','error')); }
+function clearAllData(){ if(!adminGuard('clear all data')) return; if(!confirm('⚠️ Delete ALL data?'))return; if(!confirm('⚠️ FINAL: Type "CONFIRM"'))return; showToast('Clearing...','warning'); const stores=['products','sales','saleItems','patients','batches','labTests','expenses','controlledLogs','drugCategories','drugForms','drugs','drugBatches','drugStockMovements','suppliers']; const promises=stores.map(store=>db.getAll(store).then(items=>{const deletes=items.map(item=>db.delete(store,item.id));return Promise.all(deletes);})); Promise.all(promises).then(()=>{showToast('All data cleared!','success');loadProducts();loadPatients();loadCustomers();loadProductSearch();updateStats();updateProductGrid();updatePricingDashboard();loadLabTests();loadDrugCatalogue();}).catch(()=>showToast('Error clearing','error')); }
 
 function startFreshTransactions(){
   if(!adminGuard('start fresh')) return;
@@ -3219,10 +4569,14 @@ function clearTransactionsForFreshInstall(){
 }
 
 // ===== RESTORE & BACKUP =====
-function exportData(){ if(!adminGuard('export data')) return; showToast('Backing up...','info'); Promise.all([db.getAll('products'),db.getAll('sales'),db.getAll('saleItems'),db.getAll('patients'),db.getAll('batches'),db.getAll('labTests'),db.getAll('expenses')]).then(results=>{ const data={exportedAt:new Date().toISOString(),version:'4.3',pharmacy:document.getElementById('shopName').value||'Dawa Smart',kraPIN:document.getElementById('kraPin').value||'P-2025-001',products:results[0],sales:results[1],saleItems:results[2],patients:results[3],batches:results[4],labTests:results[5],expenses:results[6],users:users}; const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a');a.href=url;a.download='dawa-smart-backup-'+new Date().toISOString().split('T')[0]+'.json';a.click();URL.revokeObjectURL(url); showToast('✅ Backup complete!','success'); }).catch(()=>showToast('Backup error','error')); }
-function restoreData(event) { if(!adminGuard('restore data')) return; const file = event.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = function(e) { try { const data = JSON.parse(e.target.result); if (!data.products || !data.sales) { showToast('Invalid backup file format','error'); return; } if (!confirm('⚠️ Restoring will REPLACE ALL current data. Continue?')) return; if (!confirm('⚠️ FINAL: Type "RESTORE" to confirm')) return; showToast('Restoring data...','warning'); const stores = ['products','sales','saleItems','patients','batches','labTests','expenses']; const clearPromises = stores.map(store => db.getAll(store).then(items => Promise.all(items.map(item => db.delete(store, item.id))))); Promise.all(clearPromises).then(() => { const restorePromises = []; if (data.products) data.products.forEach(p => restorePromises.push(db.add('products', p))); if (data.sales) data.sales.forEach(s => restorePromises.push(db.add('sales', s))); if (data.saleItems) data.saleItems.forEach(s => restorePromises.push(db.add('saleItems', s))); if (data.patients) data.patients.forEach(p => restorePromises.push(db.add('patients', p))); if (data.batches) data.batches.forEach(b => restorePromises.push(db.add('batches', b))); if (data.labTests) data.labTests.forEach(l => restorePromises.push(db.add('labTests', l))); if (data.expenses) data.expenses.forEach(e => restorePromises.push(db.add('expenses', e))); if (data.users) { users = data.users; saveUsersToStorage(); } if (data.pharmacy) { localStorage.setItem('yetu_pharmacy', JSON.stringify({name:data.pharmacy, address:data.address||'', kraPin:data.kraPIN||'', footer:'', vatRate:0})); loadPharmacySettings(); } return Promise.all(restorePromises); }).then(() => { showToast('✅ Data restored successfully!','success'); document.getElementById('restoreInput').value = ''; loadProducts(); loadPatients(); loadCustomers(); loadProductSearch(); updateStats(); loadUsers(); loadLabTests(); updateProductGrid(); updatePricingDashboard(); loadCreditDashboard(); loadProfessionalAnalysis('daily'); }).catch(err => { showToast('Restore error: '+err.message,'error'); }); } catch(err) { showToast('Invalid backup file','error'); } }; reader.readAsText(file); }
+  // ===== Legacy EXPORT (kept for backward compat) =====
+  function exportData(){ if(!adminGuard('export data')) return; showToast('Backing up...','info'); Promise.all([db.getAll('products'),db.getAll('sales'),db.getAll('saleItems'),db.getAll('patients'),db.getAll('batches'),db.getAll('labTests'),db.getAll('expenses')]).then(results=>{ const data={exportedAt:new Date().toISOString(),version:'4.3',pharmacy:document.getElementById('shopName').value||'Dawa Smart',kraPIN:document.getElementById('kraPin').value||'P-2025-001',products:results[0],sales:results[1],saleItems:results[2],patients:results[3],batches:results[4],labTests:results[5],expenses:results[6],users:users}; const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a');a.href=url;a.download='dawa-smart-backup-'+new Date().toISOString().split('T')[0]+'.json';a.click();URL.revokeObjectURL(url); showToast('✅ Backup complete!','success'); }).catch(()=>showToast('Backup error','error')); }
+  
+  // ===== Restore Data =====
+  function restoreData(event) { if(!adminGuard('restore data')) return; const file = event.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = function(e) { try { const data = JSON.parse(e.target.result); if (!data.products || !data.sales) { showToast('Invalid backup file format','error'); return; } if (!confirm('⚠️ Restoring will REPLACE ALL current data. Continue?')) return; if (!confirm('⚠️ FINAL: Type "RESTORE" to confirm')) return; showToast('Restoring data...','warning'); const stores = ['products','sales','saleItems','patients','batches','labTests','expenses','controlledLogs','drugCategories','drugForms','drugs','drugBatches','drugStockMovements','suppliers']; const clearPromises = stores.map(store => db.getAll(store).then(items => Promise.all(items.map(item => db.delete(store, item.id))))); Promise.all(clearPromises).then(() => { const restorePromises = []; if (data.products) data.products.forEach(p => restorePromises.push(db.add('products', p))); if (data.sales) data.sales.forEach(s => restorePromises.push(db.add('sales', s))); if (data.saleItems) data.saleItems.forEach(s => restorePromises.push(db.add('saleItems', s))); if (data.patients) data.patients.forEach(p => restorePromises.push(db.add('patients', p))); if (data.batches) data.batches.forEach(b => restorePromises.push(db.add('batches', b))); if (data.labTests) data.labTests.forEach(l => restorePromises.push(db.add('labTests', l))); if (data.expenses) data.expenses.forEach(e => restorePromises.push(db.add('expenses', e))); if (data.drugCategories) data.drugCategories.forEach(c => restorePromises.push(db.add('drugCategories', c))); if (data.drugForms) data.drugForms.forEach(f => restorePromises.push(db.add('drugForms', f))); if (data.drugs) data.drugs.forEach(d => restorePromises.push(db.add('drugs', d))); if (data.drugBatches) data.drugBatches.forEach(b => restorePromises.push(db.add('drugBatches', b))); if (data.drugStockMovements) data.drugStockMovements.forEach(m => restorePromises.push(db.add('drugStockMovements', m))); if (data.suppliers) data.suppliers.forEach(s => restorePromises.push(db.add('suppliers', s))); if (data.users) { users = data.users; saveUsersToStorage(); } if (data.pharmacy) { localStorage.setItem('yetu_pharmacy', JSON.stringify({name:data.pharmacy, address:data.address||'', kraPin:data.kraPIN||'', footer:'', vatRate:0})); loadPharmacySettings(); } return Promise.all(restorePromises); }).then(() => { showToast('✅ Data restored successfully!','success'); document.getElementById('restoreInput').value = ''; loadProducts(); loadPatients(); loadCustomers(); loadProductSearch(); updateStats(); loadUsers(); loadLabTests(); updateProductGrid(); updatePricingDashboard(); loadCreditDashboard(); loadProfessionalAnalysis('daily'); }).catch(err => { showToast('Restore error: '+err.message,'error'); }); } catch(err) { showToast('Invalid backup file','error'); } }; reader.readAsText(file); }
 
-const BACKUP_STORES = ['products', 'sales', 'saleItems', 'patients', 'batches', 'controlledLogs', 'labTests', 'expenses', 'users'];
+  // ===== EXPORT & BACKUP (Modern) =====
+const BACKUP_STORES = ['products','sales','saleItems','patients','batches','controlledLogs','labTests','expenses','users','drugCategories','drugForms','drugs','drugBatches','drugStockMovements','suppliers','reportArchives'];
 
 function getLocalSettings(){
   var LICENSE_PREFIX = 'dawasmartz_';
@@ -3292,6 +4646,7 @@ function restoreData(event){
           loadPharmacySettings();
           loadProducts(); loadPatients(); loadCustomers(); loadProductSearch(); updateStats(); loadUsers(); loadLabTests(); updateProductGrid(); updatePricingDashboard();
           loadProfessionalAnalysis('daily'); generateCustomReport();
+          loadDrugCatalogue();
           showToast('All information restored successfully','success');
         })
         .catch(() => showToast('Restore error','error'));
@@ -3318,7 +4673,8 @@ function setupNav(){
             if(this.dataset.page==='analysis')loadProfessionalAnalysis('daily');
             if(this.dataset.page==='credits')loadCreditDashboard();
             if(this.dataset.page==='drugdb')renderDrugSearchResultsMain();
-            if(this.dataset.page==='reports'){const now=new Date();document.getElementById('reportStart').value=new Date(now.getFullYear(),now.getMonth(),1).toISOString().split('T')[0];document.getElementById('reportEnd').value=now.toISOString().split('T')[0];generateCustomReport();}
+            if(this.dataset.page==='drugcatalogue')loadDrugCatalogue();
+            if(this.dataset.page==='reports'){const now=new Date();const startDate=new Date(now.getFullYear(),0,1).toISOString().split('T')[0];const endDate=now.toISOString().split('T')[0];document.getElementById('reportStart').value=startDate;document.getElementById('reportEnd').value=endDate;selectReportPeriod('yearly');generateReportFromUI();}
             if(this.dataset.page==='pos'){loadProductSearch();loadCustomers();updateStats();updateProductGrid();}
         });
     });
@@ -3352,14 +4708,956 @@ function setupNav(){
     });
 }
 
+// ===== DRUG CATALOGUE FUNCTIONS =====
+window.currentDrugTab = 'categories';
+function showDrugTab(tab) {
+    window.currentDrugTab = tab;
+    document.querySelectorAll('.drug-tab-content').forEach(content => content.style.display = 'none');
+    document.getElementById('drugTab-' + tab).style.display = 'block';
+    document.querySelectorAll('.tabs button').forEach(btn => {
+        btn.classList.toggle('active', btn.textContent.toLowerCase().replace(/\s+/g, '_') === tab ||
+          (tab === 'categories' && btn.textContent.trim() === 'Categories') ||
+          (tab === 'forms' && btn.textContent.trim() === 'Forms') ||
+          (tab === 'drugs' && btn.textContent.trim() === 'Drug Master') ||
+          (tab === 'batches' && btn.textContent.trim() === 'Batch Inventory') ||
+          (tab === 'suppliers' && btn.textContent.trim() === 'Suppliers') ||
+          (tab === 'stock_mvt' && btn.textContent.trim() === 'Stock Movements'));
+    });
+}
+
+function loadDrugCatalogue() {
+    loadDrugCategories();
+    loadDrugForms();
+    loadDrugs();
+    loadDrugBatches();
+    loadSuppliers();
+    loadStockMovements();
+    updateDrugStockSummary();
+}
+
+// --- Categories ---
+function loadDrugCategories() {
+    db.getAll('drugCategories').then(categories => {
+        window.drugCategories = categories || [];
+        if (window.drugCategories.length === 0) {
+            seedDrugCategories();
+            return;
+        }
+        loadDrugCategoryOptions();
+        renderDrugCategories();
+    }).catch(e => console.error('loadDrugCategories error:', e));
+}
+
+function seedDrugCategories() {
+    const seedCategories = [
+        { id: 'dc_antibiotics', name: 'Antibiotics', description: 'Drugs that kill or slow bacterial growth' },
+        { id: 'dc_analgesics', name: 'Analgesics and Antipyretics', description: 'Pain relief and fever reduction medications' },
+        { id: 'dc_antimalarials', name: 'Antimalarials', description: 'Drugs for malaria treatment and prevention' },
+        { id: 'dc_antifungals', name: 'Antifungals', description: 'Drugs that treat fungal infections' },
+        { id: 'dc_antivirals', name: 'Antivirals', description: 'Drugs that treat viral infections' },
+        { id: 'dc_antihistamines', name: 'Antihistamines', description: 'Drugs that block histamine receptors for allergy relief' },
+        { id: 'dc_antihypertensives', name: 'Antihypertensives', description: 'Drugs for high blood pressure management' },
+        { id: 'dc_antidiabetics', name: 'Antidiabetics', description: 'Drugs for diabetes management' },
+        { id: 'dc_gastrointestinal', name: 'Gastrointestinal Medicines', description: 'Drugs for digestive system disorders' },
+        { id: 'dc_respiratory', name: 'Respiratory Medicines', description: 'Drugs for asthma, COPD, and breathing disorders' },
+        { id: 'dc_vitamins', name: 'Vitamins and Supplements', description: 'Nutritional supplements and vitamin preparations' },
+        { id: 'dc_dermatological', name: 'Dermatological Medicines', description: 'Topical treatments for skin conditions' },
+        { id: 'dc_eye_ear', name: 'Eye and Ear Preparations', description: 'Ophthalmic and otic medications' },
+        { id: 'dc_hormonal', name: 'Hormonal Medicines', description: 'Hormone replacement and endocrine therapies' },
+        { id: 'dc_antiseptics', name: 'Antiseptics and Disinfectants', description: 'Topical antimicrobials and disinfectants' },
+        { id: 'dc_cardiovascular', name: 'Cardiovascular Medicines', description: 'Drugs for heart and circulatory system' },
+        { id: 'dc_emergency', name: 'Emergency Medicines', description: 'Life-saving medications for emergency use' },
+        { id: 'dc_other', name: 'Other Medicines', description: 'Miscellaneous pharmaceutical products' }
+    ];
+    Promise.all(seedCategories.map(cat => {
+        cat.status = 'active';
+        cat.pharmacyId = getCurrentPharmacyId?.() || window.DawaTenant?.getCurrentPharmacyId?.();
+        return db.add('drugCategories', cat);
+    })).then(() => {
+        window.drugCategories = seedCategories;
+        loadDrugCategoryOptions();
+        renderDrugCategories();
+    }).catch(e => console.error('seedDrugCategories error:', e));
+}
+
+function loadDrugCategoryOptions() {
+    const select = document.getElementById('drugCategorySelect');
+    if (!select) return;
+    select.innerHTML = '<option value="">Select Category</option>';
+    (window.drugCategories || []).forEach(cat => {
+        select.innerHTML += '<option value="' + cat.id + '">' + cat.name + '</option>';
+    });
+}
+
+function renderDrugCategories() {
+    const search = document.getElementById('drugCategorySearch')?.value.toLowerCase() || '';
+    const container = document.getElementById('drugCategoryList');
+    if (!container) return;
+    const filtered = (window.drugCategories || []).filter(c => c.name.toLowerCase().includes(search));
+    if (filtered.length === 0) {
+        container.innerHTML = '<div class="empty"><i class="fas fa-folder"></i><p>No categories found</p></div>';
+        return;
+    }
+    container.innerHTML = filtered.map(c => {
+        return '<div class="item-card">' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+            '<h4 style="font-size:14px;">' + escapeHtml(c.name) + '</h4>' +
+            '<span class="status ' + (c.status || 'active') + '">' + (c.status || 'active') + '</span>' +
+            '</div>' +
+            (c.description ? '<div class="meta" style="font-size:11px;color:#64748b;">' + escapeHtml(c.description.substring(0, 80)) + '</div>' : '') +
+            '<div class="actions" style="margin-top:4px;">' +
+            (isEditor() ? '<button class="btn btn-sm btn-blue" onclick="editDrugCategory(\'' + c.id + '\')"><i class="fas fa-edit"></i></button> ' +
+              '<button class="btn btn-sm btn-danger" onclick="deleteDrugCategory(\'' + c.id + '\')"><i class="fas fa-trash"></i></button>' : '<span style="color:#94a3b8;font-size:10px;">🔒 Admin only</span>') +
+            '</div></div>';
+    }).join('');
+}
+
+function openDrugCategoryModal(cat) {
+    if (!isEditor()) { showToast('Administrator access required', 'error'); return; }
+    document.getElementById('drugCategoryId').value = cat?.id || '';
+    document.getElementById('drugCategoryName').value = cat?.name || '';
+    document.getElementById('drugCategoryDescription').value = cat?.description || '';
+    document.getElementById('drugCategoryStatus').value = cat?.status || 'active';
+    document.getElementById('drugCategoryModalTitle').textContent = cat ? 'Edit Category' : 'New Category';
+    document.getElementById('drugCategoryModal').classList.add('show');
+}
+
+function saveDrugCategory() {
+    if (!isEditor()) return;
+    const id = document.getElementById('drugCategoryId').value || 'dc_' + Date.now().toString(36);
+    const category = {
+        id,
+        name: document.getElementById('drugCategoryName').value.trim(),
+        description: document.getElementById('drugCategoryDescription').value.trim() || undefined,
+        status: document.getElementById('drugCategoryStatus').value,
+        pharmacyId: getCurrentPharmacyId?.() || window.DawaTenant?.getCurrentPharmacyId?.()
+    };
+    if (!category.name) { showToast('Enter category name', 'error'); return; }
+    db.getById('drugCategories', id).then(existing => {
+        const upserted = existing
+            ? { ...existing, ...category, revision: (existing.revision || 0) + 1 }
+            : { ...category, revision: 0 };
+        return db.update('drugCategories', upserted).catch(() => db.add('drugCategories', category));
+    }).then(() => {
+        showToast('Category saved!', 'success');
+        document.getElementById('drugCategoryModal').classList.remove('show');
+        loadDrugCategories();
+    }).catch(e => showToast('Error: ' + e.message, 'error'));
+}
+
+function editDrugCategory(id) {
+    db.getById('drugCategories', id).then(cat => openDrugCategoryModal(cat)).catch(() => {});
+}
+
+function deleteDrugCategory(id) {
+    if (!isEditor()) return;
+    if (!confirm('Delete this category?')) return;
+    db.delete('drugCategories', id).then(() => {
+        showToast('Category deleted', 'success');
+        loadDrugCategories();
+    }).catch(e => showToast('Error: ' + e.message, 'error'));
+}
+
+// --- Forms ---
+function loadDrugForms() {
+    db.getAll('drugForms').then(forms => {
+        window.drugForms = forms || [];
+        if (window.drugForms.length === 0) {
+            seedDrugForms();
+            return;
+        }
+        loadDrugFormOptions();
+        renderDrugForms();
+    }).catch(e => console.error('loadDrugForms error:', e));
+}
+
+function seedDrugForms() {
+    const seedForms = [
+        { id: 'df_tablet', name: 'Tablet', description: 'Oral solid dosage form containing active ingredient in compressed form' },
+        { id: 'df_capsule', name: 'Capsule', description: 'Oral dosage form with gelatin shell filled with active ingredient' },
+        { id: 'df_oral_suspension', name: 'Oral Suspension', description: 'Liquid dosage form with suspended particles for oral use' },
+        { id: 'df_syrup', name: 'Syrup', description: 'Sweetened liquid dosage form for oral administration' },
+        { id: 'df_injection', name: 'Injection', description: 'Sterile parenteral dosage form for injection' },
+        { id: 'df_cream', name: 'Cream', description: 'Topical semi-solid dosage form for external application' },
+        { id: 'df_ointment', name: 'Ointment', description: 'Topical semi-solid dosage form, oil-based, for external use' },
+        { id: 'df_gel', name: 'Gel', description: 'Topical semi-solid dosage form, water-based, for external application' },
+        { id: 'df_drops', name: 'Drops', description: 'Sterile liquid dosage form for ophthalmic, otic, or nasal use' },
+        { id: 'df_eye_drops', name: 'Eye Drops', description: 'Sterile liquid dosage form for ophthalmic administration' },
+        { id: 'df_ear_drops', name: 'Ear Drops', description: 'Sterile liquid dosage form for otic administration' },
+        { id: 'df_inhaler', name: 'Inhaler', description: 'Device for delivering medication as a spray or powder to the lungs' },
+        { id: 'df_powder', name: 'Powder', description: 'Dry powder dosage form for oral or other administration' },
+        { id: 'df_sachet', name: 'Sachet', description: 'Small single-dose packet, typically for powder or liquid' },
+        { id: 'df_suppository', name: 'Suppository', description: 'Dosage form for rectal administration' },
+        { id: 'df_solution', name: 'Solution', description: 'Liquid dosage form with dissolved active ingredient' },
+        { id: 'df_lotion', name: 'Lotion', description: 'Topical liquid preparation for external application' },
+        { id: 'df_spray', name: 'Spray', description: 'Metered-dose delivery system for topical or mucosal administration' }
+    ];
+    Promise.all(seedForms.map(form => {
+        form.status = 'active';
+        form.pharmacyId = getCurrentPharmacyId?.() || window.DawaTenant?.getCurrentPharmacyId?.();
+        return db.add('drugForms', form);
+    })).then(() => {
+        window.drugForms = seedForms;
+        loadDrugFormOptions();
+        renderDrugForms();
+    }).catch(e => console.error('seedDrugForms error:', e));
+}
+
+function loadDrugFormOptions() {
+    const select = document.getElementById('drugFormSelect');
+    if (!select) return;
+    select.innerHTML = '<option value="">Select Form</option>';
+    (window.drugForms || []).forEach(form => {
+        select.innerHTML += '<option value="' + form.id + '">' + form.name + '</option>';
+    });
+}
+
+function renderDrugForms() {
+    const search = document.getElementById('drugFormSearch')?.value.toLowerCase() || '';
+    const container = document.getElementById('drugFormList');
+    if (!container) return;
+    const filtered = (window.drugForms || []).filter(f => f.name.toLowerCase().includes(search));
+    if (filtered.length === 0) {
+        container.innerHTML = '<div class="empty"><i class="fas fa-cube"></i><p>No forms found</p></div>';
+        return;
+    }
+    container.innerHTML = filtered.map(f => {
+        return '<div class="item-card">' +
+            '<h4 style="font-size:14px;">' + escapeHtml(f.name) + '</h4>' +
+            (f.description ? '<div class="meta" style="font-size:11px;color:#64748b;">' + escapeHtml(f.description.substring(0, 80)) + '</div>' : '') +
+            '<div class="actions" style="margin-top:4px;">' +
+            (isEditor() ? '<button class="btn btn-sm btn-blue" onclick="editDrugForm(\'' + f.id + '\')"><i class="fas fa-edit"></i></button> ' +
+              '<button class="btn btn-sm btn-danger" onclick="deleteDrugForm(\'' + f.id + '\')"><i class="fas fa-trash"></i></button>' : '<span style="color:#94a3b8;font-size:10px;">🔒 Admin only</span>') +
+            '</div></div>';
+    }).join('');
+}
+
+function openDrugFormModal(form) {
+    if (!isEditor()) { showToast('Administrator access required', 'error'); return; }
+    document.getElementById('drugFormId').value = form?.id || '';
+    document.getElementById('drugFormName').value = form?.name || '';
+    document.getElementById('drugFormDescription').value = form?.description || '';
+    document.getElementById('drugFormStatus').value = form?.status || 'active';
+    document.getElementById('drugFormModalTitle').textContent = form ? 'Edit Form' : 'New Form';
+    document.getElementById('drugFormModal').classList.add('show');
+}
+
+function saveDrugForm() {
+    if (!isEditor()) return;
+    const id = document.getElementById('drugFormId').value || 'df_' + Date.now().toString(36);
+    const form = {
+        id,
+        name: document.getElementById('drugFormName').value.trim(),
+        description: document.getElementById('drugFormDescription').value.trim() || undefined,
+        status: document.getElementById('drugFormStatus').value,
+        pharmacyId: getCurrentPharmacyId?.() || window.DawaTenant?.getCurrentPharmacyId?.()
+    };
+    if (!form.name) { showToast('Enter form name', 'error'); return; }
+    db.getById('drugForms', id).then(existing => {
+        const upserted = existing
+            ? { ...existing, ...form, revision: (existing.revision || 0) + 1 }
+            : { ...form, revision: 0 };
+        return db.update('drugForms', upserted).catch(() => db.add('drugForms', form));
+    }).then(() => {
+        showToast('Form saved!', 'success');
+        document.getElementById('drugFormModal').classList.remove('show');
+        loadDrugForms();
+    }).catch(e => showToast('Error: ' + e.message, 'error'));
+}
+
+function editDrugForm(id) {
+    db.getById('drugForms', id).then(form => openDrugFormModal(form)).catch(() => {});
+}
+
+function deleteDrugForm(id) {
+    if (!isEditor()) return;
+    if (!confirm('Delete this form?')) return;
+    db.delete('drugForms', id).then(() => {
+        showToast('Form deleted', 'success');
+        loadDrugForms();
+    }).catch(e => showToast('Error: ' + e.message, 'error'));
+}
+
+// --- Drugs ---
+function loadDrugs() {
+    db.getAll('drugs').then(drugs => {
+        window.drugs = drugs || [];
+        if (window.drugs.length === 0) {
+            seedDrugVariations();
+            return;
+        }
+        renderDrugs();
+    }).catch(e => console.error('loadDrugs error:', e));
+}
+
+function seedDrugVariations() {
+    const pharmacyId = getCurrentPharmacyId?.() || window.DawaTenant?.getCurrentPharmacyId?.();
+    const seedDrugs = [
+        { id: 'drug_amox_500_caps', drug_name: 'Amoxicillin 500mg Capsules', generic_name: 'Amoxicillin', brand_name: 'Amoxil', strength: '500mg', category_id: 'dc_antibiotics', form_id: 'df_capsule', unit: 'caps', buying_price: 3, selling_price: 8, quantity: 50, expiry_date: new Date(new Date().getFullYear() + 2, 5, 15).toISOString().split('T')[0], batch_number: 'AMX500-001', badge: 'antibiotic' },
+        { id: 'drug_amox_250_caps', drug_name: 'Amoxicillin 250mg Capsules', generic_name: 'Amoxicillin', brand_name: 'Amoxil', strength: '250mg', category_id: 'dc_antibiotics', form_id: 'df_capsule', unit: 'caps', buying_price: 2, selling_price: 5, quantity: 40, expiry_date: new Date(new Date().getFullYear() + 1, 8, 20).toISOString().split('T')[0], batch_number: 'AMX250-001', badge: 'antibiotic' },
+        { id: 'drug_amox_125_susp', drug_name: 'Amoxicillin 125mg/5ml Oral Suspension', generic_name: 'Amoxicillin', brand_name: 'Amoxil', strength: '125mg/5ml', category_id: 'dc_antibiotics', form_id: 'df_oral_suspension', unit: 'bottle', buying_price: 15, selling_price: 35, quantity: 20, expiry_date: new Date(new Date().getFullYear() + 1, 11, 10).toISOString().split('T')[0], batch_number: 'AMX125-001', badge: 'antibiotic' },
+        { id: 'drug_amox_250_susp', drug_name: 'Amoxicillin 250mg/5ml Oral Suspension', generic_name: 'Amoxicillin', brand_name: 'Suspensia', strength: '250mg/5ml', category_id: 'dc_antibiotics', form_id: 'df_oral_suspension', unit: 'bottle', buying_price: 20, selling_price: 45, quantity: 15, expiry_date: new Date(new Date().getFullYear() + 2, 3, 5).toISOString().split('T')[0], batch_number: 'AMX250S-001', badge: 'antibiotic' },
+        { id: 'drug_amox_500_tabs', drug_name: 'Amoxicillin 500mg Tablets', generic_name: 'Amoxicillin', brand_name: 'Amoxil', strength: '500mg', category_id: 'dc_antibiotics', form_id: 'df_tablet', unit: 'tabs', buying_price: 4, selling_price: 10, quantity: 100, expiry_date: new Date(new Date().getFullYear() + 2, 7, 30).toISOString().split('T')[0], batch_number: 'AMX500T-001', badge: 'antibiotic' },
+        { id: 'drug_amox_250_tabs', drug_name: 'Amoxicillin 250mg Tablets', generic_name: 'Amoxicillin', brand_name: 'Amoxil', strength: '250mg', category_id: 'dc_antibiotics', form_id: 'df_tablet', unit: 'tabs', buying_price: 3, selling_price: 7, quantity: 80, expiry_date: new Date(new Date().getFullYear() + 1, 9, 15).toISOString().split('T')[0], batch_number: 'AMX250T-001', badge: 'antibiotic' },
+        { id: 'drug_amoxil_500_caps', drug_name: 'Amoxil 500mg Capsules', generic_name: 'Amoxicillin', brand_name: 'Amoxil', strength: '500mg', category_id: 'dc_antibiotics', form_id: 'df_capsule', unit: 'caps', buying_price: 4, selling_price: 12, quantity: 30, expiry_date: new Date(new Date().getFullYear() + 3, 1, 28).toISOString().split('T')[0], batch_number: 'AMX500G-001', badge: 'antibiotic' }
+    ];
+    Promise.all(seedDrugs.map(drug => {
+        drug.pharmacyId = pharmacyId;
+        drug.status = 'active';
+        drug.revision = 0;
+        return db.add('drugs', drug);
+    })).then(() => {
+        window.drugs = seedDrugs;
+        renderDrugs();
+    }).catch(e => console.error('seedDrugVariations error:', e));
+    setTimeout(() => {
+        seedDrugBatches();
+    }, 200);
+}
+
+function seedDrugBatches() {
+    const pharmacyId = getCurrentPharmacyId?.() || window.DawaTenant?.getCurrentPharmacyId?.();
+    const now = new Date();
+    const futureDate = (months) => {
+        const d = new Date(now);
+        d.setMonth(d.getMonth() + months);
+        return d.toISOString().split('T')[0];
+    };
+    const batches = [
+        { id: 'db_' + Math.random().toString(36).slice(2, 10), drug_id: 'drug_amox_500_caps', batch_number: 'AMX500-001', expiry_date: futureDate(12), quantity_received: 50, quantity_remaining: 50, purchase_price: 3, selling_price: 8, total_cost: 150, status: 'active', pharmacyId: pharmacyId, revision: 0 },
+        { id: 'db_' + Math.random().toString(36).slice(2, 10), drug_id: 'drug_amox_500_caps', batch_number: 'AMX500-EXP-002', expiry_date: futureDate(3), quantity_received: 20, quantity_remaining: 20, purchase_price: 3, selling_price: 8, total_cost: 60, status: 'active', pharmacyId: pharmacyId, revision: 0 },
+        { id: 'db_' + Math.random().toString(36).slice(2, 10), drug_id: 'drug_amox_250_caps', batch_number: 'AMX250-001', expiry_date: futureDate(9), quantity_received: 40, quantity_remaining: 40, purchase_price: 2, selling_price: 5, total_cost: 80, status: 'active', pharmacyId: pharmacyId, revision: 0 },
+        { id: 'db_' + Math.random().toString(36).slice(2, 10), drug_id: 'drug_amox_125_susp', batch_number: 'AMX125-001', expiry_date: futureDate(15), quantity_received: 20, quantity_remaining: 20, purchase_price: 15, selling_price: 35, total_cost: 300, status: 'active', pharmacyId: pharmacyId, revision: 0 },
+        { id: 'db_' + Math.random().toString(36).slice(2, 10), drug_id: 'drug_amox_500_tabs', batch_number: 'AMX500T-001', expiry_date: futureDate(18), quantity_received: 100, quantity_remaining: 100, purchase_price: 4, selling_price: 10, total_cost: 400, status: 'active', pharmacyId: pharmacyId, revision: 0 },
+        { id: 'db_' + Math.random().toString(36).slice(2, 10), drug_id: 'drug_amox_500_tabs', batch_number: 'AMX500T-EXP-002', expiry_date: futureDate(4), quantity_received: 50, quantity_remaining: 50, purchase_price: 4, selling_price: 10, total_cost: 200, status: 'active', pharmacyId: pharmacyId, revision: 0 },
+        { id: 'db_' + Math.random().toString(36).slice(2, 10), drug_id: 'drug_amoxil_500_caps', batch_number: 'AMX500G-001', expiry_date: futureDate(24), quantity_received: 30, quantity_remaining: 30, purchase_price: 4, selling_price: 12, total_cost: 120, status: 'active', pharmacyId: pharmacyId, revision: 0 }
+    ];
+    Promise.all(batches.map(b => db.add('drugBatches', b))).then(() => {
+        window.drugBatches = batches;
+        updateDrugStockSummary();
+    }).catch(e => console.error('seedDrugBatches error:', e));
+}
+
+function renderDrugs() {
+    const search = document.getElementById('drugSearch')?.value.toLowerCase() || '';
+    const catFilter = document.getElementById('drugCategoryFilter')?.value || 'all';
+    const statusFilter = document.getElementById('drugStatusFilter')?.value || 'all';
+    const container = document.getElementById('drugList');
+    if (!container) return;
+
+    if (window.drugCategories?.length && document.getElementById('drugCategoryFilter') && document.getElementById('drugCategoryFilter').children.length <= 1) {
+        // Populate if not already done
+    }
+    // Populate category filter
+    const catSelect = document.getElementById('drugCategoryFilter');
+    if (catSelect && catSelect.children.length <= 1) {
+        (window.drugCategories || []).forEach(cat => {
+            catSelect.innerHTML += '<option value="' + cat.id + '">' + escapeHtml(cat.name) + '</option>';
+        });
+    }
+
+    let filtered = (window.drugs || []).filter(d => {
+        if (d.deleted_at) return false;
+        if (statusFilter !== 'all' && (d.status || 'active') !== statusFilter) return false;
+        if (catFilter !== 'all' && d.category_id !== catFilter) return false;
+        if (search && !(
+            (d.drug_name || '').toLowerCase().includes(search) ||
+            (d.generic_name || '').toLowerCase().includes(search) ||
+            (d.brand_name || '').toLowerCase().includes(search) ||
+            (d.strength || '').toLowerCase().includes(search)
+        )) return false;
+        return true;
+    });
+
+    if (filtered.length === 0) {
+        container.innerHTML = '<div class="empty"><i class="fas fa-medical-notes"></i><p>No drugs found</p></div>';
+        return;
+    }
+    container.innerHTML = filtered.map(d => {
+        const category = (window.drugCategories || []).find(c => c.id === d.category_id);
+        const form = (window.drugForms || []).find(f => f.id === d.form_id);
+        const stockSummary = window.drugStockSummary?.[d.id];
+        const qty = stockSummary?.total_quantity || 0;
+        const alertLow = qty <= (d.reorder_level || 0) && qty > 0;
+        const alertOutOfStock = qty === 0;
+        return '<div class="item-card">' +
+            '<div style="display:flex;justify-content:space-between;align-items:start;">' +
+            '<div style="flex:1;">' +
+            '<h4 style="font-size:14px;margin:0;">' + escapeHtml(d.drug_name || d.generic_name || 'Unnamed') + '</h4>' +
+            (d.brand_name ? '<div class="meta" style="font-size:11px;color:#64748b;">Brand: ' + escapeHtml(d.brand_name) + '</div>' : '') +
+            (d.generic_name && d.generic_name !== d.drug_name ? '<div class="meta" style="font-size:11px;color:#64748b;">Generic: ' + escapeHtml(d.generic_name) + '</div>' : '') +
+            (d.strength ? '<div class="meta" style="font-size:11px;color:#64748b;">Strength: ' + escapeHtml(d.strength) + '</div>' : '') +
+            (category ? '<div class="meta" style="font-size:11px;">📂 ' + escapeHtml(category.name) + '</div>' : '') +
+            (form ? '<div class="meta" style="font-size:11px;">💊 ' + escapeHtml(form.name) + '</div>' : '') +
+            (d.route_of_administration ? '<div class="meta" style="font-size:11px;color:#64748b;">🛣 ' + escapeHtml(d.route_of_administration) + '</div>' : '') +
+            '</div>' +
+            '<div style="text-align:right;">' +
+            '<span style="font-weight:600;font-size:13px;">Stock: ' + qty + '</span>' +
+            (alertOutOfStock ? '<span class="status expired">❌ Out of Stock</span>' : alertLow ? '<span class="status warning">⚠️ Low Stock</span>' : '<span class="status active">✅ In Stock</span>') +
+            '</div>' +
+            '</div>' +
+            '<div class="actions" style="margin-top:4px;">' +
+            (isEditor() ? '<button class="btn btn-sm btn-blue" onclick="editDrug(\'' + d.id + '\')"><i class="fas fa-edit"></i></button> ' +
+              '<button class="btn btn-sm btn-primary" onclick="openBatchModal(\'' + d.id + '\')"><i class="fas fa-plus"></i> Receive</button>' : '<span style="color:#94a3b8;font-size:10px;">🔒 Read-only</span>') +
+            '</div></div>';
+    }).join('');
+}
+
+function openDrugModal(drug) {
+    if (!isEditor()) { showToast('Administrator access required', 'error'); return; }
+    const pharmacyId = getCurrentPharmacyId?.() || window.DawaTenant?.getCurrentPharmacyId?.();
+    document.getElementById('drugId').value = drug?.id || '';
+    document.getElementById('drugName').value = drug?.drug_name || '';
+    document.getElementById('drugGenericName').value = drug?.generic_name || '';
+    document.getElementById('drugBrandName').value = drug?.brand_name || '';
+    document.getElementById('drugStrength').value = drug?.strength || '';
+    document.getElementById('drugCategorySelect').value = drug?.category_id || '';
+    document.getElementById('drugFormSelect').value = drug?.form_id || '';
+    document.getElementById('drugRoute').value = drug?.route_of_administration || '';
+    document.getElementById('drugManufacturer').value = drug?.manufacturer || '';
+    document.getElementById('drugBarcode').value = drug?.barcode || '';
+    document.getElementById('drugRegistrationNumber').value = drug?.registration_number || '';
+    document.getElementById('drugPrescriptionStatus').value = drug?.prescription_status || 'pharmacy';
+    document.getElementById('drugReorderLevel').value = drug?.reorder_level || '0';
+    document.getElementById('drugStatus').value = drug?.status || 'active';
+    document.getElementById('drugDescription').value = drug?.description || '';
+    document.getElementById('drugModalTitle').textContent = drug ? 'Edit Drug' : 'New Drug';
+    document.getElementById('drugModal').classList.add('show');
+}
+
+function loadDrugCategorySelectForDrug() {
+    const select = document.getElementById('drugCategorySelect');
+    if (!select) return;
+    select.innerHTML = '<option value="">Select Category</option>';
+    (window.drugCategories || []).forEach(cat => {
+        select.innerHTML += '<option value="' + cat.id + '">' + escapeHtml(cat.name) + '</option>';
+    });
+}
+
+function loadDrugFormSelectForDrug() {
+    const select = document.getElementById('drugFormSelect');
+    if (!select) return;
+    select.innerHTML = '<option value="">Select Form</option>';
+    (window.drugForms || []).forEach(form => {
+        select.innerHTML += '<option value="' + form.id + '">' + escapeHtml(form.name) + '</option>';
+    });
+}
+
+function saveDrug() {
+    if (!isEditor()) return;
+    const id = document.getElementById('drugId').value || 'drug_' + Date.now().toString(36);
+    const pharmacyId = getCurrentPharmacyId?.() || window.DawaTenant?.getCurrentPharmacyId?.();
+    const drug = {
+        id,
+        drug_name: document.getElementById('drugName').value.trim(),
+        generic_name: document.getElementById('drugGenericName').value.trim() || undefined,
+        brand_name: document.getElementById('drugBrandName').value.trim() || undefined,
+        strength: document.getElementById('drugStrength').value.trim() || undefined,
+        category_id: document.getElementById('drugCategorySelect').value || undefined,
+        form_id: document.getElementById('drugFormSelect').value || undefined,
+        route_of_administration: document.getElementById('drugRoute').value.trim() || undefined,
+        manufacturer: document.getElementById('drugManufacturer').value.trim() || undefined,
+        barcode: document.getElementById('drugBarcode').value.trim() || undefined,
+        registration_number: document.getElementById('drugRegistrationNumber').value.trim() || undefined,
+        prescription_status: document.getElementById('drugPrescriptionStatus').value,
+        reorder_level: parseInt(document.getElementById('drugReorderLevel').value) || 0,
+        status: document.getElementById('drugStatus').value,
+        description: document.getElementById('drugDescription').value.trim() || undefined,
+        pharmacyId: pharmacyId,
+        revision: 0
+    };
+    if (!drug.drug_name) { showToast('Enter drug name', 'error'); return; }
+    db.getById('drugs', id).then(existing => {
+        const finalDrug = existing
+            ? { ...drug, revision: (existing.revision || 0) + 1, created_at: existing.created_at }
+            : drug;
+        return db.update('drugs', finalDrug).catch(() => db.add('drugs', finalDrug));
+    }).then(() => {
+        showToast('Drug saved!', 'success');
+        document.getElementById('drugModal').classList.remove('show');
+        loadDrugs();
+        updateDrugStockSummary();
+    }).catch(e => showToast('Error: ' + e.message, 'error'));
+}
+
+function editDrug(id) {
+    db.getById('drugs', id).then(drug => {
+        loadDrugCategorySelectForDrug();
+        loadDrugFormSelectForDrug();
+        openDrugModal(drug);
+    }).catch(() => {});
+}
+
+function deleteDrug(id) {
+    if (!isEditor()) return;
+    if (!confirm('Delete this drug?')) return;
+    db.delete('drugs', id).then(() => {
+        showToast('Drug deleted', 'success');
+        loadDrugs();
+        updateDrugStockSummary();
+    }).catch(e => showToast('Error: ' + e.message, 'error'));
+}
+
+// --- Drug Batches ---
+function loadDrugBatches() {
+    db.getAll('drugBatches').then(batches => {
+        window.drugBatches = batches || [];
+        updateDrugStockSummary();
+        renderDrugBatches();
+    }).catch(e => console.error('loadDrugBatches error:', e));
+}
+
+function updateDrugStockSummary() {
+    db.getAll('drugs').then(drugs => {
+        const summary = {};
+        const pharmacyId = getCurrentPharmacyId?.() || window.DawaTenant?.getCurrentPharmacyId?.();
+        (drugs || []).forEach(drug => {
+            summary[drug.id] = {
+                total_quantity: 0,
+                total_batches: 0,
+                nearest_expiry: null
+            };
+        });
+        // Count batches per drug
+        if (window.drugBatches) {
+            window.drugBatches.forEach(batch => {
+                if (batch.deleted_at) return;
+                const drugId = batch.drug_id;
+                if (!summary[drugId]) summary[drugId] = { total_quantity: 0, total_batches: 0, nearest_expiry: null };
+                if (batch.quantity_remaining > 0 && !batch.deleted_at) {
+                    summary[drugId].total_quantity += (batch.quantity_remaining || 0);
+                    summary[drugId].total_batches += 1;
+                    const expDate = batch.expiry_date;
+                    if (expDate && (!summary[drugId].nearest_expiry || expDate < summary[drugId].nearest_expiry)) {
+                        summary[drugId].nearest_expiry = expDate;
+                    }
+                }
+            });
+        }
+        window.drugStockSummary = summary;
+        const totalDrugs = Object.values(summary).filter(s => s.total_quantity > 0).length;
+        const lowStock = Object.values(summary).filter(s => s.total_quantity > 0 && s.total_quantity <= 5).length;
+        const outOfStock = Object.values(summary).filter(s => s.total_quantity === 0).length;
+        const expired = Object.keys(summary).filter(drugId => {
+            const d = (window.drugs || []).find(dr => dr.id === drugId);
+            return d && summary[drugId].total_quantity > 0 && summary[drugId].nearest_expiry && summary[drugId].nearest_expiry <= new Date().toISOString().split('T')[0];
+        }).length;
+        const summaryEl = document.getElementById('drugStockSummary');
+        if (summaryEl) {
+            summaryEl.innerHTML = '📦 ' + totalDrugs + ' drugs in stock | ⚠️ ' + lowStock + ' low | ❌ ' + outOfStock + ' out | ⏱️ ' + expired + ' expiring';
+        }
+    }).catch(e => console.error('updateDrugStockSummary error:', e));
+}
+
+function renderDrugBatches() {
+    const search = document.getElementById('batchSearch')?.value.toLowerCase() || '';
+    const expFilter = document.getElementById('batchExpiryFilter')?.value || 'all';
+    const container = document.getElementById('drugBatchList');
+    if (!container) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    let filtered = (window.drugBatches || []).filter(b => {
+        if (b.deleted_at) return false;
+        if (expFilter === 'expired' && b.expiry_date >= today) return false;
+        if (expFilter === 'low' && b.quantity_remaining > (b.reorder_level || 10)) return false;
+        if (expFilter === 'active' && (b.expiry_date < today || b.quantity_remaining <= 0)) return false;
+        if (search) {
+            const drug = (window.drugs || []).find(d => d.id === b.drug_id);
+            const searchStr = ((drug?.drug_name || '') + ' ' + (drug?.generic_name || '') + ' ' + (b.batch_number || '') + ' ' + (b.supplier_name || '')).toLowerCase();
+            if (!searchStr.includes(search)) return false;
+        }
+        return true;
+    });
+
+    if (filtered.length === 0) {
+        container.innerHTML = '<div class="empty"><i class="fas fa-boxes"></i><p>No batches found</p></div>';
+        return;
+    }
+    container.innerHTML = filtered.map(b => {
+        const drug = (window.drugs || []).find(d => d.id === b.drug_id);
+        const drugName = drug?.drug_name || drug?.generic_name || 'Unknown Drug';
+        const isExpired = b.expiry_date < today;
+        const isLow = b.quantity_remaining <= (b.reorder_level || 10);
+        const statusClass = isExpired ? 'expired' : (isLow ? 'warning' : 'active');
+        const statusText = isExpired ? 'EXPIRED' : (b.quantity_remaining === 0 ? 'EMPTY' : (isLow ? 'LOW STOCK' : 'ACTIVE'));
+        return '<div class="item-card">' +
+            '<div style="display:flex;justify-content:space-between;align-items:start;">' +
+            '<div>' +
+            '<h4 style="font-size:14px;margin:0;">' + escapeHtml(drugName) + '</h4>' +
+            '<div class="meta" style="font-size:11px;color:#64748b;">Batch: ' + escapeHtml(b.batch_number || '') + '</div>' +
+            '<div class="meta" style="font-size:11px;">📅 Expiry: ' + formatDate(b.expiry_date) + '</div>' +
+            (b.manufacturing_date ? '<div class="meta" style="font-size:11px;color:#64748b;">🏭 Mfg: ' + formatDate(b.manufacturing_date) + '</div>' : '') +
+            (b.supplier_name ? '<div class="meta" style="font-size:11px;">📦 Supplier: ' + escapeHtml(b.supplier_name) + '</div>' : '') +
+            '</div>' +
+            '<div style="text-align:right;">' +
+            '<span style="font-weight:600;font-size:13px;">Qty: ' + b.quantity_remaining + '</span>' +
+            '<span class="status ' + statusClass + '">' + statusText + '</span>' +
+            '</div>' +
+            '</div>' +
+            '<div class="actions" style="margin-top:4px;">' +
+            (isEditor() ? '<button class="btn btn-sm btn-blue" onclick="editDrugBatch(\'' + b.id + '\')"><i class="fas fa-edit"></i></button> ' +
+              '<button class="btn btn-sm btn-danger" onclick="deleteDrugBatch(\'' + b.id + '\')"><i class="fas fa-trash"></i></button>' : '<span style="color:#94a3b8;font-size:10px;">🔒 Admin only</span>') +
+            '</div></div>';
+    }).join('');
+
+    // Render alerts in dashboard
+    renderDrugAlerts();
+}
+
+function renderDrugAlerts() {
+    const today = new Date().toISOString().split('T')[0];
+    const alertsContainer = document.getElementById('drugAlerts');
+    if (!alertsContainer) return;
+
+    const expired = (window.drugBatches || []).filter(b => !b.deleted_at && b.expiry_date < today && b.quantity_remaining > 0);
+    const lowStock = (window.drugBatches || []).filter(b => !b.deleted_at && b.quantity_remaining > 0 && b.quantity_remaining <= (b.reorder_level || 10));
+
+    if (expired.length === 0 && lowStock.length === 0) {
+        alertsContainer.innerHTML = '<div class="empty" style="font-size:12px;color:#16a34a;">✅ All drug stock is in good condition</div>';
+        return;
+    }
+
+    let html = '';
+    if (expired.length > 0) {
+        html += '<div style="background:rgba(239,68,68,0.1;border:1px solid #ef4444;border-radius:8px;padding:12px;margin-bottom:8px;">' +
+            '<div style="font-weight:600;color:#dc2626;">⚠️ ' + expired.length + ' batch(es) expired</div>' +
+            expired.slice(0, 3).map(b => {
+                const drug = (window.drugs || []).find(d => d.id === b.drug_id);
+                return '<div style="font-size:12px;color:#7f1d1d;margin-top:4px;">' + escapeHtml(drug?.drug_name || 'Unknown') + ' - Batch ' + escapeHtml(b.batch_number || '') + ' (' + b.quantity_remaining + ' units)</div>';
+            }).join('') +
+            (expired.length > 3 ? '<div style="font-size:11px;color:#7f1d1d;">...and ' + (expired.length - 3) + ' more</div>' : '') +
+            '</div>';
+    }
+    if (lowStock.length > 0) {
+        html += '<div style="background:rgba(245,158,11,0.15);border:1px solid #f59e0b;border-radius:8px;padding:12px;margin-bottom:8px;">' +
+            '<div style="font-weight:600;color:#b45309;">⚠️ ' + lowStock.length + ' batch(es) low stock</div>' +
+            lowStock.slice(0, 3).map(b => {
+                const drug = (window.drugs || []).find(d => d.id === b.drug_id);
+                return '<div style="font-size:12px;color:#78350f;margin-top:4px;">' + escapeHtml(drug?.drug_name || 'Unknown') + ' - Batch ' + escapeHtml(b.batch_number || '') + ' (' + b.quantity_remaining + ' remaining)</div>';
+            }).join('') +
+            (lowStock.length > 3 ? '<div style="font-size:11px;color:#78350f;">...and ' + (lowStock.length - 3) + ' more</div>' : '') +
+            '</div>';
+    }
+    alertsContainer.innerHTML = html;
+}
+
+function openBatchModal(drugId) {
+    if (!isEditor()) { showToast('Administrator access required', 'error'); return; }
+    const pharmacyId = getCurrentPharmacyId?.() || window.DawaTenant?.getCurrentPharmacyId?.();
+    // Populate drug select
+    const drugSelect = document.getElementById('batchDrugSelect');
+    if (drugSelect) {
+        drugSelect.innerHTML = '';
+        (window.drugs || []).filter(d => !d.deleted_at).forEach(drug => {
+            drugSelect.innerHTML += '<option value="' + drug.id + '" ' + (drugId === drug.id ? 'selected' : '') + '>' + escapeHtml(drug.drug_name || drug.generic_name || 'Unnamed') + '</option>';
+        });
+    }
+    // Populate supplier select
+    const supplierSelect = document.getElementById('batchSupplierSelect');
+    if (supplierSelect) {
+        supplierSelect.innerHTML = '<option value="">Select Supplier</option>';
+        (window.suppliers || []).filter(s => !s.deleted_at && s.status !== 'inactive').forEach(s => {
+            supplierSelect.innerHTML += '<option value="' + s.id + '">' + escapeHtml(s.name || '') + '</option>';
+        });
+    }
+    document.getElementById('batchId').value = '';
+    document.getElementById('batchNumber').value = '';
+    document.getElementById('batchQuantity').value = '';
+    document.getElementById('batchUnit').value = '';
+    document.getElementById('batchMfgDate').value = '';
+    document.getElementById('batchExpiry').value = '';
+    document.getElementById('batchBuyingPrice').value = '';
+    document.getElementById('batchSellingPrice').value = '';
+    document.getElementById('batchModal').classList.add('show');
+}
+
+function saveDrugBatch() {
+    if (!isEditor()) return;
+    const id = document.getElementById('batchId').value || 'db_' + Date.now().toString(36);
+    const drugId = document.getElementById('batchDrugSelect').value;
+    const supplierId = document.getElementById('batchSupplierSelect').value;
+    const supplierName = supplierId ? (window.suppliers || []).find(s => s.id === supplierId)?.name : '';
+    const pharmacyId = getCurrentPharmacyId?.() || window.DawaTenant?.getCurrentPharmacyId?.();
+
+    const quantity = parseInt(document.getElementById('batchQuantity').value);
+    const purchasePrice = parseFloat(document.getElementById('batchBuyingPrice').value) || 0;
+    const sellingPrice = parseFloat(document.getElementById('batchSellingPrice').value) || 0;
+    const mfgDate = document.getElementById('batchMfgDate').value;
+    const expiryDate = document.getElementById('batchExpiry').value;
+
+    if (!drugId || !quantity || !expiryDate) {
+        showToast('Fill all required fields', 'error');
+        return;
+    }
+    if (!supplierId && !supplierName) {
+        showToast('Select or enter a supplier', 'error');
+        return;
+    }
+
+    const batch = {
+        id,
+        drug_id: drugId,
+        batch_number: document.getElementById('batchNumber').value.trim(),
+        manufacturing_date: mfgDate || undefined,
+        expiry_date: expiryDate,
+        quantity_received: quantity,
+        quantity_remaining: quantity,
+        purchase_price: purchasePrice,
+        selling_price: sellingPrice,
+        total_cost: purchasePrice * quantity,
+        supplier_id: supplierId || undefined,
+        supplier_name: supplierName || undefined,
+        received_date: new Date().toISOString().split('T')[0],
+        status: new Date(expiryDate) <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) ? 'expired' : 'active',
+        pharmacyId: pharmacyId,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        revision: 0
+    };
+
+    if (!batch.batch_number) {
+        batch.batch_number = 'BN' + Date.now().toString(36).toUpperCase();
+    }
+
+    db.getById('drugBatches', id).then(existing => {
+        const finalBatch = existing
+            ? { ...batch, revision: (existing.revision || 0) + 1, created_at: existing.created_at }
+            : batch;
+        return db.update('drugBatches', finalBatch).catch(() => db.add('drugBatches', finalBatch));
+    }).then(() => {
+        // Record stock movement
+        const movement = {
+            id: 'dsm_' + Date.now().toString(36),
+            drug_id: drugId,
+            batch_id: id,
+            movement_type: 'receive',
+            quantity: quantity,
+            quantity_before: 0,
+            quantity_after: quantity,
+            unit_price: purchasePrice,
+            reference_type: 'stock_receive',
+            notes: 'Batch received',
+            user_name: window.currentUser || 'Pharmacy Staff',
+            pharmacyId: pharmacyId,
+            created_at: new Date().toISOString()
+        };
+        db.add('drugStockMovements', movement).catch(() => {});
+        showToast('Batch received! Stock updated.', 'success');
+        document.getElementById('batchModal').classList.remove('show');
+        loadDrugBatches();
+        updateDrugStockSummary();
+        loadStockMovements();
+    }).catch(e => showToast('Error: ' + e.message, 'error'));
+}
+
+function editDrugBatch(id) {
+    db.getById('drugBatches', id).then(batch => {
+        // Populate the modal with existing values
+        document.getElementById('batchId').value = batch.id;
+        document.getElementById('batchDrugSelect').value = batch.drug_id || '';
+        // Trigger a render of supplier select first
+        const supplierSelect = document.getElementById('batchSupplierSelect');
+        if (supplierSelect) {
+            supplierSelect.innerHTML = '<option value="">Select Supplier</option>';
+            (window.suppliers || []).filter(s => !s.deleted_at).forEach(s => {
+                supplierSelect.innerHTML += '<option value="' + s.id + '" ' + (batch.supplier_id === s.id ? 'selected' : '') + '>' + escapeHtml(s.name || '') + '</option>';
+            });
+            if (batch.supplier_name && !batch.supplier_id) {
+                supplierSelect.innerHTML += '<option value="" selected>' + escapeHtml(batch.supplier_name) + '</option>';
+            }
+        }
+        document.getElementById('batchNumber').value = batch.batch_number || '';
+        document.getElementById('batchQuantity').value = batch.quantity_received || '';
+        document.getElementById('batchMfgDate').value = batch.manufacturing_date || '';
+        document.getElementById('batchExpiry').value = batch.expiry_date || '';
+        document.getElementById('batchBuyingPrice').value = batch.purchase_price || '';
+        document.getElementById('batchSellingPrice').value = batch.selling_price || '';
+        document.getElementById('batchModal').classList.add('show');
+    }).catch(() => {});
+}
+
+function deleteDrugBatch(id) {
+    if (!isEditor()) return;
+    if (!confirm('Delete this batch?')) return;
+    db.getById('drugBatches', id).then(batch => {
+        batch.deleted_at = new Date().toISOString();
+        return db.update('drugBatches', batch);
+    }).then(() => {
+        showToast('Batch deleted', 'success');
+        loadDrugBatches();
+        updateDrugStockSummary();
+    }).catch(e => showToast('Error: ' + e.message, 'error'));
+}
+
+// --- Suppliers ---
+function loadSuppliers() {
+    db.getAll('suppliers').then(suppliers => {
+        window.suppliers = suppliers || [];
+        renderSuppliers();
+    }).catch(e => console.error('loadSuppliers error:', e));
+}
+
+function renderSuppliers() {
+    const search = document.getElementById('supplierSearch')?.value.toLowerCase() || '';
+    const container = document.getElementById('supplierList');
+    if (!container) return;
+    const filtered = (window.suppliers || []).filter(s => {
+        if (s.deleted_at) return false;
+        if (search) {
+            const str = ((s.name || '') + ' ' + (s.phone || '') + ' ' + (s.email || '')).toLowerCase();
+            if (!str.includes(search)) return false;
+        }
+        return true;
+    });
+    if (filtered.length === 0) {
+        container.innerHTML = '<div class="empty"><i class="fas fa-truck"></i><p>No suppliers found</p></div>';
+        return;
+    }
+    container.innerHTML = filtered.map(s => {
+        return '<div class="item-card">' +
+            '<div style="display:flex;justify-content:space-between;align-items:start;">' +
+            '<div>' +
+            '<h4 style="font-size:14px;">' + escapeHtml(s.name || '') + '</h4>' +
+            (s.phone ? '<div class="meta">📱 ' + escapeHtml(s.phone) + '</div>' : '') +
+            (s.email ? '<div class="meta">📧 ' + escapeHtml(s.email) + '</div>' : '') +
+            (s.address ? '<div class="meta" style="font-size:10px;color:#64748b;">📍 ' + escapeHtml(s.address) + '</div>' : '') +
+            (s.license_number ? '<div class="meta" style="font-size:10px;color:#64748b;">🔢 License: ' + escapeHtml(s.license_number) + '</div>' : '') +
+            '</div>' +
+            '<span class="status ' + (s.status === 'active' ? 'active' : 'inactive') + '">' + (s.status || 'active') + '</span>' +
+            '</div>' +
+            '<div class="actions" style="margin-top:4px;">' +
+            (isEditor() ? '<button class="btn btn-sm btn-blue" onclick="editSupplier(\'' + s.id + '\')"><i class="fas fa-edit"></i></button> ' +
+              '<button class="btn btn-sm btn-danger" onclick="deleteSupplier(\'' + s.id + '\')"><i class="fas fa-trash"></i></button>' : '<span style="color:#94a3b8;font-size:10px;">🔒 Admin only</span>') +
+            '</div></div>';
+    }).join('');
+}
+
+function openSupplierModal(supplier) {
+    if (!isEditor()) { showToast('Administrator access required', 'error'); return; }
+    const pharmacyId = getCurrentPharmacyId?.() || window.DawaTenant?.getCurrentPharmacyId?.();
+    document.getElementById('supplierId').value = supplier?.id || '';
+    document.getElementById('supplierName').value = supplier?.name || '';
+    document.getElementById('supplierPhone').value = supplier?.phone || '';
+    document.getElementById('supplierEmail').value = supplier?.email || '';
+    document.getElementById('supplierAddress').value = supplier?.address || '';
+    document.getElementById('supplierLicenseNumber').value = supplier?.license_number || '';
+    document.getElementById('supplierStatus').value = supplier?.status || 'active';
+    document.getElementById('supplierModalTitle').textContent = supplier ? 'Edit Supplier' : 'New Supplier';
+    document.getElementById('supplierModal').classList.add('show');
+}
+
+function saveSupplier() {
+    if (!isEditor()) return;
+    const id = document.getElementById('supplierId').value || 'sup_' + Date.now().toString(36);
+    const pharmacyId = getCurrentPharmacyId?.() || window.DawaTenant?.getCurrentPharmacyId?.();
+    const supplier = {
+        id,
+        name: document.getElementById('supplierName').value.trim(),
+        phone: document.getElementById('supplierPhone').value.trim() || undefined,
+        email: document.getElementById('supplierEmail').value.trim() || undefined,
+        address: document.getElementById('supplierAddress').value.trim() || undefined,
+        license_number: document.getElementById('supplierLicenseNumber').value.trim() || undefined,
+        status: document.getElementById('supplierStatus').value,
+        pharmacyId: pharmacyId,
+        revision: 0
+    };
+    if (!supplier.name) { showToast('Enter supplier name', 'error'); return; }
+    db.getById('suppliers', id).then(existing => {
+        const finalSupplier = existing
+            ? { ...supplier, revision: (existing.revision || 0) + 1, created_at: existing.created_at }
+            : supplier;
+        return db.update('suppliers', finalSupplier).catch(() => db.add('suppliers', finalSupplier));
+    }).then(() => {
+        showToast('Supplier saved!', 'success');
+        document.getElementById('supplierModal').classList.remove('show');
+        loadSuppliers();
+    }).catch(e => showToast('Error: ' + e.message, 'error'));
+}
+
+function editSupplier(id) {
+    db.getById('suppliers', id).then(supplier => openSupplierModal(supplier)).catch(() => {});
+}
+
+function deleteSupplier(id) {
+    if (!isEditor()) return;
+    if (!confirm('Delete this supplier?')) return;
+    db.delete('suppliers', id).then(() => {
+        showToast('Supplier deleted', 'success');
+        loadSuppliers();
+    }).catch(e => showToast('Error: ' + e.message, 'error'));
+}
+
+// --- Stock Movements ---
+function loadStockMovements() {
+    db.getAll('drugStockMovements').then(movements => {
+        window.drugStockMovements = movements || [];
+        renderStockMovements();
+    }).catch(e => console.error('loadStockMovements error:', e));
+}
+
+function renderStockMovements() {
+    const search = document.getElementById('stockMvtSearch')?.value.toLowerCase() || '';
+    const typeFilter = document.getElementById('mvtTypeFilter')?.value || 'all';
+    const container = document.getElementById('stockMovementList');
+    if (!container) return;
+    let filtered = (window.drugStockMovements || []).filter(m => {
+        if (typeFilter !== 'all' && m.movement_type !== typeFilter) return false;
+        if (search) {
+            const drug = (window.drugs || []).find(d => d.id === m.drug_id);
+            const batch = window.drugBatches?.find(b => b.id === m.batch_id);
+            const str = ((drug?.drug_name || '') + ' ' + (batch?.batch_number || '') + ' ' + (m.movement_type || '') + ' ' + (m.user_name || '')).toLowerCase();
+            if (!str.includes(search)) return false;
+        }
+        return true;
+    });
+    filtered.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+    if (filtered.length === 0) {
+        container.innerHTML = '<div class="empty"><i class="fas fa-history"></i><p>No stock movements found</p></div>';
+        return;
+    }
+    container.innerHTML = filtered.map(m => {
+        const drug = (window.drugs || []).find(d => d.id === m.drug_id);
+        const batch = window.drugBatches?.find(b => b.id === m.batch_id);
+        const typeLabels = {
+            receive: { label: '📥 Received', color: '#0b6e4f' },
+            sell: { label: '📤 Sold', color: '#2563eb' },
+            return: { label: '↩️ Returned', color: '#7c3aed' },
+            adjust: { label: '✏️ Adjusted', color: '#f59e0b' },
+            destroy: { label: '🗑️ Destroyed', color: '#dc2626' },
+            transfer: { label: '🔄 Transferred', color: '#0891b2' }
+        };
+        const typeInfo = typeLabels[m.movement_type] || { label: m.movement_type, color: '#64748b' };
+        const qtyColor = m.quantity > 0 ? '#0b6e4f' : '#dc2626';
+        return '<div class="item-card">' +
+            '<div style="display:flex;justify-content:space-between;">' +
+            '<div>' +
+            '<div style="display:flex;align-items:center;gap:6px;">' +
+            '<span style="font-weight:600;font-size:13px;color:' + typeInfo.color + ';">' + typeInfo.label + '</span>' +
+            '<span style="font-size:11px;color:#64748b;">' + formatDateTime(m.created_at) + '</span>' +
+            '</div>' +
+            (drug ? '<div class="meta" style="font-size:11px;">💊 ' + escapeHtml(drug.drug_name || drug.generic_name || '') + '</div>' : '') +
+            (batch ? '<div class="meta" style="font-size:11px;color:#64748b;">Batch: ' + escapeHtml(batch.batch_number || '') + '</div>' : '') +
+            (m.user_name ? '<div class="meta" style="font-size:10px;color:#94a3b8;">By: ' + escapeHtml(m.user_name) + '</div>' : '') +
+            (m.notes ? '<div class="meta" style="font-size:10px;color:#64748b;">' + escapeHtml(m.notes) + '</div>' : '') +
+            '</div>' +
+            '<div style="text-align:right;">' +
+            '<span style="font-weight:600;font-size:13px;color:' + qtyColor + ';">' + (m.quantity > 0 ? '+' : '') + m.quantity + '</span>' +
+            (m.unit_price ? '<div style="font-size:10px;color:#64748b;">KSh ' + formatCurrency(m.unit_price) + '</div>' : '') +
+            '</div>' +
+            '</div></div>';
+        }).join('');
+}
+
 // ===== INIT =====
 function initApp(){
     loadUsersFromStorage();
     loadPharmacySettings();
     updateLicenseInfoDisplay();
     db.init().then(() => clearTransactionsForFreshInstall()).then(() => loadSampleData()).then(() => {
-        loadProducts(); loadPatients(); loadCustomers(); loadProductSearch(); updateStats(); loadUsers(); loadLabTests(); setupNav(); updateProductGrid(); updatePricingDashboard();
+        loadProducts(); loadPatients(); loadCustomers(); loadProductSearch(); updateStats(); loadUsers(); loadLabTests(); loadDrugCategories(); loadDrugForms(); loadDrugs(); loadDrugBatches(); loadSuppliers(); setupNav(); updateProductGrid(); updatePricingDashboard();
+        refreshSmartDrugStockSummary();
         document.getElementById('productSearch').addEventListener('input',searchProducts);
+        document.getElementById('productSearch').addEventListener('input', function(){ refreshSmartSearchFromProducts(); });
         document.getElementById('productSearch').addEventListener('keydown',function(e){if(e.key==='Enter'){const query=this.value.trim();if(query){const product=products.find(p=>p.name.toLowerCase()===query.toLowerCase()||p.sku===query);if(product)addToCart(product.id);else showToast('Product not found','error');}}});
         document.getElementById('inventorySearch').addEventListener('input',loadProducts);
         document.getElementById('categoryFilter').addEventListener('change',loadProducts);
@@ -3487,7 +5785,7 @@ window.openLabModal=openLabModal;window.saveLabTest=saveLabTest;window.editLabTe
 window.db=db;window.products=products;window.cart=cart;
 window.generateInvoice=generateInvoice;window.updateProductPrice=updateProductPrice;window.togglePassword=togglePassword;
 window.saveExpense=saveExpense;window.loadTodayExpenses=loadTodayExpenses;window.loadExpensesForDate=loadExpensesForDate;window.deleteExpense=deleteExpense;window.loadExpensesPeriod=loadExpensesPeriod;window.exportExpenseAnalysis=exportExpenseAnalysis;
-window.searchDrugDatabase=searchDrugDatabase;window.addDrugToInventory=addDrugToInventory;window.showDrugDatabaseSearch=showDrugDatabaseSearch;window.renderDrugSearchResults=renderDrugSearchResults;window.renderDrugSearchResultsMain=renderDrugSearchResultsMain;
+window.searchDrugDatabase=searchDrugDatabase;window.addDrugToInventory=addDrugToInventory;window.showDrugDatabaseSearch=showDrugDatabaseSearch;window.renderDrugSearchResults=renderDrugSearchResults;window.renderDrugSearchResultsMain=renderDrugSearchResultsMain;window.showSmartDrugSearch=showSmartDrugSearch;window.selectDrugFromSmartSearch=selectDrugFromSmartSearch;window.getBestBatchForDrug=getBestBatchForDrug;
 window.loadLedger=loadLedger;window.exportLedger=exportLedger;
 window.loadProfessionalAnalysis=loadProfessionalAnalysis;window.loadPharmacySettings=loadPharmacySettings;window.updatePharmacyDisplay=updatePharmacyDisplay;
 window.loadCreditDashboard=loadCreditDashboard;window.viewCustomerLedger=viewCustomerLedger;window.addPayment=addPayment;window.exportCreditReport=exportCreditReport;

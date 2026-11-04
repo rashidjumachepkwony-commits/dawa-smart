@@ -1,22 +1,22 @@
-﻿// UNIQUE-SW-V2
+﻿// UNIQUE-SW-V3
 /* =============================================================
-   Dawa Smart â€” Service Worker
+   Dawa Smart — Service Worker
    =============================================================
    Cache strategy for offline-first operation.
    
-   - Version: 1 (increment to force update)
+   - Version: 8 (increment to force update)
    - Caches: app shell, CSS, JS, icons, fonts
    - NEVER caches: IndexedDB data, localStorage, user-sensitive API responses
    - Strategy: Cache-first for static assets, network-first for HTML
    - Stale-while-revalidate for CSS/JS
    ============================================================= */
 
-const CACHE_VERSION = 'v6';
+const CACHE_VERSION = 'v9';
 const CACHE_NAME = 'dawa-smart-sw-' + CACHE_VERSION;
 
 // Files to cache for offline application shell
 const CORE_ASSETS = [
-  'app.html',
+  '/app',
   'tenant2.js',
   'license2.js',
   'sync-queue2.js',
@@ -48,22 +48,24 @@ self.addEventListener('install', (event) => {
     Promise.all([
       caches.open(CACHE_NAME),
       fetch('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css')
-        .then(() => true)
-        .catch(() => false) // Don't fail install if external CDN is unavailable
+        .then(r => r.text())
+        .then(css => caches.open(CACHE_NAME).then(cache => cache.put('font-awesome.css', new Response(css, { headers: { 'Content-Type': 'text/css' } }))))
     ]).then(([cache]) => {
-      // Cache only files that exist locally
-      const validAssets = CORE_ASSETS.filter(asset => {
-        // We try to fetch each; if it fails, we skip it
-        return true;
+      // Cache core assets
+      cache.addAll(CORE_ASSETS.map(url => new Request(url, { cache: 'no-store' }))).catch(() => {});
+      // Cache external assets
+      EXTERNAL_ASSETS.forEach(url => {
+        fetch(url).then(r => {
+          if (r.ok) {
+            const cacheName = url.includes('font-awesome') ? CACHE_NAME : CACHE_NAME;
+            caches.open(cacheName).then(c => c.put(url, r.clone()));
+          }
+        }).catch(() => {});
       });
-      return cache.addAll(validAssets);
-    }).then(() => {
-      // Force the waiting service worker to become active immediately
-      return self.skipWaiting();
-    }).catch((error) => {
-      console.error('[Dawa Smart SW] Install failed:', error);
     })
   );
+
+  self.skipWaiting();
 });
 
 // ==========================================================================
@@ -75,73 +77,69 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames.map((cacheName) => {
-          // Delete any cache that doesn't match our current version
-          if (cacheName !== CACHE_NAME && cacheName.startsWith('dawa-smart-sw-')) {
-            console.log('[Dawa Smart SW] Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
+        cacheNames
+          .filter((name) => name !== CACHE_NAME)
+          .map((name) => {
+            console.log('[Dawa Smart SW] Deleting old cache:', name);
+            return caches.delete(name);
+          })
       );
-    }).then(() => {
-      // Take control of all pages immediately
-      return self.clients.claim();
-    })
+    }).then(() => self.clients.claim())
   );
 });
 
 // ==========================================================================
-// FETCH: Serve from cache with network fallback
+// FETCH: Handle requests
 // ==========================================================================
 self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
   const request = event.request;
-
-  // Skip cross-origin requests from other domains
-  if (url.origin !== location.origin) {
-    // For CDN resources (fonts, Font Awesome), use network-first with cache fallback
-    if (url.hostname.includes('fonts.googleapis.com') || url.hostname.includes('cdnjs.cloudflare.com')) {
-      event.respondWith(
-        fetch(request)
-          .then((response) => {
-            const cloned = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, cloned));
-            return response;
-          })
-          .catch(() => {
-            return caches.match(request);
-          })
-      );
-    }
-    return;
-  }
-
-  // Handle same-origin requests
+  const url = new URL(request.url);
   const pathname = url.pathname;
 
-  // CRITICAL: sw2.js must always come from the network to allow SW updates
-  if (pathname === '/sw2.js') {
+  // CRITICAL: SW must always come from the network to allow SW updates
+  if (pathname === '/sw.js' || pathname === '/sw2.js') {
     event.respondWith(fetch(request));
     return;
   }
 
-  // HTML pages: network-first with cache fallback
-  if (request.headers.get('accept') && request.headers.get('accept').includes('text/html')) {
+  // Handle root path and manifest.json - redirect to /app
+  if (pathname === '/' || pathname === '/manifest.json') {
+    const targetPath = pathname === '/' ? '/app' : '/manifest.json';
+    const targetUrl = new URL(targetPath, url.origin);
     event.respondWith(
-      fetch(request)
+      fetch(targetUrl, { redirect: 'follow' })
+        .then((response) => {
+          if (response.ok) {
+            const cloned = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(targetUrl, cloned));
+          }
+          return response;
+        })
+        .catch(() => caches.match(targetUrl))
+    );
+    return;
+  }
+
+  // HTML pages: network-first with cache fallback
+  // Cloudflare Pages redirects /app.html -> /app, so normalize
+  if (request.headers.get('accept') && request.headers.get('accept').includes('text/html')) {
+    let targetPath = pathname === '/app.html' ? '/app' : pathname;
+    const targetUrl = new URL(targetPath, url.origin);
+    
+    event.respondWith(
+      fetch(targetUrl, { redirect: 'follow' })
         .then((response) => {
           const cloned = response.clone();
           if (cloned.ok) {
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, cloned));
+            caches.open(CACHE_NAME).then((cache) => cache.put(targetUrl, cloned));
           }
           return response;
         })
         .catch(() => {
-          // Offline: serve from cache, or app.html as fallback
-          return caches.match(pathname).then((cached) => {
+          // Offline: serve from cache
+          return caches.match(targetUrl).then((cached) => {
             if (cached) return cached;
-            // Ultimate fallback: serve app.html
-            return caches.match('app.html');
+            return caches.match('/app');
           });
         })
     );
@@ -150,7 +148,8 @@ self.addEventListener('fetch', (event) => {
 
   // Static assets: cache-first with network fallback
   if (pathname.endsWith('.png') || pathname.endsWith('.ico') || pathname.endsWith('.svg') ||
-      pathname.endsWith('.css') || pathname.endsWith('.js')) {
+      pathname.endsWith('.css') || pathname.endsWith('.js') || pathname.endsWith('.json') ||
+      pathname === '/favicon.ico' || pathname.startsWith('/assets/')) {
     event.respondWith(
       caches.match(request).then((cached) => {
         if (cached) {
@@ -171,7 +170,6 @@ self.addEventListener('fetch', (event) => {
           return response;
         }).catch(() => {
           // If asset can't be fetched and isn't cached, return nothing
-          // The app should handle this gracefully
           return new Response('', { status: 404 });
         });
       })
@@ -179,51 +177,31 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // IndexedDB / API / other dynamic requests: always go to network
-  // The sync layer handles these offline with local queues
-  event.respondWith(fetch(request));
-});
-
-// ==========================================================================
-// BACKGROUND SYNC: Listen for 'sync' events from the sync layer
-// ==========================================================================
-self.addEventListener('sync', (event) => {
-  console.log('[Dawa Smart SW] Background sync triggered:', event.tag);
-
-  if (event.tag === 'dawa-smart-sync') {
-    event.waitUntil(
-      // Notify all clients to send their pending sync queue
-      self.clients.matchAll({ includeUncontrolled: true }).then((clients) => {
-        clients.forEach((client) => {
-          client.postMessage({ type: 'SYNC_REQUEST' });
-        });
+  // External fonts/CDN: cache-first
+  if (url.hostname !== location.hostname) {
+    event.respondWith(
+      caches.match(request).then((cached) => {
+        if (cached) return cached;
+        return fetch(request).then((response) => {
+          if (response.ok) {
+            const cloned = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, cloned));
+          }
+          return response;
+        }).catch(() => new Response('', { status: 404 }));
       })
     );
+    return;
   }
 });
 
 // ==========================================================================
-// MESSAGES: Handle messages from the app
+// MESSAGE: Handle skip waiting
 // ==========================================================================
 self.addEventListener('message', (event) => {
-  const data = event.data;
-
-  if (data && data.type === 'SKIP_WAITING') {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
-
-  if (data && data.type === 'GET_VERSION') {
-    event.source.postMessage({ type: 'SW_VERSION', version: CACHE_VERSION });
-  }
 });
 
-// ==========================================================================
-// ERROR HANDLING
-// ==========================================================================
-self.addEventListener('error', (event) => {
-  console.error('[Dawa Smart SW] Global error:', event.error);
-});
-
-self.addEventListener('unhandledrejection', (event) => {
-  console.error('[Dawa Smart SW] Unhandled rejection:', event.reason);
-});
+console.log('[Dawa Smart SW] Loaded v' + CACHE_VERSION);

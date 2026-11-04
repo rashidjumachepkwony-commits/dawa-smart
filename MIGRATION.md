@@ -23,7 +23,13 @@ This guide explains how to deploy Dawa Smart on Cloudflare with Supabase integra
 6. Click "Create Project"
 
 ### Step 2: Run Database Migrations
-The schema migration is in `supabase/migrations/20240101000000_init_schema.sql`.
+Database migrations are in `supabase/migrations/`:
+1. `20240101000000_init_schema.sql` — Core tables (users, products, batches, sales, patients, lab_tests, expenses, controlled_logs)
+2. `20240101000001_create_pharmacies_and_memberships.sql` — Multi-tenant workspaces (pharmacies, pharmacy_members)
+3. `20240101000002_add_pharmacy_id_to_tables.sql` — Adds `pharmacy_id` + RLS workspace policies to all business tables
+ 4. `20240101000003_create_drug_management_tables.sql` — Specialized drug tables (drug_categories, drug_forms, drugs, drug_batches, drug_stock_movements, suppliers)
+ 5. `20240101000003_fix_auth_user_id_type.sql` — Fixes auth_user_id type to TEXT with `auth.uid()::text` in RLS policies
+ 6. `20240101000004_create_report_archives.sql` — Permanent report archive table with RLS policies for multi-tenant financial report snapshots
 
 **Option A — Via Supabase Dashboard:**
 1. Open your project → Schema → SQL Editor
@@ -33,6 +39,7 @@ The schema migration is in `supabase/migrations/20240101000000_init_schema.sql`.
 ```bash
 npm install -g supabase
 supabase init
+supabase start
 supabase db push
 ```
 
@@ -287,13 +294,14 @@ npx wrangler delete dawa-smart-api
 | `manifest.json` | Modified | PWA manifest (start_url → app.html) |
 | `sw.js` | New | Service worker (app shell caching) |
 | `sync-queue.js` | New | Offline-first sync queue |
+| `reporting.js` | New | Enhanced reporting engine with financial analysis + PDF export |
 | `supabase-client.js` | New | Supabase integration (optional) |
 | `worker.js` | New | Cloudflare Worker (API gateway) |
 | `wrangler.toml` | New | Worker deployment config |
 | `_headers` | New | Cloudflare Pages security headers |
 | `_redirects` | New | Cloudflare Pages routing |
 | `.env.example` | New | Configuration template |
-| `supabase/migrations/*_init_schema.sql` | New | Database schema + RLS |
+| `supabase/migrations/` (`*_init_schema.sql`, `*_create_pharmacies_and_memberships.sql`, `*_add_pharmacy_id_to_tables.sql`, `*_create_drug_management_tables.sql`, `*_create_report_archives.sql`) | New | Database schema + RLS |
 | `tests/test-offline-sync.js` | New | Offline/sync test suite |
 | `assets/` | Existing | Icons and dashboard preview |
 | `Yetu Pharmcare/index.html` | Untouched | Legacy standalone copy |

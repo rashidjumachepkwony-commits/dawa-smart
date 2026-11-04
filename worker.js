@@ -15,7 +15,9 @@
 
 const ALLOWED_ENTITIES = new Set([
   'products', 'batches', 'sales', 'sale_items',
-  'patients', 'lab_tests', 'expenses', 'controlled_logs'
+  'patients', 'lab_tests', 'expenses', 'controlled_logs',
+  'drug_categories', 'drug_forms', 'drugs', 'drug_batches',
+  'drug_stock_movements', 'suppliers', 'report_archives'
 ]);
 
 const ALLOWED_OPERATIONS = new Set(['create', 'update', 'delete']);
@@ -29,7 +31,14 @@ const ROLE_PERMISSIONS = {
   patients: { owner: true, admin: true, manager: true, pharmacist: true, cashier: false, lab: false, doctor: true, demo: true },
   lab_tests: { owner: true, admin: true, manager: true, pharmacist: false, cashier: false, lab: true, doctor: true, demo: true },
   expenses: { owner: true, admin: true, manager: true, pharmacist: false, cashier: false, lab: false, doctor: false, demo: false },
-  controlled_logs: { owner: true, admin: true, manager: false, pharmacist: true, cashier: false, lab: false, doctor: false, demo: false }
+  controlled_logs: { owner: true, admin: true, manager: false, pharmacist: true, cashier: false, lab: false, doctor: false, demo: false },
+  drug_categories: { owner: true, admin: true, manager: true, pharmacist: true, cashier: false, lab: false, doctor: false, demo: true },
+  drug_forms: { owner: true, admin: true, manager: true, pharmacist: true, cashier: false, lab: false, doctor: false, demo: true },
+  drugs: { owner: true, admin: true, manager: true, pharmacist: true, cashier: false, lab: false, doctor: false, demo: true },
+  drug_batches: { owner: true, admin: true, manager: true, pharmacist: true, cashier: false, lab: false, doctor: false, demo: false },
+  drug_stock_movements: { owner: true, admin: true, manager: true, pharmacist: true, cashier: true, lab: false, doctor: false, demo: false },
+  suppliers: { owner: true, admin: true, manager: true, pharmacist: false, cashier: false, lab: false, doctor: false, demo: false },
+  report_archives: { owner: true, admin: true, manager: true, pharmacist: false, cashier: false, lab: false, doctor: false, demo: false }
 };
 
 const PROTECTED_COLUMNS = new Set([
@@ -872,7 +881,7 @@ async function processSyncOperationSecure(env, user, pharmacyId, op) {
     }
   }
 
-  if (entity === 'batches' && cleanPayload.product_id) {
+    if (entity === 'batches' && cleanPayload.product_id) {
     const product = await supabaseFetch(env,
       `/rest/v1/products?id=eq.${cleanPayload.product_id}&select=pharmacy_id`,
       { headers: { 'Accept': 'application/json' } }
@@ -887,6 +896,40 @@ async function processSyncOperationSecure(env, user, pharmacyId, op) {
     }
 
     cleanPayload.pharmacy_id = product[0].pharmacy_id;
+  }
+
+  if (entity === 'drug_batches' && cleanPayload.drug_id) {
+    const drug = await supabaseFetch(env,
+      `/rest/v1/drugs?id=eq.${cleanPayload.drug_id}&select=pharmacy_id`,
+      { headers: { 'Accept': 'application/json' } }
+    ).catch(() => []);
+
+    if (!drug || drug.length === 0) {
+      throw new Error('Parent drug not found or not in your workspace');
+    }
+
+    if (drug[0].pharmacy_id !== pharmacyId) {
+      throw new Error('Parent drug belongs to a different workspace');
+    }
+
+    cleanPayload.pharmacy_id = drug[0].pharmacy_id;
+  }
+
+  if (entity === 'drug_stock_movements' && cleanPayload.batch_id) {
+    const batch = await supabaseFetch(env,
+      `/rest/v1/drug_batches?id=eq.${cleanPayload.batch_id}&select=pharmacy_id`,
+      { headers: { 'Accept': 'application/json' } }
+    ).catch(() => []);
+
+    if (!batch || batch.length === 0) {
+      throw new Error('Parent batch not found or not in your workspace');
+    }
+
+    if (batch[0].pharmacy_id !== pharmacyId) {
+      throw new Error('Parent batch belongs to a different workspace');
+    }
+
+    cleanPayload.pharmacy_id = batch[0].pharmacy_id;
   }
 
   // 7. Process operation

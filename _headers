@@ -29,48 +29,41 @@
 # ─── All app JS files: no-store (never cache, always fresh) ─────
 
 /sw.js
-  Content-Type: application/javascript; charset=utf-8
   Cache-Control: no-store, must-revalidate
 
 /sw2.js
-  Content-Type: application/javascript; charset=utf-8
   Cache-Control: no-store, must-revalidate
 
 /supabase-client.js
-  Content-Type: application/javascript; charset=utf-8
   Cache-Control: no-store, must-revalidate
 
 /supabase2.js
-  Content-Type: application/javascript; charset=utf-8
   Cache-Control: no-store, must-revalidate
 
 /sync-queue.js
-  Content-Type: application/javascript; charset=utf-8
   Cache-Control: no-store, must-revalidate
 
 /sync-queue2.js
-  Content-Type: application/javascript; charset=utf-8
   Cache-Control: no-store, must-revalidate
 
 /tenant.js
-  Content-Type: application/javascript; charset=utf-8
   Cache-Control: no-store, must-revalidate
 
 /tenant2.js
-  Content-Type: application/javascript; charset=utf-8
   Cache-Control: no-store, must-revalidate
 
 /license.js
-  Content-Type: application/javascript; charset=utf-8
   Cache-Control: no-store, must-revalidate
 
 /license2.js
-  Content-Type: application/javascript; charset=utf-8
+  Cache-Control: no-store, must-revalidate
+
+/reporting.js
   Cache-Control: no-store, must-revalidate
 
 # Manifest
 /manifest.json
-  Content-Type: application/manifest+json; charset=utf-8
+  Cache-Control: no-store, must-revalidate
 
 # Static assets — cache aggressively
 /assets/*
@@ -78,4 +71,3 @@
 
 # API routes proxy to Cloudflare Worker
 /api/*
-  Content-Type: application/json
