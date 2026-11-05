@@ -11,7 +11,7 @@
    - Stale-while-revalidate for CSS/JS
    ============================================================= */
 
-const CACHE_VERSION = 'v6';
+const CACHE_VERSION = 'v7';
 const CACHE_NAME = 'dawa-smart-sw-' + CACHE_VERSION;
 
 // Files to cache for offline application shell
@@ -128,7 +128,7 @@ self.addEventListener('fetch', (event) => {
   // HTML pages: network-first with cache fallback
   if (request.headers.get('accept') && request.headers.get('accept').includes('text/html')) {
     event.respondWith(
-      fetch(request)
+      fetch(request, { redirect: 'follow' })
         .then((response) => {
           const cloned = response.clone();
           if (cloned.ok) {
@@ -150,7 +150,8 @@ self.addEventListener('fetch', (event) => {
 
   // Static assets: cache-first with network fallback
   if (pathname.endsWith('.png') || pathname.endsWith('.ico') || pathname.endsWith('.svg') ||
-      pathname.endsWith('.css') || pathname.endsWith('.js')) {
+      pathname.endsWith('.css') || pathname.endsWith('.js') || pathname.endsWith('.json') ||
+      pathname === '/manifest.json') {
     event.respondWith(
       caches.match(request).then((cached) => {
         if (cached) {

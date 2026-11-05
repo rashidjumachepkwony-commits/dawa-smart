@@ -850,9 +850,79 @@
             <p style="margin-bottom:4px;">Trial: <span id="licenseTrialText">—</span></p>
             <p>Days Remaining: <span id="licenseDaysText">—</span></p>
           </div>
-          <p style="font-size:11px;color:#94a3b8;margin-top:8px;">License and trial data is stored separately from application data and is not included in backups.</p>
-       </div>
-       <div style="border-top:1px solid #f1f5f9;padding-top:14px;margin-top:14px;">
+<p style="font-size:11px;color:#94a3b8;margin-top:8px;">License and trial data is stored separately from application data and is not included in backups.</p>
+        </div>
+        <div style="border-top:1px solid #f1f5f9;padding-top:14px;margin-top:14px;">
+           <h3 style="font-size:14px;color:#0f172a;margin-bottom:8px;"><i class="fas fa-mobile-alt" style="color:#0b6e4f;"></i> M-Pesa Payment Settings</h3>
+           <div id="mpesaSettingsContainer" style="font-size:12px;color:#64748b;">
+             <p style="margin-bottom:8px;">Configure M-Pesa STK Push for accepting payments.</p>
+             <div class="form-group" style="margin-bottom:12px;">
+               <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                 <input type="checkbox" id="mpesaEnabled" style="width:18px;height:18px;accent-color:#0b6e4f;">
+                 <span style="font-weight:500;color:#0f172a;">Enable M-Pesa Payments</span>
+               </label>
+             </div>
+             <div class="form-row" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+               <div class="form-group" style="flex:1;min-width:200px;">
+                 <label>Account Type *</label>
+                 <select id="mpesaAccountType" style="width:100%;padding:8px 12px;border:2px solid #e2e8f0;border-radius:10px;font-size:12px;">
+                   <option value="PAYBILL">Paybill</option>
+                   <option value="BUY_GOODS">Buy Goods (Till)</option>
+                 </select>
+               </div>
+               <div class="form-group" style="flex:1;min-width:200px;">
+                 <label>Environment *</label>
+                 <select id="mpesaEnvironment" style="width:100%;padding:8px 12px;border:2px solid #e2e8f0;border-radius:10px;font-size:12px;">
+                   <option value="SANDBOX">Sandbox (Testing)</option>
+                   <option value="PRODUCTION">Production (Live)</option>
+                 </select>
+               </div>
+             </div>
+             <div class="form-row" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+               <div class="form-group" style="flex:1;min-width:200px;">
+                 <label>Paybill Number</label>
+                 <input type="text" id="mpesaPaybillNumber" placeholder="e.g. 174379" style="width:100%;padding:8px 12px;border:2px solid #e2e8f0;border-radius:10px;font-size:12px;">
+               </div>
+               <div class="form-group" style="flex:1;min-width:200px;">
+                 <label>Till Number</label>
+                 <input type="text" id="mpesaTillNumber" placeholder="e.g. 4776548" style="width:100%;padding:8px 12px;border:2px solid #e2e8f0;border-radius:10px;font-size:12px;">
+               </div>
+             </div>
+             <div class="form-group" style="margin-bottom:12px;">
+               <label>Business Shortcode *</label>
+               <input type="text" id="mpesaShortcode" placeholder="e.g. 174379" style="width:100%;max-width:300px;padding:8px 12px;border:2px solid #e2e8f0;border-radius:10px;font-size:12px;">
+             </div>
+             <div class="form-group" style="margin-bottom:12px;">
+               <label>Consumer Key *</label>
+               <input type="text" id="mpesaConsumerKey" placeholder="Consumer Key from Daraja Portal" style="width:100%;max-width:500px;padding:8px 12px;border:2px solid #e2e8f0;border-radius:10px;font-size:12px;">
+             </div>
+             <div class="form-group" style="margin-bottom:12px;">
+               <label>Consumer Secret *</label>
+               <input type="password" id="mpesaConsumerSecret" placeholder="Consumer Secret from Daraja Portal" style="width:100%;max-width:500px;padding:8px 12px;border:2px solid #e2e8f0;border-radius:10px;font-size:12px;">
+             </div>
+             <div class="form-group" style="margin-bottom:12px;">
+               <label>Passkey *</label>
+               <input type="password" id="mpesaPasskey" placeholder="Passkey from Daraja Portal" style="width:100%;max-width:500px;padding:8px 12px;border:2px solid #e2e8f0;border-radius:10px;font-size:12px;">
+             </div>
+             <div class="form-row" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+               <div class="form-group" style="flex:1;min-width:200px;">
+                 <label>Min Amount</label>
+                 <input type="number" id="mpesaMinAmount" value="1" min="1" style="width:100%;padding:8px 12px;border:2px solid #e2e8f0;border-radius:10px;font-size:12px;">
+               </div>
+               <div class="form-group" style="flex:1;min-width:200px;">
+                 <label>Max Amount</label>
+                 <input type="number" id="mpesaMaxAmount" value="70000" min="1" max="70000" style="width:100%;padding:8px 12px;border:2px solid #e2e8f0;border-radius:10px;font-size:12px;">
+               </div>
+             </div>
+             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;">
+               <button class="btn btn-blue" onclick="loadMpesaConfig()"><i class="fas fa-sync"></i> Load Config</button>
+               <button class="btn btn-green" onclick="testMpesaConfig()"><i class="fas fa-vial"></i> Test Connection</button>
+               <button class="btn btn-blue" onclick="saveMpesaConfig()"><i class="fas fa-save"></i> Save Configuration</button>
+             </div>
+             <div id="mpesaConfigStatus" style="margin-top:12px;padding:12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:11px;color:#64748b;display:none;"></div>
+           </div>
+        </div>
+        <div style="border-top:1px solid #f1f5f9;padding-top:14px;margin-top:14px;">
           <h3 style="font-size:14px;color:#0f172a;margin-bottom:8px;"><i class="fas fa-info-circle" style="color:#0b6e4f;"></i> About</h3>
           <p style="font-size:12px;color:#64748b;">Dawa Smart v<span id="appVersionDisplay">1.0.0</span> · KRA eTIMS Ready · SHA/NHIF<br>📍 7 Cheptais · 📞 0759324463</p>
           <p style="font-size:11px;color:#94a3b8;margin-top:4px;">Licensed Software · Developer: +254 740 289 362</p>
@@ -1547,6 +1617,7 @@ function togglePassword(inputId, btn) {
 const SINGLE_USER = { id: 'user_rashidjuma', fullName: 'Rashid Juma', username: 'RASHID', password: 'RASHID2026', email: 'rashidjuma@dawasmartz.co.ke', phone: '0759324463', role: 'developer', status: 'active', pharmacy: 'Dawa Smart', verified: true };
 const DEMO_USER = { id: 'user_demo', fullName: 'Dawa Smart Demo', username: 'DEMO', password: 'DEMO2026', role: 'demo', status: 'active', pharmacy: 'Dawa Smart', verified: true };
 let users = [SINGLE_USER, DEMO_USER];
+loadUsersFromStorage();
 let currentUser = null;
 let loginAttempts = 0;
 let products = [];
@@ -2016,7 +2087,130 @@ function saveSettings(){ if(!adminGuard('save settings')) return;
     var storageKey = pharmId ? 'yetu_pharmacy_' + pharmId : 'yetu_pharmacy';
     const settings = { name: document.getElementById('shopName').value.trim() || 'Dawa Smart', address: document.getElementById('shopAddress').value.trim() || '7 Cheptais · 📞 0759324463', kraPin: document.getElementById('kraPin').value.trim() || 'P-2025-001', footer: document.getElementById('receiptFooter').value.trim() || 'Thank you for choosing Dawa Smart!', vatRate: parseFloat(document.getElementById('vatRate').value) || 0 }; localStorage.setItem(storageKey, JSON.stringify(settings)); vatRate = settings.vatRate; document.getElementById('vatRateDisplay').textContent = vatRate; receiptFormatter.shopName = settings.name; receiptFormatter.address = settings.address; receiptFormatter.kraPin = settings.kraPin; receiptFormatter.footer = settings.footer; receiptFormatter.vatRate = vatRate; updatePharmacyDisplay(); showToast('Settings saved!','success'); }
 
-// ===== USER MANAGEMENT =====
+// ===== M-PESA CONFIGURATION =====
+async function loadMpesaConfig() {
+    if (!currentUser || !window.DawaTenant) { showToast('Please login first','error'); return; }
+    try {
+        const token = window.DawaTenant.getToken();
+        const response = await fetch(window.DawaTenant.apiBase + '/api/mpesa/config', {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (!response.ok) { const err = await response.json(); throw new Error(err.error || 'Failed to load config'); }
+        const data = await response.json();
+        
+        if (data.config) {
+            const c = data.config;
+            document.getElementById('mpesaEnabled').checked = c.is_enabled || false;
+            document.getElementById('mpesaAccountType').value = c.account_type || 'PAYBILL';
+            document.getElementById('mpesaEnvironment').value = c.environment || 'SANDBOX';
+            document.getElementById('mpesaPaybillNumber').value = c.paybill_number || '';
+            document.getElementById('mpesaTillNumber').value = c.till_number || '';
+            document.getElementById('mpesaShortcode').value = c.business_shortcode || '';
+            document.getElementById('mpesaConsumerKey').value = c.consumer_key || '';
+            document.getElementById('mpesaConsumerSecret').value = c.consumer_secret === '***' ? '' : (c.consumer_secret || '');
+            document.getElementById('mpesaPasskey').value = c.passkey === '***' ? '' : (c.passkey || '');
+            document.getElementById('mpesaMinAmount').value = c.min_amount || 1;
+            document.getElementById('mpesaMaxAmount').value = c.max_amount || 70000;
+            
+            const statusEl = document.getElementById('mpesaConfigStatus');
+            statusEl.style.display = 'block';
+            statusEl.style.background = '#dcfce7';
+            statusEl.style.color = '#166534';
+            statusEl.innerHTML = '<i class="fas fa-check-circle"></i> Configuration loaded successfully';
+            setTimeout(() => { statusEl.style.display = 'none'; }, 3000);
+            showToast('M-Pesa config loaded','success');
+        } else {
+            showToast('No M-Pesa config found','info');
+        }
+    } catch (e) {
+        console.error('Load M-Pesa config error:', e);
+        showToast('Failed to load config: ' + e.message, 'error');
+    }
+}
+
+async function saveMpesaConfig() {
+    if (!currentUser || !window.DawaTenant) { showToast('Please login first','error'); return; }
+    
+    const payload = {
+        account_type: document.getElementById('mpesaAccountType').value,
+        environment: document.getElementById('mpesaEnvironment').value,
+        paybill_number: document.getElementById('mpesaPaybillNumber').value || null,
+        till_number: document.getElementById('mpesaTillNumber').value || null,
+        business_shortcode: document.getElementById('mpesaShortcode').value,
+        consumer_key: document.getElementById('mpesaConsumerKey').value,
+        consumer_secret: document.getElementById('mpesaConsumerSecret').value,
+        passkey: document.getElementById('mpesaPasskey').value,
+        environment: document.getElementById('mpesaEnvironment').value,
+        is_enabled: document.getElementById('mpesaEnabled').checked,
+        min_amount: parseInt(document.getElementById('mpesaMinAmount').value) || 1,
+        max_amount: parseInt(document.getElementById('mpesaMaxAmount').value) || 70000,
+        paybill_number: document.getElementById('mpesaPaybillNumber').value || null,
+        till_number: document.getElementById('mpesaTillNumber').value || null,
+        business_shortcode: document.getElementById('mpesaShortcode').value,
+        consumer_key: document.getElementById('mpesaConsumerKey').value,
+        consumer_secret: document.getElementById('mpesaConsumerSecret').value,
+        passkey: document.getElementById('mpesaPasskey').value
+    };
+    
+    // Validate
+    if (!payload.business_shortcode || !payload.consumer_key || !payload.consumer_secret || !payload.passkey) {
+        showToast('Please fill all required fields','error');
+        return;
+    }
+    if (!['PAYBILL', 'BUY_GOODS'].includes(payload.account_type)) {
+        showToast('Invalid account type','error');
+        return;
+    }
+    if (!['SANDBOX', 'PRODUCTION'].includes(payload.environment)) {
+        showToast('Invalid environment','error');
+        return;
+    }
+    
+    try {
+        const token = window.DawaTenant.getToken();
+        const response = await fetch(window.DawaTenant.apiBase + '/api/mpesa/config', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.error || 'Failed to save config');
+        }
+        
+        showToast('M-Pesa configuration saved!','success');
+    } catch (e) {
+        console.error('Save M-Pesa config error:', e);
+        showToast('Failed to save config: ' + e.message, 'error');
+    }
+}
+
+async function testMpesaConfig() {
+    if (!currentUser || !window.DawaTenant) { showToast('Please login first','error'); return; }
+    
+    try {
+        const token = window.DawaTenant.getToken();
+        const response = await fetch(window.DawaTenant.apiBase + '/api/mpesa/config/test', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.error || 'Test failed');
+        }
+        
+        const data = await response.json();
+        showToast('✅ ' + data.message, 'success');
+    } catch (e) {
+        console.error('Test M-Pesa config error:', e);
+        showToast('Test failed: ' + e.message, 'error');
+    }
+}
 function loadUsers(){ 
     const search = document.getElementById('userSearch').value.toLowerCase(); 
     const roleFilter = document.getElementById('userRoleFilter').value; 
@@ -2053,7 +2247,34 @@ function saveUser(){ if(!adminGuard('save user')) return; const id=document.getE
 function editUser(id){const user=users.find(u=>u.id===id);if(user)openUserModal(user);}
 function deleteUser(id){if(!adminGuard('delete user')) return;if(id === 'user_rashidjuma'){showToast('Cannot delete primary developer','error');return;}if(id === 'user_demo'){showToast('Cannot delete demo account','error');return;}if(!confirm('Delete this user?'))return;users=users.filter(u=>u.id!==id);saveUsersToStorage();loadUsers();showToast('User deleted','success');}
 function saveUsersToStorage(){localStorage.setItem('yetu_users',JSON.stringify(users));}
-function loadUsersFromStorage(){ const stored=localStorage.getItem('yetu_users'); if(stored){ const parsed=JSON.parse(stored); const hasMain = parsed.some(u=>u.username === 'RASHID'); const hasDemo = parsed.some(u=>u.username === 'DEMO'); if(hasMain && hasDemo) users = parsed; else { users = []; if(!hasMain) users.push(SINGLE_USER); if(!hasDemo) users.push(DEMO_USER); users = users.concat(parsed.filter(u=>u.username !== 'RASHID' && u.username !== 'DEMO')); } saveUsersToStorage(); } }
+function loadUsersFromStorage(){ const stored=localStorage.getItem('yetu_users'); if(stored){ const parsed=JSON.parse(stored); const hasMain = parsed.some(u=>u.username === 'RASHID'); const hasDemo = parsed.some(u=>u.username === 'DEMO'); if(hasMain && hasDemo) users = parsed; else { users = []; if(!hasMain) users.push(SINGLE_USER); if(!hasDemo) users.push(DEMO_USER); users = users.concat(parsed.filter(u=>u.username !== 'RASHID' && u.username !== 'DEMO')); } saveUsersToStorage(); } 
+    // Ensure IMOH ELVIS user exists (with space - matches what user types)
+    if (!users.some(u => u.username === 'IMOH ELVIS')) {
+        users.push({
+            id: 'user_imoh_elvis',
+            fullName: 'IMOH ELVIS',
+            username: 'IMOH ELVIS',
+            password: 'IMOH2026',
+            email: '',
+            phone: '',
+            role: 'cashier',
+            status: 'active',
+            pharmacy: 'Yetu Pharmcare',
+            verified: true,
+            paid: false,
+            createdAt: new Date().toISOString(),
+            customization: {
+                pharmacyName: 'Yetu Pharmcare',
+                tagline: 'Your Trusted Pharmacy',
+                receiptFooter: 'Thank you for choosing us!',
+                primaryColor: '#0b6e4f',
+                showLogoOnReceipt: true,
+                showPharmacyOnReceipt: true
+            }
+        });
+        saveUsersToStorage();
+    }
+}
 
 // ===== EXPENSES =====
 function saveExpense(){ if(!adminGuard('save expense')) return; const type = document.getElementById('expenseType').value; const amount = parseFloat(document.getElementById('expenseAmount').value); const desc = document.getElementById('expenseDesc').value.trim(); if(!type || !amount || amount <= 0){ showToast('Please fill expense details','error'); return; } const expense = { id: generateId(), type: type, amount: amount, description: desc, date: new Date().toISOString() }; db.add('expenses', expense).then(()=>{ showToast('Expense saved!','success'); document.getElementById('expenseType').value='lunch'; document.getElementById('expenseAmount').value=''; document.getElementById('expenseDesc').value=''; loadExpensesForDate(new Date().toISOString().split('T')[0]); loadExpensesPeriod('daily'); }).catch(()=> showToast('Error saving expense','error')); }
@@ -2410,7 +2631,144 @@ function renderCart(){
 function clearCart(){if(cart.length===0)return;if(!confirm('Clear cart?'))return;cart=[];negotiatedPrices={};document.getElementById('negotiationControls').classList.remove('show');document.getElementById('creditCustomerForm').classList.remove('show');renderCart();showToast('Cart cleared');}
 function holdTransaction(){if(cart.length===0){showToast('Cart empty','error');return;}const holds=JSON.parse(localStorage.getItem('yetu_holds')||'[]');holds.push({id:'HOLD-'+Date.now().toString(36).toUpperCase(),cart:JSON.parse(JSON.stringify(cart)),negotiatedPrices:JSON.parse(JSON.stringify(negotiatedPrices)),customer:document.getElementById('posCustomer').value||'Walk-in',timestamp:new Date().toISOString()});localStorage.setItem('yetu_holds',JSON.stringify(holds));cart=[];negotiatedPrices={};document.getElementById('negotiationControls').classList.remove('show');renderCart();document.getElementById('posCustomer').value='';showToast('Transaction held','success');}
 function showMpesaPrompt(){ const method = document.getElementById('paymentMethod')?.value; const prompt = document.getElementById('mpesaPrompt'); if (method === 'mpesa' && cart.length > 0) { const total = calculateCartTotal(); document.getElementById('mpesaAmount').textContent = formatCurrency(total); prompt.classList.add('show'); } else { prompt.classList.remove('show'); } }
-function triggerMpesaSTK(){ const customer = document.getElementById('mpesaCustomer').value.trim(); if (!customer || customer.length < 10) { showToast('Please enter a valid phone number (e.g. 0712345678)','error'); return; } const total = calculateCartTotal(); showToast('📱 STK Push sent to ' + customer + ' for ' + formatCurrency(total) + ' via Till 4776548','success'); setTimeout(() => { if (confirm('Did customer complete the M-Pesa payment?\nClick OK if payment was successful.')) { processPayment(); } else { showToast('Payment cancelled or pending.','warning'); } }, 3000); }
+function triggerMpesaSTK(){
+    const customer = document.getElementById('mpesaCustomer').value.trim();
+    if (!customer || customer.length < 10) { showToast('Please enter a valid phone number (e.g. 0712345678)','error'); return; }
+    const total = calculateCartTotal();
+    
+    // Show processing indicator
+    const btn = event.target.closest('button');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+    btn.disabled = true;
+    
+    // Initiate real STK Push via Worker
+    if (window.DawaTenant && window.DawaTenant.getToken()) {
+        const token = window.DawaTenant.getToken();
+        const apiBase = window.DawaTenant.apiBase || 'https://dawa-smart-api.rashidjumachepkwony.workers.dev';
+        
+        fetch(window.DawaTenant.apiBase + '/api/mpesa/stk-push', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({
+                phone_number: customer,
+                amount: calculateCartTotal(),
+                sale_id: null // Will be linked after payment
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            
+            if (data.success) {
+                document.getElementById('mpesaPrompt').classList.remove('show');
+                showToast('📱 STK Push sent to ' + customer, 'success');
+                
+                // Show waiting modal
+                showMpesaWaitingModal(data.checkout_request_id);
+            } else {
+                showToast('❌ ' + (data.error || 'STK Push failed'), 'error');
+            }
+        })
+        .catch(e => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            console.error('STK Push error:', e);
+            showToast('❌ STK Push failed: ' + e.message, 'error');
+        });
+    } else {
+        // Fallback to mock if no Worker available
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            if (confirm('📱 STK Push sent to ' + customer + ' for ' + formatCurrency(total) + '\n\nClick OK if customer completed payment.')) {
+                processPayment();
+            } else {
+                showToast('Payment cancelled or pending.','warning');
+            }
+        }, 3000);
+    }
+}
+
+// ─── M-Pesa Waiting Modal & Polling ───
+function showMpesaWaitingModal(checkoutRequestId) {
+    // Remove existing modal if any
+    const existing = document.getElementById('mpesaWaitingModal');
+    if (existing) existing.remove();
+    
+    const modal = document.createElement('div');
+    modal.id = 'mpesaWaitingModal';
+    modal.className = 'modal show';
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width:400px;text-align:center;">
+            <div style="font-size:48px;color:#16a34a;margin-bottom:16px;"><i class="fas fa-mobile-alt fa-spin"></i></div>
+            <h3 style="margin:0 0 8px;font-size:18px;color:#0f172a;">Waiting for Payment</h3>
+            <p style="color:#64748b;margin-bottom:24px;">Customer received STK Push on their phone.<br>Please wait for them to enter their M-Pesa PIN.</p>
+            <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:16px;margin-bottom:16px;">
+                <div style="font-size:12px;color:#15803d;">Checkout Request ID</div>
+                <div style="font-family:monospace;font-size:11px;color:#0f172a;word-break:break-all;">${checkoutRequestId}</div>
+            </div>
+            <div style="display:flex;gap:8px;justify-content:center;">
+                <button class="btn btn-warning" onclick="pollMpesaStatus('${checkoutRequestId}')"><i class="fas fa-sync"></i> Check Status</button>
+                <button class="btn" onclick="document.getElementById('mpesaWaitingModal').remove()"><i class="fas fa-times"></i> Cancel</button>
+            </div>
+            <p style="font-size:11px;color:#94a3b8;margin-top:12px;">This will auto-check every 10 seconds.</p>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    
+    // Auto-poll every 10 seconds
+    window.mpesaPollInterval = setInterval(() => {
+        pollMpesaStatus(checkoutRequestId);
+    }, 10000);
+}
+
+async function pollMpesaStatus(checkoutRequestId) {
+    if (!window.DawaTenant || !window.DawaTenant.getToken()) {
+        console.log('No auth token for polling');
+        return;
+    }
+    
+    try {
+        const token = window.DawaTenant.getToken();
+        const response = await fetch(window.DawaTenant.apiBase + '/api/mpesa/transaction-status', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({ checkout_request_id: checkoutRequestId })
+        });
+        
+        const data = await response.json();
+        
+        if (data.payment_status === 'SUCCESS') {
+            clearInterval(window.mpesaPollInterval);
+            document.getElementById('mpesaWaitingModal')?.remove();
+            showToast('✅ Payment successful! Receipt: ' + (data.mpesa_receipt_number || 'N/A'), 'success');
+            processPayment(); // Complete the sale
+        } else if (data.payment_status === 'CANCELLED') {
+            clearInterval(window.mpesaPollInterval);
+            document.getElementById('mpesaWaitingModal')?.remove();
+            showToast('❌ Payment cancelled by customer', 'warning');
+        } else if (data.payment_status === 'FAILED') {
+            clearInterval(window.mpesaPollInterval);
+            document.getElementById('mpesaWaitingModal')?.remove();
+            showToast('❌ Payment failed: ' + (data.result_description || 'Unknown error'), 'error');
+        } else if (data.payment_status === 'TIMEOUT') {
+            clearInterval(window.mpesaPollInterval);
+            document.getElementById('mpesaWaitingModal')?.remove();
+            showToast('⏱️ Payment timed out', 'warning');
+        }
+        // If still PENDING, continue polling
+    } catch (e) {
+        console.error('Polling error:', e);
+    }
+}
 function updateSelectedCustomerInfo(){ /* same */ }
 function syncPaymentInputForMethod(){ /* same */ }
 

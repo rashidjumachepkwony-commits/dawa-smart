@@ -12,14 +12,17 @@
 --   - Composite search across name, generic, brand, strength
 -- =============================================================
 
+-- ─── Enable required extensions ──────────────────────────────
+create extension if not exists "pg_trgm";
+
 -- Index on generic_name for dropdown 1 (Generic Drug Name)
 create index if not exists idx_drugs_generic_name_trgm
-  on public.drugs using gin (gin_trgm_ops(generic_name))
+  on public.drugs using gin (generic_name gin_trgm_ops)
   where deleted_at is null;
 
 -- Index on strength for dropdown 2 (Available Strength)
 create index if not exists idx_drugs_strength_trgm
-  on public.drugs using gin (gin_trgm_ops(strength))
+  on public.drugs using gin (strength gin_trgm_ops)
   where deleted_at is null and strength is not null;
 
 -- Index on form_id + strength for dropdown 3 (Dosage Form)
@@ -29,7 +32,7 @@ create index if not exists idx_drugs_form_strength
 
 -- Index on brand_name for dropdown 4 (Brand)
 create index if not exists idx_drugs_brand_trgm
-  on public.drugs using gin (gin_trgm_ops(brand_name))
+  on public.drugs using gin (brand_name gin_trgm_ops)
   where deleted_at is null and brand_name is not null;
 
 -- Composite index for full-text-like searching across multiple fields

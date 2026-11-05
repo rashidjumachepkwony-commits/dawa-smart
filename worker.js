@@ -16,8 +16,7 @@
 const ALLOWED_ENTITIES = new Set([
   'products', 'batches', 'sales', 'sale_items',
   'patients', 'lab_tests', 'expenses', 'controlled_logs',
-  'drug_categories', 'drug_forms', 'drugs', 'drug_batches',
-  'drug_stock_movements', 'suppliers', 'report_archives'
+  'mpesa_configs', 'mpesa_transactions'
 ]);
 
 const ALLOWED_OPERATIONS = new Set(['create', 'update', 'delete']);
@@ -32,13 +31,8 @@ const ROLE_PERMISSIONS = {
   lab_tests: { owner: true, admin: true, manager: true, pharmacist: false, cashier: false, lab: true, doctor: true, demo: true },
   expenses: { owner: true, admin: true, manager: true, pharmacist: false, cashier: false, lab: false, doctor: false, demo: false },
   controlled_logs: { owner: true, admin: true, manager: false, pharmacist: true, cashier: false, lab: false, doctor: false, demo: false },
-  drug_categories: { owner: true, admin: true, manager: true, pharmacist: true, cashier: false, lab: false, doctor: false, demo: true },
-  drug_forms: { owner: true, admin: true, manager: true, pharmacist: true, cashier: false, lab: false, doctor: false, demo: true },
-  drugs: { owner: true, admin: true, manager: true, pharmacist: true, cashier: false, lab: false, doctor: false, demo: true },
-  drug_batches: { owner: true, admin: true, manager: true, pharmacist: true, cashier: false, lab: false, doctor: false, demo: false },
-  drug_stock_movements: { owner: true, admin: true, manager: true, pharmacist: true, cashier: true, lab: false, doctor: false, demo: false },
-  suppliers: { owner: true, admin: true, manager: true, pharmacist: false, cashier: false, lab: false, doctor: false, demo: false },
-  report_archives: { owner: true, admin: true, manager: true, pharmacist: false, cashier: false, lab: false, doctor: false, demo: false }
+  mpesa_configs: { owner: true, admin: true, manager: true, pharmacist: false, cashier: false, lab: false, doctor: false, demo: false },
+  mpesa_transactions: { owner: true, admin: true, manager: true, pharmacist: true, cashier: true, lab: false, doctor: false, demo: false }
 };
 
 const PROTECTED_COLUMNS = new Set([
@@ -160,6 +154,47 @@ export default {
           return jsonErrorResponse('Admin access required', 403, corsHeaders);
         }
         return await handleListAllMembers(auth, env, corsHeaders);
+      }
+
+      // ─── M-Pesa STK Push Endpoints ───
+      if (path === '/api/mpesa/config' && method === 'GET') {
+        const auth = await requireAuth(request, env);
+        if (auth.error) return jsonErrorResponse(auth.error, auth.status, corsHeaders);
+        return await handleGetMpesaConfig(request, auth, env, corsHeaders);
+      }
+
+      if (path === '/api/mpesa/config' && method === 'POST') {
+        const auth = await requireAuth(request, env);
+        if (auth.error) return jsonErrorResponse(auth.error, auth.status, corsHeaders);
+        return await handleSaveMpesaConfig(request, auth, env, corsHeaders);
+      }
+
+      if (path === '/api/mpesa/config/test' && method === 'POST') {
+        const auth = await requireAuth(request, env);
+        if (auth.error) return jsonErrorResponse(auth.error, auth.status, corsHeaders);
+        return await handleTestMpesaConfig(request, auth, env, corsHeaders);
+      }
+
+      if (path === '/api/mpesa/stk-push' && method === 'POST') {
+        const auth = await requireAuth(request, env);
+        if (auth.error) return jsonErrorResponse(auth.error, auth.status, corsHeaders);
+        return await handleStkPush(request, auth, env, corsHeaders);
+      }
+
+      if (path === '/api/mpesa/transaction-status' && method === 'POST') {
+        const auth = await requireAuth(request, env);
+        if (auth.error) return jsonErrorResponse(auth.error, auth.status, corsHeaders);
+        return await handleTransactionStatus(request, auth, env, corsHeaders);
+      }
+
+      if (path === '/api/mpesa/callback' && method === 'POST') {
+        return await handleMpesaCallback(request, env, corsHeaders);
+      }
+
+      if (path === '/api/mpesa/transactions' && method === 'GET') {
+        const auth = await requireAuth(request, env);
+        if (auth.error) return jsonErrorResponse(auth.error, auth.status, corsHeaders);
+        return await handleListMpesaTransactions(request, auth, env, corsHeaders);
       }
 
       // ─── Unknown Route ───
@@ -881,7 +916,7 @@ async function processSyncOperationSecure(env, user, pharmacyId, op) {
     }
   }
 
-    if (entity === 'batches' && cleanPayload.product_id) {
+  if (entity === 'batches' && cleanPayload.product_id) {
     const product = await supabaseFetch(env,
       `/rest/v1/products?id=eq.${cleanPayload.product_id}&select=pharmacy_id`,
       { headers: { 'Accept': 'application/json' } }
@@ -896,40 +931,6 @@ async function processSyncOperationSecure(env, user, pharmacyId, op) {
     }
 
     cleanPayload.pharmacy_id = product[0].pharmacy_id;
-  }
-
-  if (entity === 'drug_batches' && cleanPayload.drug_id) {
-    const drug = await supabaseFetch(env,
-      `/rest/v1/drugs?id=eq.${cleanPayload.drug_id}&select=pharmacy_id`,
-      { headers: { 'Accept': 'application/json' } }
-    ).catch(() => []);
-
-    if (!drug || drug.length === 0) {
-      throw new Error('Parent drug not found or not in your workspace');
-    }
-
-    if (drug[0].pharmacy_id !== pharmacyId) {
-      throw new Error('Parent drug belongs to a different workspace');
-    }
-
-    cleanPayload.pharmacy_id = drug[0].pharmacy_id;
-  }
-
-  if (entity === 'drug_stock_movements' && cleanPayload.batch_id) {
-    const batch = await supabaseFetch(env,
-      `/rest/v1/drug_batches?id=eq.${cleanPayload.batch_id}&select=pharmacy_id`,
-      { headers: { 'Accept': 'application/json' } }
-    ).catch(() => []);
-
-    if (!batch || batch.length === 0) {
-      throw new Error('Parent batch not found or not in your workspace');
-    }
-
-    if (batch[0].pharmacy_id !== pharmacyId) {
-      throw new Error('Parent batch belongs to a different workspace');
-    }
-
-    cleanPayload.pharmacy_id = batch[0].pharmacy_id;
   }
 
   // 7. Process operation
@@ -1036,4 +1037,505 @@ async function handleListAllMembers(auth, env, corsHeaders) {
     members: members || [],
     count: Array.isArray(members) ? members.length : 0
   }, corsHeaders);
+}
+
+// ═══════════════════════════════════════════════════════════
+// M-Pesa STK Push Handlers
+// ═══════════════════════════════════════════════════════════
+
+// ─── Helper: Get M-Pesa Config ──────────────────────────────────
+async function getMpesaConfig(env, pharmacyId) {
+  const config = await supabaseFetch(env,
+    `/rest/v1/mpesa_configs?pharmacy_id=eq.${pharmacyId}&select=*`,
+    { headers: { 'Accept': 'application/json' } }
+  ).catch(() => []);
+  
+  return config && config.length > 0 ? config[0] : null;
+}
+
+// ─── Helper: Generate OAuth Token ───────────────────────────────
+async function generateMpesaOAuthToken(config) {
+  const baseUrl = config.environment === 'PRODUCTION' 
+    ? 'https://api.safaricom.co.ke' 
+    : 'https://sandbox.safaricom.co.ke';
+  
+  const auth = btoa(`${config.consumer_key}:${config.consumer_secret}`);
+  
+  const response = await fetch(`${baseUrl}/oauth/v1/generate?grant_type=client_credentials`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Basic ${auth}`,
+      'Content-Type': 'application/json'
+    }
+  });
+  
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`OAuth token generation failed: ${response.status} - ${error}`);
+  }
+  
+  const data = await response.json();
+  return data.access_token;
+}
+
+// ─── Helper: Generate STK Password & Timestamp ──────────────────
+function generateStkPassword(shortcode, passkey) {
+  const timestamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\..+/, '');
+  const password = btoa(`${shortcode}${passkey}${timestamp}`);
+  return { password, timestamp };
+}
+
+// ─── Helper: Format Phone Number ────────────────────────────────
+function formatPhoneNumber(phone) {
+  let cleaned = phone.replace(/\D/g, '');
+  
+  if (cleaned.startsWith('0')) {
+    cleaned = '254' + cleaned.substring(1);
+  } else if (cleaned.startsWith('7') || cleaned.startsWith('1')) {
+    cleaned = '254' + cleaned;
+  } else if (!cleaned.startsWith('254')) {
+    cleaned = '254' + cleaned;
+  }
+  
+  return cleaned;
+}
+
+// ─── Get M-Pesa Config ──────────────────────────────────────────
+async function handleGetMpesaConfig(request, auth, env, corsHeaders) {
+  try {
+    const config = await getMpesaConfig(env, auth.user.pharmacyId);
+    
+    if (!config) {
+      return jsonResponse(200, { config: null, configured: false }, corsHeaders);
+    }
+    
+    const safeConfig = {
+      ...config,
+      consumer_secret: config.consumer_secret ? '***' : null,
+      passkey: config.passkey ? '***' : null,
+      configured: true
+    };
+    
+    return jsonResponse(200, { config: safeConfig, configured: true }, corsHeaders);
+  } catch (e) {
+    console.error('[Worker] Get M-Pesa config error:', e);
+    return jsonErrorResponse('Failed to get M-Pesa config', 500, corsHeaders);
+  }
+}
+
+// ─── Save M-Pesa Config ─────────────────────────────────────────
+async function handleSaveMpesaConfig(request, auth, env, corsHeaders) {
+  try {
+    const body = await request.json();
+    
+    if (!body.account_type || !body.business_shortcode || !body.consumer_key || !body.consumer_secret || !body.passkey) {
+      return jsonErrorResponse('Missing required fields', 400, corsHeaders);
+    }
+    
+    if (!['PAYBILL', 'BUY_GOODS'].includes(body.account_type)) {
+      return jsonErrorResponse('Invalid account type', 400, corsHeaders);
+    }
+    
+    if (!['SANDBOX', 'PRODUCTION'].includes(body.environment)) {
+      return jsonErrorResponse('Invalid environment', 400, corsHeaders);
+    }
+    
+    if (body.paybill_number && !/^[0-9]{5,10}$/.test(body.paybill_number)) {
+      return jsonErrorResponse('Invalid paybill number', 400, corsHeaders);
+    }
+    if (body.till_number && !/^[0-9]{5,10}$/.test(body.till_number)) {
+      return jsonErrorResponse('Invalid till number', 400, corsHeaders);
+    }
+    
+    const configData = {
+      pharmacy_id: auth.user.pharmacyId,
+      paybill_number: body.paybill_number || null,
+      till_number: body.till_number || null,
+      account_type: body.account_type,
+      business_shortcode: body.business_shortcode,
+      consumer_key: body.consumer_key,
+      consumer_secret: body.consumer_secret,
+      passkey: body.passkey,
+      environment: body.environment || 'SANDBOX',
+      callback_url: body.callback_url || null,
+      result_url: body.result_url || null,
+      timeout_url: body.timeout_url || null,
+      is_enabled: body.is_enabled !== undefined ? body.is_enabled : false,
+      min_amount: body.min_amount || 1,
+      max_amount: body.max_amount || 70000,
+      created_by: auth.user.id,
+      updated_at: new Date().toISOString()
+    };
+    
+    const existing = await getMpesaConfig(env, auth.user.pharmacyId);
+    
+    if (existing) {
+      await supabaseFetch(env,
+        `/rest/v1/mpesa_configs?pharmacy_id=eq.${auth.user.pharmacyId}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ ...configData, updated_at: new Date().toISOString() })
+        }
+      );
+      return jsonResponse(200, { message: 'M-Pesa configuration updated', config: { ...configData, consumer_secret: '***', passkey: '***' } }, corsHeaders);
+    } else {
+      await supabaseFetch(env, '/rest/v1/mpesa_configs', {
+        method: 'POST',
+        body: JSON.stringify(configData)
+      });
+      return jsonResponse(200, { message: 'M-Pesa configuration saved', config: { ...configData, consumer_secret: '***', passkey: '***' } }, corsHeaders);
+    }
+  } catch (e) {
+    console.error('[Worker] Save M-Pesa config error:', e);
+    return jsonErrorResponse('Failed to save M-Pesa config: ' + e.message, 500, corsHeaders);
+  }
+}
+
+// ─── Test M-Pesa Config ─────────────────────────────────────────
+async function handleTestMpesaConfig(request, auth, env, corsHeaders) {
+  try {
+    const config = await getMpesaConfig(env, auth.user.pharmacyId);
+    
+    if (!config) {
+      return jsonErrorResponse('No M-Pesa configuration found', 404, corsHeaders);
+    }
+    
+    if (!config.is_enabled) {
+      return jsonErrorResponse('M-Pesa is not enabled', 400, corsHeaders);
+    }
+    
+    try {
+      const token = await generateMpesaOAuthToken(config);
+      return jsonResponse(200, { 
+        success: true, 
+        message: 'M-Pesa configuration test successful',
+        token_preview: token.substring(0, 10) + '...'
+      }, corsHeaders);
+    } catch (e) {
+      return jsonErrorResponse('M-Pesa test failed: ' + e.message, 400, corsHeaders);
+    }
+  } catch (e) {
+    console.error('[Worker] Test M-Pesa config error:', e);
+    return jsonErrorResponse('Failed to test M-Pesa config: ' + e.message, 500, corsHeaders);
+  }
+}
+
+// ─── Initiate STK Push ──────────────────────────────────────────
+async function handleStkPush(request, auth, env, corsHeaders) {
+  try {
+    const body = await request.json();
+    
+    if (!body.phone_number || !body.amount) {
+      return jsonErrorResponse('Phone number and amount are required', 400, corsHeaders);
+    }
+    
+    const amount = Math.round(Number(body.amount));
+    if (amount < 1 || amount > 70000) {
+      return jsonErrorResponse('Amount must be between 1 and 70,000', 400, corsHeaders);
+    }
+    
+    const phoneNumber = formatPhoneNumber(body.phone_number);
+    if (!/^254[17]\d{8}$/.test(phoneNumber)) {
+      return jsonErrorResponse('Invalid Kenyan phone number format', 400, corsHeaders);
+    }
+    
+    const config = await getMpesaConfig(env, auth.user.pharmacyId);
+    
+    if (!config || !config.is_enabled) {
+      return jsonErrorResponse('M-Pesa is not configured or enabled for this pharmacy', 400, corsHeaders);
+    }
+    
+    if (amount < config.min_amount || amount > config.max_amount) {
+      return jsonErrorResponse(`Amount must be between ${config.min_amount} and ${config.max_amount}`, 400, corsHeaders);
+    }
+    
+    const token = await generateMpesaOAuthToken(config);
+    const { password, timestamp } = generateStkPassword(config.business_shortcode, config.passkey);
+    
+    const shortcode = config.account_type === 'PAYBILL' 
+      ? config.paybill_number 
+      : config.till_number || config.business_shortcode;
+    
+    const baseUrl = config.environment === 'PRODUCTION' 
+      ? 'https://api.safaricom.co.ke' 
+      : 'https://sandbox.safaricom.co.ke';
+    
+    const stkPayload = {
+      BusinessShortCode: config.business_shortcode,
+      Password: password,
+      Timestamp: timestamp,
+      TransactionType: 'CustomerPayBillOnline',
+      Amount: amount,
+      PartyA: phoneNumber,
+      PartyB: config.business_shortcode,
+      PhoneNumber: phoneNumber,
+      CallBackURL: config.callback_url || `${env.SUPABASE_URL}/functions/v1/mpesa-callback`,
+      AccountReference: `SALE-${Date.now()}`,
+      TransactionDesc: 'Pharmacy Payment'
+    };
+    
+    const baseUrlApi = config.environment === 'PRODUCTION' 
+      ? 'https://api.safaricom.co.ke' 
+      : 'https://sandbox.safaricom.co.ke';
+    
+    const response = await fetch(`${baseUrlApi}/mpesa/stkpush/v1/processrequest`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(stkPayload)
+    });
+    
+    const responseData = await response.json();
+    
+    if (!response.ok) {
+      console.error('[Worker] STK Push failed:', responseData);
+      return jsonErrorResponse(responseData.errorMessage || 'STK Push failed', 400, corsHeaders);
+    }
+    
+    const transactionData = {
+      pharmacy_id: auth.user.pharmacyId,
+      sale_id: body.sale_id || null,
+      phone_number: phoneNumber,
+      amount: amount,
+      merchant_request_id: responseData.MerchantRequestID,
+      checkout_request_id: responseData.CheckoutRequestID,
+      payment_status: 'PENDING',
+      transaction_metadata: {
+        request: stkPayload,
+        response: responseData
+      }
+    };
+    
+    await supabaseFetch(env, '/rest/v1/mpesa_transactions', {
+      method: 'POST',
+      body: JSON.stringify(transactionData)
+    });
+    
+    return jsonResponse(200, {
+      success: true,
+      message: 'STK Push sent successfully',
+      checkout_request_id: responseData.CheckoutRequestID,
+      merchant_request_id: responseData.MerchantRequestID,
+      response_code: responseData.ResponseCode,
+      response_description: responseData.ResponseDescription,
+      customer_message: responseData.CustomerMessage
+    }, corsHeaders);
+    
+  } catch (e) {
+    console.error('[Worker] STK Push error:', e);
+    return jsonErrorResponse('STK Push failed: ' + e.message, 500, corsHeaders);
+  }
+}
+
+// ─── Check Transaction Status ───────────────────────────────────
+async function handleTransactionStatus(request, auth, env, corsHeaders) {
+  try {
+    const body = await request.json();
+    
+    if (!body.checkout_request_id) {
+      return jsonErrorResponse('CheckoutRequestID is required', 400, corsHeaders);
+    }
+    
+    const config = await getMpesaConfig(env, auth.user.pharmacyId);
+    
+    if (!config) {
+      return jsonErrorResponse('M-Pesa not configured', 400, corsHeaders);
+    }
+    
+    const token = await generateMpesaOAuthToken(config);
+    const { password, timestamp } = generateStkPassword(config.business_shortcode, config.passkey);
+    
+    const queryPayload = {
+      BusinessShortCode: config.business_shortcode,
+      Password: password,
+      Timestamp: timestamp,
+      CheckoutRequestID: body.checkout_request_id
+    };
+    
+    const baseUrl = config.environment === 'PRODUCTION' 
+      ? 'https://api.safaricom.co.ke' 
+      : 'https://sandbox.safaricom.co.ke';
+    
+    const token = await generateMpesaOAuthToken(config);
+    
+    const response = await fetch(`${baseUrl}/mpesa/stkpushquery/v1/query`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(queryPayload)
+    });
+    
+    const responseData = await response.json();
+    
+    if (!response.ok) {
+      return jsonErrorResponse(responseData.errorMessage || 'Status query failed', 400, corsHeaders);
+    }
+    
+    const resultCode = responseData.ResultCode;
+    let paymentStatus = 'PENDING';
+    if (resultCode === '0') paymentStatus = 'SUCCESS';
+    else if (resultCode === '1032' || resultCode === '1037' || resultCode === '1') paymentStatus = 'CANCELLED';
+    else if (resultCode === '1037') paymentStatus = 'TIMEOUT';
+    else paymentStatus = 'FAILED';
+    
+    await supabaseFetch(env,
+      `/rest/v1/mpesa_transactions?checkout_request_id=eq.${body.checkout_request_id}&pharmacy_id=eq.${auth.user.pharmacyId}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({
+          result_code: resultCode,
+          result_description: responseData.ResultDesc,
+          payment_status: paymentStatus,
+          mpesa_receipt_number: responseData.MpesaReceiptNumber || null,
+          transaction_date: paymentStatus === 'SUCCESS' ? new Date().toISOString() : null,
+          transaction_metadata: responseData
+        })
+      }
+    );
+    
+    return jsonResponse(200, {
+      result_code: resultCode,
+      result_description: responseData.ResultDesc,
+      payment_status: paymentStatus,
+      mpesa_receipt_number: responseData.MpesaReceiptNumber || null
+    }, corsHeaders);
+    
+  } catch (e) {
+    console.error('[Worker] Transaction status error:', e);
+    return jsonErrorResponse('Failed to check transaction status: ' + e.message, 500, corsHeaders);
+  }
+}
+
+// ─── M-Pesa Callback Handler ────────────────────────────────────
+async function handleMpesaCallback(request, env, corsHeaders) {
+  try {
+    const callbackData = await request.json();
+    console.log('[Worker] M-Pesa callback received:', JSON.stringify(callbackData));
+    
+    const stkCallback = callbackData.Body?.stkCallback;
+    if (!stkCallback) {
+      return jsonResponse(200, { ResultCode: 0, ResultDesc: 'Accepted' }, corsHeaders);
+    }
+    
+    const checkoutRequestId = stkCallback.CheckoutRequestID;
+    const merchantRequestId = stkCallback.MerchantRequestID;
+    const resultCode = stkCallback.ResultCode;
+    const resultDesc = stkCallback.ResultDesc;
+    
+    const transactions = await supabaseFetch(env,
+      `/rest/v1/mpesa_transactions?checkout_request_id=eq.${checkoutRequestId}&select=*`,
+      { headers: { 'Accept': 'application/json' } }
+    ).catch(() => []);
+    
+    if (!transactions || transactions.length === 0) {
+      console.error('[Worker] Callback: Transaction not found for', checkoutRequestId);
+      return jsonResponse(200, { ResultCode: 0, ResultDesc: 'Accepted' }, corsHeaders);
+    }
+    
+    const transaction = transactions[0];
+    
+    let paymentStatus = 'PENDING';
+    if (resultCode === '0') paymentStatus = 'SUCCESS';
+    else if (resultCode === '1032' || resultCode === '1037' || resultCode === '1') paymentStatus = 'CANCELLED';
+    else if (resultCode === '1037') paymentStatus = 'TIMEOUT';
+    else paymentStatus = 'FAILED';
+    
+    let mpesaReceiptNumber = null;
+    if (stkCallback.CallbackMetadata?.Item) {
+      const receiptItem = stkCallback.CallbackMetadata.Item.find(item => item.Name === 'MpesaReceiptNumber');
+      if (receiptItem) mpesaReceiptNumber = receiptItem.Value;
+    }
+    
+    await supabaseFetch(env,
+      `/rest/v1/mpesa_transactions?checkout_request_id=eq.${checkoutRequestId}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({
+          result_code: resultCode.toString(),
+          result_description: stkCallback.ResultDesc,
+          payment_status: paymentStatus === 'SUCCESS' ? 'SUCCESS' : (paymentStatus === 'CANCELLED' ? 'CANCELLED' : 'FAILED'),
+          mpesa_receipt_number: mpesaReceiptNumber,
+          transaction_date: resultCode === '0' ? new Date().toISOString() : null,
+          transaction_metadata: stkCallback
+        })
+      }
+    );
+    
+    if (paymentStatus === 'SUCCESS' && transaction.sale_id) {
+      await supabaseFetch(env,
+        `/rest/v1/sales?id=eq.${transaction.sale_id}&pharmacy_id=eq.${transaction.pharmacy_id}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({
+            method: 'mpesa',
+            payment: transaction.amount,
+            change_amount: 0,
+            mpesa_receipt_number: mpesaReceiptNumber
+          })
+        }
+      );
+    }
+    
+    return jsonResponse(200, { ResultCode: 0, ResultDesc: 'Accepted' }, corsHeaders);
+    
+  } catch (e) {
+    console.error('[Worker] M-Pesa callback error:', e);
+    return jsonResponse(200, { ResultCode: 0, ResultDesc: 'Accepted' }, corsHeaders);
+  }
+}
+
+// ─── List M-Pesa Transactions ───────────────────────────────────
+async function handleListMpesaTransactions(request, auth, env, corsHeaders) {
+  try {
+    const url = new URL(request.url);
+    const limit = parseInt(url.searchParams.get('limit') || '50');
+    const offset = parseInt(url.searchParams.get('offset') || '0');
+    const status = url.searchParams.get('status');
+    const startDate = url.searchParams.get('start_date');
+    const endDate = url.searchParams.get('end_date');
+    
+    let query = `/rest/v1/mpesa_transactions?pharmacy_id=eq.${auth.user.pharmacyId}&order=created_at.desc&limit=${limit}&offset=${offset}`;
+    
+    if (status) {
+      query += `&payment_status=eq.${status}`;
+    }
+    if (startDate) {
+      query += `&created_at=gte.${startDate}`;
+    }
+    if (endDate) {
+      query += `&created_at=lte.${endDate}`;
+    }
+    
+    const transactions = await supabaseFetch(env,
+      query,
+      { headers: { 'Accept': 'application/json' } }
+    ).catch(() => []);
+    
+    let countQuery = `/rest/v1/mpesa_transactions?pharmacy_id=eq.${auth.user.pharmacyId}&select=id`;
+    if (status) countQuery += `&payment_status=eq.${status}`;
+    if (startDate) countQuery += `&created_at=gte.${startDate}`;
+    if (endDate) countQuery += `&created_at=lte.${endDate}`;
+    
+    const countResult = await supabaseFetch(env,
+      countQuery,
+      { headers: { 'Accept': 'application/json', 'Prefer': 'count=exact' } }
+    ).catch(() => []);
+    
+    const totalCount = countResult ? countResult.length : 0;
+    
+    return jsonResponse(200, {
+      transactions: transactions || [],
+      total: totalCount,
+      limit,
+      offset
+    }, corsHeaders);
+    
+  } catch (e) {
+    console.error('[Worker] List M-Pesa transactions error:', e);
+    return jsonErrorResponse('Failed to list M-Pesa transactions', 500, corsHeaders);
+  }
 }

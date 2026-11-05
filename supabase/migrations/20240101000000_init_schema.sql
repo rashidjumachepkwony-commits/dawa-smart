@@ -522,4 +522,4 @@ create policy "sale_items_insert_all" on public.sale_items
 
 -- ─── Realtime (optional) ──────────────────────────────────────
 -- Enable realtime on tables that need live updates
--- In production: addsupabase realtime publications as needed
+-- In production: add supabase realtime publications as needed;

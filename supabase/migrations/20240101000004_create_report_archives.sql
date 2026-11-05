@@ -63,6 +63,7 @@ alter table public.report_archives enable row level security;
 -- Only owners/admins/managers can delete (soft-delete) reports
 drop policy if exists "report_archives_select_member" on public.report_archives;
 drop policy if exists "report_archives_write_admin_plus" on public.report_archives;
+drop policy if exists "report_archives_prevent_hard_delete" on public.report_archives;
 
 create policy "report_archives_select_member" on public.report_archives
   for select using (
@@ -98,4 +99,4 @@ create policy "report_archives_write_admin_plus" on public.report_archives
 create policy "report_archives_prevent_hard_delete" on public.report_archives
   for delete using (false);
 
-comment on table public.report_archives is 'Immutable report snapshots for regulatory compliance and historical reference'
+comment on table public.report_archives is 'Immutable report snapshots for regulatory compliance and historical reference';

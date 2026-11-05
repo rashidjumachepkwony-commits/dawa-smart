@@ -81,7 +81,7 @@ create policy "pharmacies_select_member" on public.pharmacies
   for select using (
     exists (
       select 1 from public.pharmacy_members pm
-      where pm.auth_user_id = auth.uid()
+      where pm.auth_user_id = auth.uid()::text
       and pm.pharmacy_id = pharmacies.id
       and pm.status = 'active'
     )
@@ -92,15 +92,15 @@ create policy "pharmacies_insert_owner" on public.pharmacies
   for insert with check (
     exists (
       select 1 from public.pharmacy_members pm
-      where pm.auth_user_id = auth.uid()
+      where pm.auth_user_id = auth.uid()::text
       and pm.role = 'owner'
       and pm.status = 'active'
     )
     or
     -- Allow registration: owner_id in INSERT matches auth.uid()
-    (owner_id = auth.uid() AND NOT EXISTS (
+    (owner_id = auth.uid()::text AND NOT EXISTS (
       select 1 from public.pharmacy_members pm
-      where pm.auth_user_id = auth.uid()
+      where pm.auth_user_id = auth.uid()::text
     ))
   );
 
@@ -109,7 +109,7 @@ create policy "pharmacies_update_owner" on public.pharmacies
   for update using (
     exists (
       select 1 from public.pharmacy_members pm
-      where pm.auth_user_id = auth.uid()
+      where pm.auth_user_id = auth.uid()::text
       and pm.pharmacy_id = pharmacies.id
       and pm.role = 'owner'
       and pm.status = 'active'
@@ -121,7 +121,7 @@ create policy "pharmacy_members_select_self" on public.pharmacy_members
   for select using (
     exists (
       select 1 from public.pharmacy_members pm
-      where pm.auth_user_id = auth.uid()
+      where pm.auth_user_id = auth.uid()::text
       and pm.pharmacy_id = pharmacy_members.pharmacy_id
       and pm.status = 'active'
     )
@@ -132,7 +132,7 @@ create policy "pharmacy_members_insert_owner_admin" on public.pharmacy_members
   for insert with check (
     exists (
       select 1 from public.pharmacy_members pm
-      where pm.auth_user_id = auth.uid()
+      where pm.auth_user_id = auth.uid()::text
       and pm.pharmacy_id = pharmacy_members.pharmacy_id
       and pm.role in ('owner', 'admin')
       and pm.status = 'active'
@@ -143,7 +143,7 @@ create policy "pharmacy_members_update_owner_admin" on public.pharmacy_members
   for update using (
     exists (
       select 1 from public.pharmacy_members pm
-      where pm.auth_user_id = auth.uid()
+      where pm.auth_user_id = auth.uid()::text
       and pm.pharmacy_id = pharmacy_members.pharmacy_id
       and pm.role in ('owner', 'admin')
       and pm.status = 'active'
@@ -152,7 +152,7 @@ create policy "pharmacy_members_update_owner_admin" on public.pharmacy_members
   with check (
     exists (
       select 1 from public.pharmacy_members pm
-      where pm.auth_user_id = auth.uid()
+      where pm.auth_user_id = auth.uid()::text
       and pm.pharmacy_id = pharmacy_members.pharmacy_id
       and pm.role in ('owner', 'admin')
       and pm.status = 'active'
@@ -164,7 +164,7 @@ create policy "pharmacy_members_prevent_pharmacy_change" on public.pharmacy_memb
   for update using (
     exists (
       select 1 from public.pharmacy_members pm
-      where pm.auth_user_id = auth.uid()
+      where pm.auth_user_id = auth.uid()::text
       and pm.pharmacy_id = pharmacy_members.pharmacy_id
       and pm.status = 'active'
     )

@@ -71,6 +71,35 @@ drop policy if exists "expenses_delete_member_admin" on public.expenses;
 drop policy if exists "controlled_logs_select_member" on public.controlled_logs;
 drop policy if exists "controlled_logs_insert_member_pharmacist" on public.controlled_logs;
 
+-- Suppliers policies
+drop policy if exists "suppliers_select_member" on public.suppliers;
+drop policy if exists "suppliers_write_admin_plus" on public.suppliers;
+
+-- Drug Categories policies
+drop policy if exists "drug_categories_select_member" on public.drug_categories;
+drop policy if exists "drug_categories_write_admin_plus" on public.drug_categories;
+
+-- Drug Forms policies
+drop policy if exists "drug_forms_select_member" on public.drug_forms;
+drop policy if exists "drug_forms_write_admin_plus" on public.drug_forms;
+
+-- Drugs policies
+drop policy if exists "drugs_select_member" on public.drugs;
+drop policy if exists "drugs_write_admin_plus" on public.drugs;
+
+-- Drug Batches policies
+drop policy if exists "drug_batches_select_member" on public.drug_batches;
+drop policy if exists "drug_batches_write_admin_plus" on public.drug_batches;
+
+-- Drug Stock Movements policies
+drop policy if exists "drug_stock_movements_select_member" on public.drug_stock_movements;
+drop policy if exists "drug_stock_movements_insert_member" on public.drug_stock_movements;
+
+-- Report Archives policies
+drop policy if exists "report_archives_select_member" on public.report_archives;
+drop policy if exists "report_archives_write_admin_plus" on public.report_archives;
+drop policy if exists "report_archives_prevent_hard_delete" on public.report_archives;
+
 -- ─── Step 2: Drop and recreate columns ──────────────────────────
 
 -- pharmacy_members.auth_user_id

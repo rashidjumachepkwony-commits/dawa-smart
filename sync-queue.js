@@ -13,7 +13,7 @@
    Queue entry structure:
    {
      id: 'op_<uuid>',
-      entity: 'products' | 'sales' | 'saleItems' | 'patients' | 'batches' | 'controlledLogs' | 'labTests' | 'expenses' | 'drugCategories' | 'drugForms' | 'drugs' | 'drugBatches' | 'drugStockMovements' | 'suppliers' | 'reportArchives' | 'users',
+     entity: 'products' | 'sales' | 'saleItems' | 'patients' | 'batches' | 'controlledLogs' | 'labTests' | 'expenses' | 'users',
      operation: 'create' | 'update' | 'delete',
      recordId: <the record's id>,
      payload: <the full record object>,
@@ -291,9 +291,7 @@
     }
 
     const entities = ['products', 'sales', 'saleItems', 'patients', 'batches',
-                      'controlledLogs', 'labTests', 'expenses',
-                      'drugCategories', 'drugForms', 'drugs', 'drugBatches',
-                      'drugStockMovements', 'suppliers', 'reportArchives'];
+                      'controlledLogs', 'labTests', 'expenses'];
     let pulled = {};
 
     try {

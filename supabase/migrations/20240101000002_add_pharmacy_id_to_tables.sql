@@ -68,7 +68,7 @@ create policy "products_select_member" on public.products
   for select using (
     exists (
       select 1 from public.pharmacy_members pm
-      where pm.auth_user_id = auth.uid()
+      where pm.auth_user_id = auth.uid()::text
       and pm.pharmacy_id = products.pharmacy_id
       and pm.status = 'active'
     )
@@ -79,7 +79,7 @@ create policy "products_insert_member_write" on public.products
     exists (
       select 1 from public.pharmacy_members pm
       join public.pharmacies p on p.id = pm.pharmacy_id
-      where pm.auth_user_id = auth.uid()
+      where pm.auth_user_id = auth.uid()::text
       and pm.pharmacy_id = products.pharmacy_id
       and pm.status = 'active'
       and pm.role in ('owner', 'admin', 'manager', 'pharmacist')
@@ -90,7 +90,7 @@ create policy "products_update_member_write" on public.products
   for update using (
     exists (
       select 1 from public.pharmacy_members pm
-      where pm.auth_user_id = auth.uid()
+      where pm.auth_user_id = auth.uid()::text
       and pm.pharmacy_id = products.pharmacy_id
       and pm.status = 'active'
       and pm.role in ('owner', 'admin', 'manager', 'pharmacist')
@@ -101,7 +101,7 @@ create policy "products_delete_member_write" on public.products
   for delete using (
     exists (
       select 1 from public.pharmacy_members pm
-      where pm.auth_user_id = auth.uid()
+      where pm.auth_user_id = auth.uid()::text
       and pm.pharmacy_id = products.pharmacy_id
       and pm.status = 'active'
       and pm.role in ('owner', 'admin', 'manager', 'pharmacist')
@@ -123,7 +123,7 @@ create policy "sales_select_member" on public.sales
   for select using (
     exists (
       select 1 from public.pharmacy_members pm
-      where pm.auth_user_id = auth.uid()
+      where pm.auth_user_id = auth.uid()::text
       and pm.pharmacy_id = sales.pharmacy_id
       and pm.status = 'active'
     )
@@ -133,7 +133,7 @@ create policy "sales_insert_member_active" on public.sales
   for insert with check (
     exists (
       select 1 from public.pharmacy_members pm
-      where pm.auth_user_id = auth.uid()
+      where pm.auth_user_id = auth.uid()::text
       and pm.pharmacy_id = sales.pharmacy_id
       and pm.status = 'active'
     )
@@ -143,7 +143,7 @@ create policy "sales_update_owner_admin" on public.sales
   for update using (
     exists (
       select 1 from public.pharmacy_members pm
-      where pm.auth_user_id = auth.uid()
+      where pm.auth_user_id = auth.uid()::text
       and pm.pharmacy_id = sales.pharmacy_id
       and pm.status = 'active'
       and pm.role in ('owner', 'admin')
@@ -163,7 +163,7 @@ create policy "sale_items_select_member" on public.sale_items
       join public.pharmacy_members pm on pm.pharmacy_id = s.pharmacy_id
       where s.id = sale_items.sale_id
       and s.deleted_at is null
-      and pm.auth_user_id = auth.uid()
+      and pm.auth_user_id = auth.uid()::text
       and pm.status = 'active'
     )
   );
@@ -175,7 +175,7 @@ create policy "sale_items_insert_member" on public.sale_items
       join public.pharmacy_members pm on pm.pharmacy_id = s.pharmacy_id
       where s.id = sale_items.sale_id
       and s.deleted_at is null
-      and pm.auth_user_id = auth.uid()
+      and pm.auth_user_id = auth.uid()::text
       and pm.status = 'active'
     )
     -- Ensure sale_items.pharmacy_id matches sale.pharmacy_id
@@ -192,7 +192,7 @@ create policy "batches_select_member" on public.batches
   for select using (
     exists (
       select 1 from public.pharmacy_members pm
-      where pm.auth_user_id = auth.uid()
+      where pm.auth_user_id = auth.uid()::text
       and pm.pharmacy_id = batches.pharmacy_id
       and pm.status = 'active'
     )
@@ -202,7 +202,7 @@ create policy "batches_write_member_admin" on public.batches
   for all using (
     exists (
       select 1 from public.pharmacy_members pm
-      where pm.auth_user_id = auth.uid()
+      where pm.auth_user_id = auth.uid()::text
       and pm.pharmacy_id = batches.pharmacy_id
       and pm.status = 'active'
       and pm.role in ('owner', 'admin', 'manager', 'pharmacist')
@@ -210,7 +210,7 @@ create policy "batches_write_member_admin" on public.batches
   ) with check (
     exists (
       select 1 from public.pharmacy_members pm
-      where pm.auth_user_id = auth.uid()
+      where pm.auth_user_id = auth.uid()::text
       and pm.pharmacy_id = batches.pharmacy_id
       and pm.status = 'active'
       and pm.role in ('owner', 'admin', 'manager', 'pharmacist')
@@ -230,7 +230,7 @@ create policy "patients_select_member" on public.patients
   for select using (
     exists (
       select 1 from public.pharmacy_members pm
-      where pm.auth_user_id = auth.uid()
+      where pm.auth_user_id = auth.uid()::text
       and pm.pharmacy_id = patients.pharmacy_id
       and pm.status = 'active'
     )
@@ -240,7 +240,7 @@ create policy "patients_insert_member_active" on public.patients
   for insert with check (
     exists (
       select 1 from public.pharmacy_members pm
-      where pm.auth_user_id = auth.uid()
+      where pm.auth_user_id = auth.uid()::text
       and pm.pharmacy_id = patients.pharmacy_id
       and pm.status = 'active'
     )
@@ -250,7 +250,7 @@ create policy "patients_update_member_active" on public.patients
   for update with check (
     exists (
       select 1 from public.pharmacy_members pm
-      where pm.auth_user_id = auth.uid()
+      where pm.auth_user_id = auth.uid()::text
       and pm.pharmacy_id = patients.pharmacy_id
       and pm.status = 'active'
     )
@@ -269,7 +269,7 @@ create policy "lab_tests_select_member" on public.lab_tests
   for select using (
     exists (
       select 1 from public.pharmacy_members pm
-      where pm.auth_user_id = auth.uid()
+      where pm.auth_user_id = auth.uid()::text
       and pm.pharmacy_id = lab_tests.pharmacy_id
       and pm.status = 'active'
     )
@@ -279,7 +279,7 @@ create policy "lab_tests_insert_member_active" on public.lab_tests
   for insert with check (
     exists (
       select 1 from public.pharmacy_members pm
-      where pm.auth_user_id = auth.uid()
+      where pm.auth_user_id = auth.uid()::text
       and pm.pharmacy_id = lab_tests.pharmacy_id
       and pm.status = 'active'
     )
@@ -289,7 +289,7 @@ create policy "lab_tests_update_member_active" on public.lab_tests
   for update with check (
     exists (
       select 1 from public.pharmacy_members pm
-      where pm.auth_user_id = auth.uid()
+      where pm.auth_user_id = auth.uid()::text
       and pm.pharmacy_id = lab_tests.pharmacy_id
       and pm.status = 'active'
     )
@@ -307,7 +307,7 @@ create policy "expenses_select_member" on public.expenses
   for select using (
     exists (
       select 1 from public.pharmacy_members pm
-      where pm.auth_user_id = auth.uid()
+      where pm.auth_user_id = auth.uid()::text
       and pm.pharmacy_id = expenses.pharmacy_id
       and pm.status = 'active'
     )
@@ -317,7 +317,7 @@ create policy "expenses_insert_member_admin" on public.expenses
   for insert with check (
     exists (
       select 1 from public.pharmacy_members pm
-      where pm.auth_user_id = auth.uid()
+      where pm.auth_user_id = auth.uid()::text
       and pm.pharmacy_id = expenses.pharmacy_id
       and pm.status = 'active'
       and pm.role in ('owner', 'admin', 'manager')
@@ -328,7 +328,7 @@ create policy "expenses_update_member_admin" on public.expenses
   for update with check (
     exists (
       select 1 from public.pharmacy_members pm
-      where pm.auth_user_id = auth.uid()
+      where pm.auth_user_id = auth.uid()::text
       and pm.pharmacy_id = expenses.pharmacy_id
       and pm.status = 'active'
       and pm.role in ('owner', 'admin', 'manager')
@@ -339,7 +339,7 @@ create policy "expenses_delete_member_admin" on public.expenses
   for delete using (
     exists (
       select 1 from public.pharmacy_members pm
-      where pm.auth_user_id = auth.uid()
+      where pm.auth_user_id = auth.uid()::text
       and pm.pharmacy_id = expenses.pharmacy_id
       and pm.status = 'active'
       and pm.role in ('owner', 'admin', 'manager')
@@ -356,7 +356,7 @@ create policy "controlled_logs_select_member" on public.controlled_logs
   for select using (
     exists (
       select 1 from public.pharmacy_members pm
-      where pm.auth_user_id = auth.uid()
+      where pm.auth_user_id = auth.uid()::text
       and pm.pharmacy_id = controlled_logs.pharmacy_id
       and pm.status = 'active'
     )
@@ -366,7 +366,7 @@ create policy "controlled_logs_insert_member_pharmacist" on public.controlled_lo
   for insert with check (
     exists (
       select 1 from public.pharmacy_members pm
-      where pm.auth_user_id = auth.uid()
+      where pm.auth_user_id = auth.uid()::text
       and pm.pharmacy_id = controlled_logs.pharmacy_id
       and pm.status = 'active'
       and pm.role in ('owner', 'admin', 'pharmacist')
