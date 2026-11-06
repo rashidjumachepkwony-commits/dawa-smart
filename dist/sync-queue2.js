@@ -172,6 +172,24 @@
     return navigator.onLine;
   }
 
+  function isDemoSession() {
+    if (typeof window.isDemo === 'function' && window.isDemo()) {
+      return true;
+    }
+
+    const token = window.DawaTenant && window.DawaTenant.getToken
+      ? window.DawaTenant.getToken()
+      : null;
+    if (!token) return false;
+
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+      return payload.role === 'demo';
+    } catch (error) {
+      return false;
+    }
+  }
+
   function isPermanentSyncError(error) {
     const message = error && error.message ? error.message : String(error || '');
     return /\b403\b|Role .+ cannot |not found or not in your workspace|Entity not allowed|Operation not allowed/i.test(message);
@@ -195,6 +213,11 @@
    // Sync Execution
    // ==========================================================================
    async function drainQueue() {
+     if (isDemoSession()) {
+       updateSyncStatus('local-only', getQueue().filter((op) => op.status !== 'failed').length);
+       return;
+     }
+
      if (!isOnline()) {
        updateSyncStatus('offline', getQueue().length);
        return;
