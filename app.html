@@ -799,9 +799,9 @@
     <div class="card">
       <div class="card-title"><i class="fas fa-chart-bar"></i> Reports & eTIMS</div>
       <div class="tabs">
-        <button class="active" data-report-period="daily" onclick="loadReport('daily')">Daily</button>
+        <button data-report-period="daily" onclick="loadReport('daily')">Daily</button>
         <button data-report-period="weekly" onclick="loadReport('weekly')">Weekly</button>
-        <button data-report-period="monthly" onclick="loadReport('monthly')">Monthly</button>
+        <button class="active" data-report-period="monthly" onclick="loadReport('monthly')">Monthly</button>
         <button data-report-period="yearly" onclick="loadReport('yearly')">Yearly</button>
         <button data-report-period="custom" onclick="loadReport('custom')">Custom</button>
       </div>
@@ -3329,7 +3329,7 @@ function renderDrugSearchResultsMain() {
 }
 
 // ===== REPORTS =====
-let activeReportPeriod = 'daily';
+let activeReportPeriod = 'monthly';
 let reportPdfLibraryLoading;
 
 function reportDateKey(date) {
