@@ -11,7 +11,7 @@
    - Stale-while-revalidate for CSS/JS
    ============================================================= */
 
-const CACHE_VERSION = 'v11';
+const CACHE_VERSION = 'v12';
 const CACHE_NAME = 'dawa-smart-sw-' + CACHE_VERSION;
 
 // Files to cache for offline application shell

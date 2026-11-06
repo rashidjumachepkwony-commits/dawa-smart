@@ -240,6 +240,15 @@
        return;
      }
 
+     const token = window.DawaTenant && window.DawaTenant.getToken
+       ? window.DawaTenant.getToken()
+       : null;
+     if (!token) {
+       const pending = getQueue().filter((op) => op.status === 'pending').length;
+       updateSyncStatus('local-only', pending);
+       return;
+     }
+
      // Check if Supabase client is available
      var client = window.supabaseClient;
      if (typeof window.supabaseClient === 'undefined' || !window.supabaseClient) {
