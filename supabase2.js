@@ -58,14 +58,31 @@
     if (!window.__dawaSupabaseScriptLoading) {
       window.__dawaSupabaseScriptLoading = new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase-min.js';
+        script.crossOrigin = 'anonymous';
         script.onload = function () {
-          console.log('[Dawa Smart Supabase] SDK loaded');
+          console.log('[Dawa Smart Supabase] SDK loaded from', script.src);
           resolve();
         };
-        script.onerror = function () {
-          reject(new Error('Failed to load Supabase SDK'));
+        const fallbacks = [
+          'https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase-min.js',
+          'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.0/dist/umd/supabase-min.js',
+          'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase-min.js'
+        ];
+        let fallbackIndex = 0;
+        const tryFallback = () => {
+          if (fallbackIndex < fallbacks.length) {
+            console.warn('[Dawa Smart Supabase] Trying fallback:', fallbacks[fallbackIndex]);
+            script.src = fallbacks[fallbackIndex];
+            fallbackIndex++;
+          } else {
+            reject(new Error('Failed to load Supabase SDK from all CDNs'));
+          }
         };
+        script.onerror = function () {
+          console.warn('[Dawa Smart Supabase] Failed to load from', script.src);
+          tryFallback();
+        };
+        script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase-min.js';
         document.head.appendChild(script);
       });
     }

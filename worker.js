@@ -21,6 +21,47 @@ const ALLOWED_ENTITIES = new Set([
 
 const ALLOWED_OPERATIONS = new Set(['create', 'update', 'delete']);
 
+const ENTITY_ALIASES = {
+  saleItems: 'sale_items',
+  labTests: 'lab_tests',
+  controlledLogs: 'controlled_logs'
+};
+
+const FIELD_ALIASES = {
+  authUserId: 'auth_user_id',
+  ownerId: 'owner_id',
+  pharmacyId: 'pharmacy_id',
+  createdAt: 'created_at',
+  updatedAt: 'updated_at',
+  deletedAt: 'deleted_at',
+  saleId: 'sale_id',
+  productId: 'product_id',
+  patientId: 'patient_id',
+  batchId: 'batch_id',
+  labTestId: 'lab_test_id',
+  userId: 'user_id',
+  mpesaTransactionId: 'mpesa_transaction_id'
+};
+
+function normalizeEntityName(entity) {
+  if (!entity || typeof entity !== 'string') return entity;
+  const key = entity.trim();
+  return ENTITY_ALIASES[key] || key.replace(/([a-z0-9])([A-Z])/g, '$1_$2').replace(/-/g, '_').toLowerCase();
+}
+
+function normalizePayloadKeys(payload) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return payload;
+  }
+
+  const normalized = {};
+  Object.keys(payload).forEach((key) => {
+    const alias = FIELD_ALIASES[key] || key.replace(/([a-z0-9])([A-Z])/g, '$1_$2').replace(/-/g, '_').toLowerCase();
+    normalized[alias] = payload[key];
+  });
+  return normalized;
+}
+
 // Role-to-permission mapping for operations
 const ROLE_PERMISSIONS = {
   products: { owner: true, admin: true, manager: true, pharmacist: true, cashier: false, lab: false, doctor: false, demo: true },
@@ -822,6 +863,12 @@ async function handleSync(request, auth, env, corsHeaders) {
     return jsonErrorResponse('Missing operations array', 400, corsHeaders);
   }
 
+  const normalizedOperations = operations.map((op) => ({
+    ...op,
+    entity: normalizeEntityName(op && op.entity),
+    payload: normalizePayloadKeys(op && op.payload)
+  }));
+
   const targetPharmacyId = auth.user.pharmacyId;
 
   const results = {
@@ -832,7 +879,7 @@ async function handleSync(request, auth, env, corsHeaders) {
   };
 
   // Detect workspace mixing in batch
-  const workspaceMixing = operations.some(op => {
+  const workspaceMixing = normalizedOperations.some(op => {
     if (op.payload && op.payload.pharmacy_id && op.payload.pharmacy_id !== targetPharmacyId) {
       return true;
     }
@@ -846,7 +893,7 @@ async function handleSync(request, auth, env, corsHeaders) {
     return jsonErrorResponse('Cannot mix workspaces in a single sync batch', 403, corsHeaders);
   }
 
-  for (const op of operations) {
+  for (const op of normalizedOperations) {
     try {
       await processSyncOperationSecure(env, auth.user, targetPharmacyId, op);
       results.succeeded++;
@@ -866,7 +913,10 @@ async function handleSync(request, auth, env, corsHeaders) {
 
 // ─── Secure Sync Operation Processor ──────────────────────────
 async function processSyncOperationSecure(env, user, pharmacyId, op) {
-  const { entity, operation, recordId, payload } = op;
+  const entity = normalizeEntityName(op && op.entity);
+  const operation = op && op.operation;
+  const recordId = op && op.recordId;
+  const payload = normalizePayloadKeys(op && op.payload);
 
   // 1. Validate entity allowlist
   if (!ALLOWED_ENTITIES.has(entity)) {
@@ -1344,7 +1394,6 @@ async function handleTransactionStatus(request, auth, env, corsHeaders) {
       return jsonErrorResponse('M-Pesa not configured', 400, corsHeaders);
     }
     
-    const token = await generateMpesaOAuthToken(config);
     const { password, timestamp } = generateStkPassword(config.business_shortcode, config.passkey);
     
     const queryPayload = {

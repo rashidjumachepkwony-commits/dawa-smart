@@ -33,6 +33,50 @@
   const MAX_RETRIES = 3;
   const BACKOFF_BASE = 2000; // 2s initial backoff
 
+  const ENTITY_ALIASES = {
+    saleItems: 'sale_items',
+    labTests: 'lab_tests',
+    controlledLogs: 'controlled_logs',
+    sale_items: 'sale_items',
+    lab_tests: 'lab_tests',
+    controlled_logs: 'controlled_logs'
+  };
+
+  const KEY_ALIASES = {
+    authUserId: 'auth_user_id',
+    ownerId: 'owner_id',
+    pharmacyId: 'pharmacy_id',
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
+    deletedAt: 'deleted_at',
+    saleId: 'sale_id',
+    productId: 'product_id',
+    patientId: 'patient_id',
+    batchId: 'batch_id',
+    labTestId: 'lab_test_id',
+    userId: 'user_id',
+    mpesaTransactionId: 'mpesa_transaction_id'
+  };
+
+  function normalizeEntityName(entity) {
+    if (!entity || typeof entity !== 'string') return entity;
+    const key = entity.trim();
+    return ENTITY_ALIASES[key] || key.replace(/([a-z0-9])([A-Z])/g, '$1_$2').replace(/-/g, '_').toLowerCase();
+  }
+
+  function normalizeRecordPayload(payload) {
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+      return payload;
+    }
+
+    const normalized = {};
+    Object.keys(payload).forEach((key) => {
+      const alias = KEY_ALIASES[key] || key.replace(/([a-z0-9])([A-Z])/g, '$1_$2').replace(/-/g, '_').toLowerCase();
+      normalized[alias] = payload[key];
+    });
+    return normalized;
+  }
+
   // ==========================================================================
   // Queue Management
   // ==========================================================================
@@ -234,11 +278,13 @@
     }
 
     const { entity, operation, recordId, payload } = op;
+    const remoteEntity = normalizeEntityName(entity);
+    const normalizedPayload = normalizeRecordPayload(payload || {});
 
     // Inject pharmacy_id from current context (Server ALSO injects from JWT)
     const pharmacyId = window.DawaTenant ? window.DawaTenant.getCurrentPharmacyId() : null;
     if (pharmacyId) {
-      payload.pharmacy_id = pharmacyId;
+      normalizedPayload.pharmacy_id = pharmacyId;
     }
 
     // Use the Worker /api/sync endpoint for all sync operations
@@ -253,10 +299,10 @@
       body: JSON.stringify({
         operations: [{
           id: op.id,
-          entity,
+          entity: remoteEntity,
           operation,
           recordId,
-          payload
+          payload: normalizedPayload
         }]
       })
     });
@@ -297,8 +343,9 @@
 
     try {
       for (const entity of entities) {
+        const remoteEntity = normalizeEntityName(entity);
         let query = client
-          .from(entity)
+          .from(remoteEntity)
           .select('*')
           .eq('pharmacy_id', pharmacyId)  // Scope to current pharmacy only
           .gte('updated_at', sinceStr)
@@ -343,8 +390,9 @@
 
       // Fetch tombstones (deleted records)
       for (const entity of entities) {
+        const remoteEntity = normalizeEntityName(entity);
         const { data: tombstones, error } = await client
-          .from(entity)
+          .from(remoteEntity)
           .select('id')
           .not('deleted_at', 'is', null)
           .gte('deleted_at', sinceStr);
@@ -389,6 +437,14 @@
     // Initial sync on load
     if (isOnline()) {
       drainQueue();
+    }
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'SYNC_REQUEST' && isOnline()) {
+          drainQueue();
+        }
+      });
     }
 
     // Register background sync if supported
