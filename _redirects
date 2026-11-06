@@ -11,6 +11,7 @@
 /manifest.json  /manifest.json  200
 /favicon.ico  /favicon.ico  200
 /tenant2.js  /tenant2.js  200
+/sw2.js  /sw2.js  200
 /sw.js  /sw.js  200
 
 # Asset directories
