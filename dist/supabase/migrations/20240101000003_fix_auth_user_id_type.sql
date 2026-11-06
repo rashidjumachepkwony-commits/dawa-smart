@@ -1,5 +1,5 @@
 -- =============================================================
--- Dawa Smart — Fix: Change auth_user_id and owner_id to TEXT
+-- Dawa Smart -- Fix: Change auth_user_id and owner_id to TEXT
 -- =============================================================
 -- The Worker's legacy auth system uses text-based user IDs (e.g., 'user_rashidjuma')
 -- but the pharmacy_members table had auth_user_id as uuid, causing:
@@ -9,7 +9,7 @@
 -- the existing legacy auth system.
 -- =============================================================
 
--- ─── Fix role check constraint ─────────────────────────────────
+-- Fix role check constraint
 -- Add 'developer' to allowed roles in pharmacy_members
 alter table public.pharmacy_members drop constraint if exists pharmacy_members_role_check;
 alter table public.pharmacy_members add constraint pharmacy_members_role_check
@@ -18,7 +18,7 @@ alter table public.pharmacy_members add constraint pharmacy_members_role_check
 comment on column public.pharmacy_members.auth_user_id is 'Text-based user ID (legacy auth support: user_rashidjuma, user_demo)';
 comment on column public.pharmacies.owner_id is 'Text-based user ID (legacy auth support)';
 
--- ─── Step 1: Drop ALL policies that depend on auth_user_id ──────
+-- Step 1: Drop ALL policies that depend on auth_user_id
 -- Must drop policies before dropping the column
 
 -- Pharmacy policies
@@ -100,27 +100,35 @@ drop policy if exists "report_archives_select_member" on public.report_archives;
 drop policy if exists "report_archives_write_admin_plus" on public.report_archives;
 drop policy if exists "report_archives_prevent_hard_delete" on public.report_archives;
 
--- ─── Step 2: Drop and recreate columns ──────────────────────────
+-- M-Pesa policies also depend on pharmacy_members.auth_user_id.
+drop policy if exists "mpesa_configs_select_member" on public.mpesa_configs;
+drop policy if exists "mpesa_configs_insert_owner_admin" on public.mpesa_configs;
+drop policy if exists "mpesa_configs_update_owner_admin" on public.mpesa_configs;
+drop policy if exists "mpesa_transactions_select_member" on public.mpesa_transactions;
+drop policy if exists "mpesa_transactions_insert_member" on public.mpesa_transactions;
+drop policy if exists "mpesa_transactions_update_owner_admin" on public.mpesa_transactions;
+
+-- Step 2: Change the column types without discarding existing identifiers.
 
 -- pharmacy_members.auth_user_id
 alter table public.pharmacy_members drop constraint if exists pharmacy_members_auth_user_id_fkey;
-alter table public.pharmacy_members drop column if exists auth_user_id;
-alter table public.pharmacy_members add column auth_user_id text;
+alter table public.pharmacy_members
+  alter column auth_user_id type text using auth_user_id::text;
 
 -- pharmacies.owner_id
 alter table public.pharmacies drop constraint if exists pharmacies_owner_id_fkey;
-alter table public.pharmacies drop column if exists owner_id;
-alter table public.pharmacies add column owner_id text;
+alter table public.pharmacies
+  alter column owner_id type text using owner_id::text;
 
--- ─── Step 3: Recreate indexes ───────────────────────────────────
+-- Step 3: Recreate indexes
 create index if not exists idx_pharmacy_members_user_text on public.pharmacy_members(auth_user_id);
 create index if not exists idx_pharmacy_members_user on public.pharmacy_members(auth_user_id);
 
--- ─── Step 4: Add comments ───────────────────────────────────────
+-- Step 4: Add comments
 comment on column public.pharmacy_members.auth_user_id is 'Text-based user ID (legacy auth support: user_rashidjuma, user_demo)';
 comment on column public.pharmacies.owner_id is 'Text-based user ID (legacy auth support)';
 
--- ─── Step 5: Recreate policies ─────────────────────────────────
+-- Step 5: Recreate policies
 -- All policies remain the same except they now work with text auth_user_id
 -- The Worker uses service_role which bypasses RLS, so these policies
 -- only matter for direct client access
@@ -483,5 +491,87 @@ create policy "controlled_logs_insert_member_pharmacist" on public.controlled_lo
       and pm.pharmacy_id = controlled_logs.pharmacy_id
       and pm.status = 'active'
       and pm.role in ('owner', 'admin', 'pharmacist')
+    )
+  );
+
+-- M-Pesa policies: restore tenant and role checks after changing auth_user_id.
+create policy "mpesa_configs_select_member" on public.mpesa_configs
+  for select using (
+    exists (
+      select 1 from public.pharmacy_members pm
+      where pm.auth_user_id = auth.uid()::text
+      and pm.pharmacy_id = mpesa_configs.pharmacy_id
+      and pm.status = 'active'
+    )
+  );
+
+create policy "mpesa_configs_insert_owner_admin" on public.mpesa_configs
+  for insert with check (
+    exists (
+      select 1 from public.pharmacy_members pm
+      where pm.auth_user_id = auth.uid()::text
+      and pm.pharmacy_id = mpesa_configs.pharmacy_id
+      and pm.role in ('owner', 'admin')
+      and pm.status = 'active'
+    )
+  );
+
+create policy "mpesa_configs_update_owner_admin" on public.mpesa_configs
+  for update using (
+    exists (
+      select 1 from public.pharmacy_members pm
+      where pm.auth_user_id = auth.uid()::text
+      and pm.pharmacy_id = mpesa_configs.pharmacy_id
+      and pm.role in ('owner', 'admin')
+      and pm.status = 'active'
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.pharmacy_members pm
+      where pm.auth_user_id = auth.uid()::text
+      and pm.pharmacy_id = mpesa_configs.pharmacy_id
+      and pm.role in ('owner', 'admin')
+      and pm.status = 'active'
+    )
+  );
+
+create policy "mpesa_transactions_select_member" on public.mpesa_transactions
+  for select using (
+    exists (
+      select 1 from public.pharmacy_members pm
+      where pm.auth_user_id = auth.uid()::text
+      and pm.pharmacy_id = mpesa_transactions.pharmacy_id
+      and pm.status = 'active'
+    )
+  );
+
+create policy "mpesa_transactions_insert_member" on public.mpesa_transactions
+  for insert with check (
+    exists (
+      select 1 from public.pharmacy_members pm
+      where pm.auth_user_id = auth.uid()::text
+      and pm.pharmacy_id = mpesa_transactions.pharmacy_id
+      and pm.status = 'active'
+    )
+  );
+
+create policy "mpesa_transactions_update_owner_admin" on public.mpesa_transactions
+  for update using (
+    exists (
+      select 1 from public.pharmacy_members pm
+      where pm.auth_user_id = auth.uid()::text
+      and pm.pharmacy_id = mpesa_transactions.pharmacy_id
+      and pm.role in ('owner', 'admin')
+      and pm.status = 'active'
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.pharmacy_members pm
+      where pm.auth_user_id = auth.uid()::text
+      and pm.pharmacy_id = mpesa_transactions.pharmacy_id
+      and pm.role in ('owner', 'admin')
+      and pm.status = 'active'
     )
   );
