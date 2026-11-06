@@ -28,12 +28,6 @@
 /*.ttf  /:splat  200
 /*.eot  /:splat  200
 
-# Root path → landing page with splash
-/  /app  200
-
 # App routes
 /app.html  /app  301
 /app*  /app  200
-
-# All other routes → app (for SPA navigation)
-/*  /app  200
