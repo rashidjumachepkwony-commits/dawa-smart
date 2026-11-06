@@ -100,6 +100,23 @@
     }
   }
 
+  function recoverInterruptedOperations() {
+    const queue = getQueue();
+    let recovered = 0;
+
+    for (const op of queue) {
+      if (op.status === 'syncing') {
+        op.status = 'pending';
+        recovered++;
+      }
+    }
+
+    if (recovered > 0) {
+      saveQueue(queue);
+      console.warn('[Dawa Smart Sync] Recovered ' + recovered + ' interrupted operation(s)');
+    }
+  }
+
   function enqueueOperation(entity, operation, recordId, payload) {
     if (typeof window.isDemo === 'function' && window.isDemo()) {
       return null;
@@ -457,6 +474,8 @@
   // Initialize Sync Layer
   // ==========================================================================
   function initSync() {
+    recoverInterruptedOperations();
+
     // Only initialize sync if Supabase client is present
     if (typeof window.supabaseClient === 'undefined') {
       console.log('[Dawa Smart Sync] Supabase client not found â€” operating local-only mode');
