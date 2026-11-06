@@ -64,9 +64,8 @@
           resolve();
         };
         const fallbacks = [
-          'https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase-min.js',
-          'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.0/dist/umd/supabase-min.js',
-          'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase-min.js'
+          'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.0/dist/umd/supabase.min.js',
+          'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js'
         ];
         let fallbackIndex = 0;
         const tryFallback = () => {
@@ -82,7 +81,7 @@
           console.warn('[Dawa Smart Supabase] Failed to load from', script.src);
           tryFallback();
         };
-        script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase-min.js';
+        script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';
         document.head.appendChild(script);
       });
     }
