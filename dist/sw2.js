@@ -11,7 +11,7 @@
    - Stale-while-revalidate for CSS/JS
    ============================================================= */
 
-const CACHE_VERSION = 'v7';
+const CACHE_VERSION = 'v8';
 const CACHE_NAME = 'dawa-smart-sw-' + CACHE_VERSION;
 
 // Files to cache for offline application shell
@@ -182,7 +182,15 @@ self.addEventListener('fetch', (event) => {
 
   // IndexedDB / API / other dynamic requests: always go to network
   // The sync layer handles these offline with local queues
-  event.respondWith(fetch(request));
+  event.respondWith(
+    fetch(request).catch((error) => {
+      console.warn('[Dawa Smart SW] Network request failed:', request.url, error);
+      return new Response(JSON.stringify({ error: 'Network request failed' }), {
+        status: 503,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    })
+  );
 });
 
 // ==========================================================================
