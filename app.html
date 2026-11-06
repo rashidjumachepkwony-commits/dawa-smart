@@ -799,16 +799,18 @@
     <div class="card">
       <div class="card-title"><i class="fas fa-chart-bar"></i> Reports & eTIMS</div>
       <div class="tabs">
-        <button class="active" onclick="loadReport('daily')">Daily</button>
-        <button onclick="loadReport('weekly')">Weekly</button>
-        <button onclick="loadReport('monthly')">Monthly</button>
-        <button onclick="loadReport('custom')">Custom</button>
+        <button class="active" data-report-period="daily" onclick="loadReport('daily')">Daily</button>
+        <button data-report-period="weekly" onclick="loadReport('weekly')">Weekly</button>
+        <button data-report-period="monthly" onclick="loadReport('monthly')">Monthly</button>
+        <button data-report-period="yearly" onclick="loadReport('yearly')">Yearly</button>
+        <button data-report-period="custom" onclick="loadReport('custom')">Custom</button>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px;">
         <input type="date" id="reportStart" style="padding:6px 10px;border:2px solid #e2e8f0;border-radius:8px;font-size:12px;">
         <span>to</span>
         <input type="date" id="reportEnd" style="padding:6px 10px;border:2px solid #e2e8f0;border-radius:8px;font-size:12px;">
         <button class="btn" onclick="generateCustomReport()"><i class="fas fa-file-alt"></i> Gen</button>
+        <button class="btn btn-success" onclick="downloadReportPDF()" title="Download report as PDF"><i class="fas fa-file-pdf"></i> Download PDF</button>
         <button class="btn btn-success" onclick="printReport()" title="Print report"><i class="fas fa-print"></i></button>
         <button class="btn btn-blue" onclick="generateKRAeTIMS()" title="Export KRA eTIMS report"><i class="fas fa-file-invoice"></i> KRA</button>
       </div>
@@ -3327,7 +3329,249 @@ function renderDrugSearchResultsMain() {
 }
 
 // ===== REPORTS =====
-function loadReport(period){ const now=new Date();let start,end; if(period==='daily'){start=now.toISOString().split('T')[0];end=now.toISOString().split('T')[0];} else if(period==='weekly'){const ws=new Date(now);ws.setDate(now.getDate()-now.getDay());start=ws.toISOString().split('T')[0];end=now.toISOString().split('T')[0];} else if(period==='monthly'){start=new Date(now.getFullYear(),now.getMonth(),1).toISOString().split('T')[0];end=now.toISOString().split('T')[0];} else return; document.getElementById('reportStart').value=start;document.getElementById('reportEnd').value=end;generateCustomReport(); }
+let activeReportPeriod = 'daily';
+let reportPdfLibraryLoading;
+
+function reportDateKey(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return year + '-' + month + '-' + day;
+}
+
+function loadReport(period) {
+    activeReportPeriod = period;
+    document.querySelectorAll('[data-report-period]').forEach(button => {
+        button.classList.toggle('active', button.dataset.reportPeriod === period);
+    });
+
+    if (period === 'custom') {
+        generateCustomReport();
+        return;
+    }
+
+    const today = new Date();
+    const end = reportDateKey(today);
+    let startDate;
+    if (period === 'daily') {
+        startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    } else if (period === 'weekly') {
+        startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const daysSinceMonday = (startDate.getDay() + 6) % 7;
+        startDate.setDate(startDate.getDate() - daysSinceMonday);
+    } else if (period === 'monthly') {
+        startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+    } else if (period === 'yearly') {
+        startDate = new Date(today.getFullYear(), 0, 1);
+    } else {
+        showToast('Unsupported report period', 'error');
+        return;
+    }
+
+    document.getElementById('reportStart').value = reportDateKey(startDate);
+    document.getElementById('reportEnd').value = end;
+    generateCustomReport();
+}
+
+function loadReportPdfLibrary() {
+    if (window.jspdf && window.jspdf.jsPDF) return Promise.resolve(window.jspdf.jsPDF);
+    if (reportPdfLibraryLoading) return reportPdfLibraryLoading;
+
+    reportPdfLibraryLoading = new Promise((resolve, reject) => {
+        const urls = [
+            'https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js',
+            'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
+        ];
+        let index = 0;
+        const script = document.createElement('script');
+        const tryNext = () => {
+            if (index >= urls.length) {
+                reject(new Error('Could not load the PDF generator from available CDNs'));
+                return;
+            }
+            script.src = urls[index++];
+        };
+        script.onload = () => {
+            if (window.jspdf && window.jspdf.jsPDF) {
+                resolve(window.jspdf.jsPDF);
+            } else {
+                script.onerror();
+            }
+        };
+        script.onerror = tryNext;
+        tryNext();
+        document.head.appendChild(script);
+    }).catch(error => {
+        reportPdfLibraryLoading = null;
+        throw error;
+    });
+
+    return reportPdfLibraryLoading;
+}
+
+async function downloadReportPDF() {
+    const start = document.getElementById('reportStart').value;
+    const end = document.getElementById('reportEnd').value;
+    if (!start || !end || start > end) {
+        showToast('Select a valid report date range', 'error');
+        return;
+    }
+
+    try {
+        showToast('Preparing PDF report...', 'info');
+        const jsPDF = await loadReportPdfLibrary();
+        const [sales, allExpenses, allSaleItems] = await Promise.all([
+            db.getSalesByDateRange(start, end),
+            db.getAll('expenses'),
+            db.getAll('saleItems')
+        ]);
+        const periodSales = (sales || []).filter(sale => {
+            const date = String(sale.date || sale.sale_date || '').slice(0, 10);
+            return date >= start && date <= end;
+        });
+        const periodExpenses = (allExpenses || []).filter(expense => {
+            const date = String(expense.date || expense.expense_date || '').slice(0, 10);
+            return date >= start && date <= end;
+        });
+        const saleIds = new Set(periodSales.map(sale => sale.id));
+        const periodItems = (allSaleItems || []).filter(item => saleIds.has(item.saleId || item.sale_id));
+        const totalSales = periodSales.reduce((sum, sale) => sum + (Number(sale.total) || 0), 0);
+        const totalExpenses = periodExpenses.reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0);
+        const byPaymentMethod = {};
+        const byDay = {};
+        const productTotals = {};
+        const productMap = new Map((products || []).map(product => [product.id, product]));
+
+        periodSales.forEach(sale => {
+            const method = String(sale.method || 'cash').toUpperCase();
+            byPaymentMethod[method] = (byPaymentMethod[method] || 0) + (Number(sale.total) || 0);
+            const date = String(sale.date || sale.sale_date || '').slice(0, 10);
+            byDay[date] = (byDay[date] || 0) + (Number(sale.total) || 0);
+        });
+        periodItems.forEach(item => {
+            const product = productMap.get(item.productId || item.product_id);
+            const name = item.name || item.product_name || (product && product.name) || 'Unknown product';
+            const quantity = Number(item.quantity) || 0;
+            const price = Number(item.price || item.selling_price) || 0;
+            if (!productTotals[name]) productTotals[name] = { quantity: 0, revenue: 0 };
+            productTotals[name].quantity += quantity;
+            productTotals[name].revenue += quantity * price;
+        });
+
+        const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        const margin = 14;
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const contentWidth = pageWidth - margin * 2;
+        let y = 18;
+        const plainText = value => String(value == null ? '' : value)
+            .normalize('NFKD')
+            .replace(/[^\x20-\x7E]/g, '');
+        const money = value => 'KES ' + (Number(value) || 0).toLocaleString('en-KE', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+        const ensureSpace = height => {
+            if (y + height > pageHeight - margin) {
+                doc.addPage();
+                y = margin;
+            }
+        };
+        const writeLine = (text, options = {}) => {
+            const fontSize = options.fontSize || 9;
+            doc.setFont('helvetica', options.bold ? 'bold' : 'normal');
+            doc.setFontSize(fontSize);
+            doc.setTextColor(15, 23, 42);
+            const lines = doc.splitTextToSize(plainText(text), contentWidth);
+            const lineHeight = fontSize * 0.45;
+            lines.forEach(line => {
+                ensureSpace(lineHeight + 1);
+                doc.text(line, margin, y);
+                y += lineHeight;
+            });
+            y += options.gap === undefined ? 2 : options.gap;
+        };
+        const writeSection = title => {
+            ensureSpace(12);
+            doc.setFillColor(11, 110, 79);
+            doc.rect(margin, y - 4, contentWidth, 8, 'F');
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(10);
+            doc.setTextColor(255, 255, 255);
+            doc.text(plainText(title), margin + 2, y + 1.5);
+            y += 10;
+        };
+
+        const pharmacyName = document.getElementById('shopName').value || 'Dawa Smart';
+        const pharmacyAddress = document.getElementById('shopAddress').value || '';
+        const periodName = activeReportPeriod.charAt(0).toUpperCase() + activeReportPeriod.slice(1);
+        doc.setProperties({ title: pharmacyName + ' ' + periodName + ' Report' });
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(18);
+        doc.setTextColor(11, 110, 79);
+        doc.text(plainText(pharmacyName), margin, y);
+        y += 8;
+        writeLine(periodName + ' Sales Report', { fontSize: 13, bold: true, gap: 1 });
+        writeLine('Period: ' + start + ' to ' + end);
+        if (pharmacyAddress) writeLine(pharmacyAddress);
+        writeLine('Generated: ' + new Date().toLocaleString('en-GB'), { fontSize: 8, gap: 5 });
+
+        writeSection('FINANCIAL SUMMARY');
+        writeLine('Transactions: ' + periodSales.length);
+        writeLine('Total sales: ' + money(totalSales));
+        writeLine('Expenses: ' + money(totalExpenses));
+        writeLine('Profit (sales less expenses): ' + money(totalSales - totalExpenses), { bold: true, gap: 5 });
+
+        writeSection('SALES BY PAYMENT METHOD');
+        const paymentRows = Object.entries(byPaymentMethod);
+        if (paymentRows.length) {
+            paymentRows.forEach(([method, amount]) => writeLine(method + ': ' + money(amount), { gap: 1 }));
+        } else {
+            writeLine('No sales recorded in this period.', { gap: 1 });
+        }
+        y += 4;
+
+        writeSection('TOP PRODUCTS');
+        const topProducts = Object.entries(productTotals)
+            .sort((a, b) => b[1].revenue - a[1].revenue)
+            .slice(0, 10);
+        if (topProducts.length) {
+            topProducts.forEach(([name, data], index) => {
+                writeLine((index + 1) + '. ' + name + ' - ' + data.quantity + ' sold - ' + money(data.revenue), { gap: 1 });
+            });
+        } else {
+            writeLine('No product sales recorded in this period.', { gap: 1 });
+        }
+        y += 4;
+
+        writeSection('DAILY SALES');
+        const dailyRows = Object.entries(byDay).sort((a, b) => a[0].localeCompare(b[0]));
+        if (dailyRows.length) {
+            dailyRows.forEach(([date, amount]) => writeLine(date + ': ' + money(amount), { gap: 1 }));
+        } else {
+            writeLine('No daily sales recorded in this period.', { gap: 1 });
+        }
+        y += 4;
+
+        writeSection('EXPENSES');
+        if (periodExpenses.length) {
+            periodExpenses.forEach(expense => {
+                const date = String(expense.date || expense.expense_date || '').slice(0, 10);
+                writeLine(date + ' - ' + (expense.type || 'General') + ' - ' + money(expense.amount) +
+                    (expense.description ? ' - ' + expense.description : ''), { fontSize: 8, gap: 1 });
+            });
+        } else {
+            writeLine('No expenses recorded in this period.', { gap: 1 });
+        }
+
+        const filePeriod = activeReportPeriod === 'custom' ? 'custom' : activeReportPeriod;
+        doc.save('DawaSmart_' + filePeriod + '_' + start + '_to_' + end + '.pdf');
+        showToast('PDF report downloaded', 'success');
+    } catch (error) {
+        console.error('[Reports] PDF download failed:', error);
+        showToast('Could not download PDF: ' + error.message, 'error');
+    }
+}
 function generateCustomReport(){ const start=document.getElementById('reportStart').value; const end=document.getElementById('reportEnd').value; if(!start||!end){showToast('Select dates','error');return;} Promise.all([db.getSalesByDateRange(start,end), db.getAll('expenses'), db.getAll('saleItems')]).then(([sales, expenses, saleItems]) => { const totalRevenue=sales.reduce((sum,s)=>sum+(s.total||0),0); const totalExpenses=expenses.filter(e=>e.date&&e.date>=start&&e.date<=end).reduce((sum,e)=>sum+e.amount,0); const profit=totalRevenue-totalExpenses; const container=document.getElementById('reportResults'); let productSales=[]; saleItems.forEach(item => { const existing=productSales.find(p=>p.productId===item.productId); if(existing){existing.sold+=item.quantity;existing.revenue+=item.price*item.quantity;}else{const product=products.find(p=>p.id===item.productId);productSales.push({productId:item.productId,name:product?product.name:item.name||'Unknown',sold:item.quantity,revenue:item.price*item.quantity});}}); const top=productSales.sort((a,b)=>b.revenue-a.revenue).slice(0,10); const methods={};sales.forEach(s=>{const m=s.method||'cash';methods[m]=(methods[m]||0)+s.total;}); const daily={};sales.forEach(s=>{const d=s.date.split('T')[0];daily[d]=(daily[d]||0)+s.total;}); const dailyArr=Object.entries(daily).sort(); if(sales.length === 0) { container.innerHTML = '<div class="empty" style="padding:40px;"><i class="fas fa-chart-bar" style="font-size:48px;"></i><p style="margin-top:12px;font-size:16px;font-weight:600;color:#1e293b;">No Sales Data</p><p style="color:#94a3b8;">Start making sales to see reports and analytics here.</p></div>'; return; } container.innerHTML='<div class="stats-grid">'+ '<div class="stat-card"><div class="number">'+sales.length+'</div><div class="label">Sales</div></div>'+ '<div class="stat-card"><div class="number">'+formatCurrency(totalRevenue)+'</div><div class="label">Revenue</div></div>'+ '<div class="stat-card"><div class="number">'+formatCurrency(totalExpenses)+'</div><div class="label">Expenses</div></div>'+ '<div class="stat-card"><div class="number" style="color:'+(profit>=0?'#16a34a':'#dc2626')+';">'+formatCurrency(profit)+'</div><div class="label">Profit</div></div></div>'+ '<div class="report-section" style="margin-top:12px;"><h3 style="font-size:14px;color:#0f172a;">🏆 Top Products</h3>'+(top.length===0?'<p>No sales</p>':'')+'<table style="width:100%;border-collapse:collapse;font-size:12px;"><thead><tr style="background:#f1f5f9;"><th style="padding:6px 8px;text-align:left;">Product</th><th style="padding:6px 8px;text-align:left;">Sold</th><th style="padding:6px 8px;text-align:left;">Revenue</th></tr></thead><tbody>'+top.map(p=>'<tr><td style="padding:6px 8px;border-bottom:1px solid #f1f5f9;">'+p.name+'</td><td style="padding:6px 8px;border-bottom:1px solid #f1f5f9;">'+p.sold+'</td><td style="padding:6px 8px;border-bottom:1px solid #f1f5f9;">'+formatCurrency(p.revenue)+'</td></tr>').join('')+'</tbody></table></div>'+ '<div class="report-section" style="margin-top:12px;"><h3 style="font-size:14px;color:#0f172a;">💳 Payment Methods</h3>'+(Object.keys(methods).length===0?'<p>No data</p>':'')+'<table style="width:100%;border-collapse:collapse;font-size:12px;"><thead><tr style="background:#f1f5f9;"><th style="padding:6px 8px;text-align:left;">Method</th><th style="padding:6px 8px;text-align:left;">Amount</th></tr></thead><tbody>'+Object.entries(methods).map(m=>'<tr><td style="padding:6px 8px;border-bottom:1px solid #f1f5f9;">'+m[0].toUpperCase()+'</td><td style="padding:6px 8px;border-bottom:1px solid #f1f5f9;">'+formatCurrency(m[1])+'</td></tr>').join('')+'</tbody></table></div>'+ (dailyArr.length?'<div class="report-section" style="margin-top:12px;"><h3 style="font-size:14px;color:#0f172a;">📊 Daily Summary</h3><table style="width:100%;border-collapse:collapse;font-size:12px;"><thead><tr style="background:#f1f5f9;"><th style="padding:6px 8px;text-align:left;">Date</th><th style="padding:6px 8px;text-align:left;">Revenue</th></tr></thead><tbody>'+dailyArr.map(d=>'<tr><td style="padding:6px 8px;border-bottom:1px solid #f1f5f9;">'+formatDate(d[0])+'</td><td style="padding:6px 8px;border-bottom:1px solid #f1f5f9;">'+formatCurrency(d[1])+'</td></tr>').join('')+'</tbody></table></div>':''); if (isEditor() && sales.length > 0) { container.innerHTML += '<div style="margin-top:16px;"><button class="btn btn-blue" onclick="showRecentSales()"><i class="fas fa-clock"></i> View All Sales</button></div>'; } }); }
 function printReport(){const content=document.getElementById('reportResults');const pw=window.open('','_blank','width=800,height=600');if(pw){pw.document.write('<html><head><title>Dawa Smart Report</title><style>body{font-family:Arial;padding:20px;font-size:13px;}table{width:100%;border-collapse:collapse;}th,td{padding:6px 8px;border:1px solid #ddd;text-align:left;}th{background:#f5f5f5;}</style></head><body><h1>Dawa Smart – Sales Report</h1><p><strong>📍 '+document.getElementById('shopAddress').value+'</strong></p>'+content.innerHTML+'<p style="margin-top:16px;color:#64748b;font-size:11px;">Generated: '+new Date().toLocaleString()+'</p><button onclick="window.print()" style="padding:8px 16px;margin:8px 0;background:#0b6e4f;color:#fff;border:none;border-radius:5px;cursor:pointer;">Print</button></body></html>');pw.document.close();}}
 function generateKRAeTIMS(){ const start=document.getElementById('reportStart').value; const end=document.getElementById('reportEnd').value; if(!start||!end){showToast('Select date range','error');return;} db.getSalesByDateRange(start,end).then(sales=>{ if(sales.length === 0) { showToast('No sales data for this period','warning'); return; } const total=sales.reduce((sum,s)=>sum+(s.total||0),0); const vat=sales.reduce((sum,s)=>sum+((s.vat||0)),0); const kraData={period:{from:start,to:end},totalSales:sales.length,totalRevenue:total,totalVAT:vat,sales:sales.map(s=>({receipt:s.receiptNumber,date:s.date,amount:s.total,method:s.method,customer:s.customer,customerPhone:s.customerPhone,isBackdated:s.isBackdated||false,negotiated:s.negotiated||false}))}; const blob=new Blob([JSON.stringify(kraData,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a');a.href=url;a.download='kra-etims-'+start+'-to-'+end+'.json';a.click();URL.revokeObjectURL(url); showToast('📄 KRA eTIMS report exported (JSON)','success'); }); }
@@ -3676,7 +3920,7 @@ function setupNav(){
             if(this.dataset.page==='analysis')loadProfessionalAnalysis('daily');
             if(this.dataset.page==='credits')loadCreditDashboard();
             if(this.dataset.page==='drugdb')renderDrugSearchResultsMain();
-            if(this.dataset.page==='reports'){const now=new Date();document.getElementById('reportStart').value=new Date(now.getFullYear(),now.getMonth(),1).toISOString().split('T')[0];document.getElementById('reportEnd').value=now.toISOString().split('T')[0];generateCustomReport();}
+            if(this.dataset.page==='reports')loadReport('monthly');
             if(this.dataset.page==='pos'){loadProductSearch();loadCustomers();updateStats();updateProductGrid();}
         });
     });
