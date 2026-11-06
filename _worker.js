@@ -4,6 +4,11 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
+    if (url.pathname === '/app.html') {
+      url.pathname = '/app';
+      return env.ASSETS.fetch(new Request(url, request));
+    }
+
     if (url.pathname === '/api' || url.pathname.startsWith('/api/')) {
       url.protocol = API_ORIGIN.protocol;
       url.hostname = API_ORIGIN.hostname;
