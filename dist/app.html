@@ -78,6 +78,10 @@
     .section-title{text-align:center;font-size:14px;font-weight:700;color:#0f172a;margin:20px 0 12px;text-transform:uppercase;letter-spacing:0.5px}
     .section-subtitle{text-align:center;font-size:12px;color:#64748b;margin-bottom:24px}
     .error-msg{background:#fee2e2;color:#b91c1c;padding:10px;border-radius:10px;margin-bottom:16px;display:none;font-size:13px;text-align:center}
+    .error-msg.show{display:block}
+    .login-support-link{display:none;margin:-8px 0 16px;text-align:center;font-size:13px}
+    .login-support-link.show{display:block}
+    .login-support-link a{color:#0b6e4f;font-weight:600}
     .app-container{display:none;background:#f4f7fc;min-height:100vh}
     .app-container.show{display:block}
     .header{background:linear-gradient(135deg,#0b6e4f,#064e3b);color:#fff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;position:sticky;top:0;z-index:100}
@@ -401,6 +405,7 @@
     <!-- LOGIN FORM -->
     <div id="login" style="background:#f8fafc;border-radius:16px;padding:24px;border:1px solid #e2e8f0">
       <div id="loginError" class="error-msg" role="alert" aria-live="assertive"></div>
+      <p id="loginSupportLink" class="login-support-link">Need help? <a href="https://wa.me/254759324463?text=Hello%2C%20I%20need%20help%20with%20my%20Dawa%20Smart%20login." target="_blank" rel="noopener noreferrer">Contact your administrator on WhatsApp</a> or call <a href="tel:+254759324463">0759 324 463</a>.</p>
       <div id="loginForm">
         <div class="demo-badge-container" style="background:#f0fdf4;border:2px solid #16a34a;border-radius:16px;padding:14px 16px;margin:14px 0;text-align:center;">
           <div style="font-size:13px;font-weight:700;color:#15803d">14-DAY FREE DEMO</div>
@@ -1855,7 +1860,9 @@ async function handleLogin(){
     var username = document.getElementById('loginUsername').value.trim();
     var password = document.getElementById('loginPassword').value.trim();
     var errorEl = document.getElementById('loginError');
+    var supportEl = document.getElementById('loginSupportLink');
     errorEl.className='error-msg';
+    supportEl.className='login-support-link';
     if(!username || !password){errorEl.textContent='Please enter both fields';errorEl.className='error-msg show';return;}
 
     // Prefer Worker authentication; locally managed users are checked below
@@ -1870,8 +1877,9 @@ async function handleLogin(){
     var user = authResult && authResult.success ? authResult.user : findUser(username,password);
     if(!user || user.status !== 'active'){
         loginAttempts++;
-        errorEl.textContent='Wrong username or password. Please check your credentials and try again. Attempt '+loginAttempts+'/5';
+        errorEl.textContent='Wrong username or password. Please check your credentials and try again. Attempt '+loginAttempts+'/5.';
         errorEl.className='error-msg show';
+        supportEl.className='login-support-link show';
         if(loginAttempts>=5){
             errorEl.textContent='Too many attempts. Login is locked for 30 seconds.';
             document.getElementById('loginUsername').disabled = true;
@@ -1887,7 +1895,7 @@ async function handleLogin(){
         return;
     }
 
-    if(!user.verified){errorEl.textContent='⚠️ Account not verified. Contact developer.';errorEl.className='error-msg show';return;}
+    if(!user.verified){errorEl.textContent='⚠️ Account not verified. Contact your administrator.';errorEl.className='error-msg show';supportEl.className='login-support-link show';return;}
 
      // === DEMO LICENSE ENFORCEMENT ===
      // Each DEMO login gets a fresh 14-day trial. If the trial on this
