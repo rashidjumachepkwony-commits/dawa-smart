@@ -29,5 +29,5 @@
 /*.eot  /:splat  200
 
 # App routes
-/app.html  /app  301
+/app.html  /app  200
 /app*  /app  200
