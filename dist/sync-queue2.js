@@ -101,6 +101,10 @@
   }
 
   function enqueueOperation(entity, operation, recordId, payload) {
+    if (typeof window.isDemo === 'function' && window.isDemo()) {
+      return null;
+    }
+
     const queue = getQueue();
     const entry = {
       id: generateSyncId(),
@@ -168,6 +172,11 @@
     return navigator.onLine;
   }
 
+  function isPermanentSyncError(error) {
+    const message = error && error.message ? error.message : String(error || '');
+    return /\b403\b|Role .+ cannot |not found or not in your workspace|Entity not allowed|Operation not allowed/i.test(message);
+  }
+
   function setupConnectionListeners() {
     window.addEventListener('online', () => {
       console.log('[Dawa Smart Sync] Connection restored');
@@ -219,7 +228,14 @@
     let failed = 0;
 
     for (const op of queue) {
-      if (op.status === 'completed' || op.status === 'syncing') {
+      if (op.status === 'completed' || op.status === 'syncing' || op.status === 'failed') {
+        continue;
+      }
+
+      if (isPermanentSyncError(op.error)) {
+        op.status = 'failed';
+        saveQueue(queue);
+        failed++;
         continue;
       }
 
@@ -241,7 +257,7 @@
         console.error('[Dawa Smart Sync] Failed to sync operation:', op, error);
         op.error = error.message || String(error);
         op.attempt++;
-        if (op.attempt >= MAX_RETRIES) {
+        if (isPermanentSyncError(error) || op.attempt >= MAX_RETRIES) {
           op.status = 'failed';
           saveQueue(queue);
           failed++;
