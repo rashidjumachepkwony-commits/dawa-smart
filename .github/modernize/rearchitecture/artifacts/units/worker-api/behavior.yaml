@@ -1,0 +1,62 @@
+unit: worker-api
+side_effects:
+  - source_loc: "worker.js:288"
+    effect: "Verify bearer JWTs and derive the authenticated user and pharmacy context for protected routes."
+    must_preserve: true
+  - source_loc: "worker.js:817"
+    effect: "Apply entity allowlists, role permissions, protected-column filtering, pharmacy assignment, ownership checks, and Supabase REST writes for sync operations."
+    must_preserve: true
+  - source_loc: "worker.js:1224"
+    effect: "Initiate Daraja STK Push and persist transaction state in Supabase."
+    must_preserve: true
+  - source_loc: "worker.js:1414"
+    effect: "Accept Daraja callback data and update the associated transaction."
+    must_preserve: true
+branches:
+  - source_loc: "worker.js:63"
+    condition: "Request path is /api/health or /api/config"
+    behavior: "Return public health/configuration JSON without requiring JWT authentication."
+    must_preserve: true
+  - source_loc: "worker.js:97"
+    condition: "Request path is a pharmacy or invitation route"
+    behavior: "Require a valid Worker JWT and perform the corresponding workspace/member action."
+    must_preserve: true
+  - source_loc: "worker.js:134"
+    condition: "Sync request omits an operations array or mixes pharmacy contexts"
+    behavior: "Return HTTP 400 for malformed operations or HTTP 403 for workspace mixing."
+    must_preserve: true
+  - source_loc: "worker.js:872"
+    condition: "Sync operation entity is not in ALLOWED_ENTITIES"
+    behavior: "Reject the operation; current allowlist uses snake_case names while the SPA queue sends several camelCase IndexedDB store names."
+    must_preserve: true
+  - source_loc: "worker.js:141"
+    condition: "Caller requests admin lists without the developer role"
+    behavior: "Return HTTP 403."
+    must_preserve: true
+  - source_loc: "worker.js:178"
+    condition: "Request targets an M-Pesa endpoint"
+    behavior: "Route to the corresponding authenticated configuration, test, STK, status, transaction-list, or public callback handler."
+    must_preserve: true
+error_paths:
+  - source_loc: "worker.js:201"
+    trigger: "Request does not match a supported route/method"
+    outcome: "Return HTTP 404 with {error:'Not found'}."
+    contract: "JSON error payload and HTTP 404."
+    must_preserve: true
+  - source_loc: "worker.js:205"
+    trigger: "A route handler throws"
+    outcome: "Log the error and return HTTP 500 with {error:'Internal server error'}."
+    contract: "JSON error payload and HTTP 500."
+    must_preserve: true
+  - source_loc: "worker.js:868"
+    trigger: "Sync operation has an unsupported entity/operation, insufficient role, invalid ownership, or invalid parent"
+    outcome: "Count that operation as failed and include its error in the batch result; continue processing later operations."
+    contract: "HTTP 200 batch envelope with processed/succeeded/failed/errors for per-item failures."
+    must_preserve: true
+concurrency:
+  model: async
+  tx_boundary:
+    source_loc: "worker.js:817"
+    scope: "The HTTP sync batch loops through operations and issues separate Supabase REST requests; the inspected handler does not wrap the full batch in a database transaction."
+    isolation: "Not specified by the Worker; PostgreSQL statement/function semantics apply per request."
+    must_preserve: true

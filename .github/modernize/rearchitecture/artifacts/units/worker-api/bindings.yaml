@@ -1,0 +1,45 @@
+unit: worker-api
+bindings:
+  - type: route-declaration
+    name: "Cloudflare Worker export default fetch"
+    source_loc: "worker.js:34"
+    target: "HTTP request dispatcher"
+    must_appear_in_target: true
+    notes: "Dispatch is implemented as explicit path/method conditionals."
+  - type: convention
+    name: "JWT Authorization header"
+    source_loc: "worker.js:288"
+    target: "requireAuth"
+    must_appear_in_target: true
+    notes: "Protected routes derive role and pharmacy context from the verified token."
+  - type: convention
+    name: "Supabase REST service-role access"
+    source_loc: "worker.js:339"
+    target: "supabaseFetch"
+    must_appear_in_target: true
+    notes: "Uses Worker environment bindings, not browser-exposed service-role credentials."
+runtime_config:
+  - key: "SUPABASE_URL"
+    source_loc: "worker.js:339"
+    source: env
+    default_value: "wrangler.toml [vars]"
+    must_appear_in_target: true
+    notes: "Supabase REST/auth base URL."
+  - key: "SUPABASE_SERVICE_ROLE"
+    source_loc: "worker.js:339"
+    source: env
+    default_value: null
+    must_appear_in_target: true
+    notes: "Worker secret used for privileged PostgREST access."
+  - key: "JWT_SECRET"
+    source_loc: "worker.js:227"
+    source: env
+    default_value: null
+    must_appear_in_target: true
+    notes: "Worker JWT signing and verification secret."
+  - key: "Daraja credentials and environment"
+    source_loc: "worker.js:1047"
+    source: database
+    default_value: "SANDBOX when configured by the database schema"
+    must_appear_in_target: true
+    notes: "Tenant-specific credentials are read from mpesa_configs."

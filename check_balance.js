@@ -1,30 +1,14 @@
 const fs = require('fs');
-const content = fs.readFileSync('extracted.js', 'utf8');
-let brace = 0, paren = 0, bracket = 0;
-let inTemplate = false, inSingle = false, inDouble = false;
-
-for (let i = 0; i < content.length; i++) {
-    let ch = content[i];
-    if (inTemplate) {
-        if (ch === '`') inTemplate = false;
-        continue;
+const content = fs.readFileSync('supabase/migrations/20240101000003_fix_auth_user_id_type.sql', 'utf8');
+const statements = content.split(';');
+statements.forEach((s, i) => {
+  const trimmed = s.trim();
+  if (trimmed && !trimmed.startsWith('--')) {
+    const paren = (trimmed.match(/\(/g)||[]).length - (trimmed.match(/\)/g)||[]).length;
+    const brace = (trimmed.match(/\{/g)||[]).length - (trimmed.match(/\}/g)||[]).length;
+    if (paren !== 0 || brace !== 0) {
+      console.log('Stmt', i, 'unbalanced: paren=', paren, 'brace=', brace, ':', trimmed.substring(0, 100));
     }
-    if (inSingle) {
-        if (ch === "'" && content[i-1] !== '\\') inSingle = false;
-        continue;
-    }
-    if (inDouble) {
-        if (ch === '"' && content[i-1] !== '\\') inDouble = false;
-        continue;
-    }
-    if (ch === '`') { inTemplate = true; continue; }
-    if (ch === "'") { inSingle = true; continue; }
-    if (ch === '"') { inDouble = true; continue; }
-    if (ch === '{') brace++;
-    if (ch === '}') brace--;
-    if (ch === '(') paren++;
-    if (ch === ')') paren--;
-    if (ch === '[') bracket++;
-    if (ch === ']') bracket--;
-}
-console.log('brace:', brace, 'paren:', paren, 'bracket:', bracket);
+  }
+});
+console.log('Total statements:', statements.length);

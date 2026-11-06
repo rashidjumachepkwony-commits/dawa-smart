@@ -1,0 +1,4 @@
+unit: marketing-site
+bindings: []
+reason: "Static HTML landing page; no application framework or route declarations are present."
+runtime_config: []

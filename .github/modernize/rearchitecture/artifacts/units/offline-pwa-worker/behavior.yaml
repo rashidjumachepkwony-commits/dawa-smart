@@ -1,0 +1,36 @@
+unit: offline-pwa-worker
+side_effects:
+  - source_loc: "dist/sw2.js:44"
+    effect: "Cache the application shell on installation and immediately activate the new worker."
+    must_preserve: true
+  - source_loc: "dist/sw2.js:72"
+    effect: "Remove older caches with the Dawa Smart cache prefix and claim clients."
+    must_preserve: true
+  - source_loc: "dist/sw2.js:191"
+    effect: "On the dawa-smart-sync background event, notify application clients to process the local queue."
+    must_preserve: true
+branches:
+  - source_loc: "dist/sw2.js:95"
+    condition: "Request is cross-origin"
+    behavior: "Only handle configured font/icon CDN requests with network-first and cache fallback; do not intercept other cross-origin requests."
+    must_preserve: true
+  - source_loc: "dist/sw2.js:122"
+    condition: "Request is HTML"
+    behavior: "Use network-first with cached HTML and app.html fallback."
+    must_preserve: true
+  - source_loc: "dist/sw2.js:147"
+    condition: "Request is a static asset"
+    behavior: "Use cache-first with network update; return an empty 404 response if an uncached asset cannot be fetched."
+    must_preserve: true
+  - source_loc: "dist/sw2.js:168"
+    condition: "Request is API/dynamic or other same-origin content"
+    behavior: "Send the request to the network."
+    must_preserve: true
+error_paths:
+  - source_loc: "dist/sw2.js:64"
+    trigger: "Service Worker installation or shell cache population fails"
+    outcome: "Log the installation failure; do not report a successful cache population."
+    contract: "Browser Service Worker lifecycle failure."
+    must_preserve: true
+concurrency:
+  model: async

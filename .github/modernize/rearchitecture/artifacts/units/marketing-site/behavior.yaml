@@ -1,0 +1,14 @@
+unit: marketing-site
+side_effects: []
+branches:
+  - source_loc: "index.html:44"
+    condition: "Visitor selects the app call-to-action"
+    behavior: "Navigate to app.html"
+    must_preserve: true
+  - source_loc: "index.html:38"
+    condition: "Visitor selects an in-page navigation link"
+    behavior: "Navigate to the corresponding landing-page fragment"
+    must_preserve: true
+error_paths: []
+concurrency:
+  model: sync

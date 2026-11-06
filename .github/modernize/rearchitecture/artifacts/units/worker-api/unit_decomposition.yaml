@@ -1,0 +1,21 @@
+unit: worker-api
+commit: false
+candidate_splits:
+  - id: "worker.js:370-816"
+    drivers: [concern_split, lifecycle_split]
+    rationale: "Registration, local authentication, workspace membership, invitation actions, and pharmacy creation form a distinct auth/workspace concern."
+    source_slice:
+      file: "worker.js"
+      lines: [370, 816]
+  - id: "worker.js:817-1039"
+    drivers: [concern_split, data_ownership_split]
+    rationale: "Synchronization, role/ownership validation, entity policy, and developer-only list operations form a separate persistence boundary."
+    source_slice:
+      file: "worker.js"
+      lines: [817, 1039]
+  - id: "worker.js:1040-1542"
+    drivers: [protocol_split, concern_split]
+    rationale: "Daraja OAuth, STK requests, provider callbacks, and transaction management are an external payment integration with distinct protocol behavior."
+    source_slice:
+      file: "worker.js"
+      lines: [1040, 1542]

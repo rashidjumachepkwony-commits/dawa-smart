@@ -1,0 +1,21 @@
+unit: pharmacy-spa
+commit: false
+candidate_splits:
+  - id: "app.html:348-581"
+    drivers: [concern_split]
+    rationale: "Login state, POS controls, checkout interactions, and shared app initialization are combined in the single HTML application."
+    source_slice:
+      file: "app.html"
+      lines: [348, 581]
+  - id: "app.html:582-761"
+    drivers: [concern_split, data_ownership_split]
+    rationale: "Inventory/pricing/expense/analysis/credit/patient/lab screen concerns occupy distinct user-visible areas but share one DOM and global state."
+    source_slice:
+      file: "app.html"
+      lines: [582, 761]
+  - id: "app.html:762-1016"
+    drivers: [concern_split, lifecycle_split]
+    rationale: "User administration, drug search, reports, settings, and admin screens have separate access and lifecycle behavior within the same page."
+    source_slice:
+      file: "app.html"
+      lines: [762, 1016]

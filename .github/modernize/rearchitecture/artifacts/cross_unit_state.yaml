@@ -1,0 +1,30 @@
+flows:
+  - name: "Worker bearer token and pharmacy claim"
+    medium: jwt-claim
+    key: "Authorization: Bearer <token>; pharmacyId claim"
+    writer:
+      unit: pharmacy-spa
+      source_loc: "tenant2.js:209"
+    reader:
+      unit: worker-api
+      source_loc: "worker.js:288"
+    pairing: matched
+    must_preserve: true
+    must_confirm: null
+    verification_hint: "Authenticate and switch workspaces; confirm subsequent Worker requests carry a valid token and use the selected pharmacy claim."
+    notes: "The tenant module saves the Worker token and adds it to protected requests; the Worker verifies the token and uses its user/pharmacy context."
+
+  - name: "Background sync event to application client"
+    medium: framework-context
+    key: "dawa-smart-sync / SYNC_REQUEST"
+    writer:
+      unit: offline-pwa-worker
+      source_loc: "dist/sw2.js:199"
+    reader:
+      unit: pharmacy-spa
+      source_loc: "app.html:1028"
+    pairing: unmatched-writer
+    must_preserve: true
+    must_confirm: runtime
+    verification_hint: "Trigger Background Sync with the app open and verify the intended client receives SYNC_REQUEST and drains pending operations."
+    notes: "The service worker posts this message to clients, but no matching message listener was found in app.html or sync-queue2.js. The SPA registers the service worker and has separate online-event queue draining."

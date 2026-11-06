@@ -1,0 +1,45 @@
+unit: pharmacy-spa
+side_effects:
+  - source_loc: "app.html:1402"
+    effect: "Persist application records in IndexedDB stores; add/update/delete operations may enqueue synchronization operations."
+    must_preserve: true
+  - source_loc: "sync-queue2.js:144"
+    effect: "Drain queued operations to the Worker when online and update the sync-status state/events."
+    must_preserve: true
+  - source_loc: "tenant2.js:209"
+    effect: "Authenticate through the Worker and persist the bearer token, membership, and current pharmacy context."
+    must_preserve: true
+branches:
+  - source_loc: "app.html:429"
+    condition: "User selects an in-app data-page navigation button"
+    behavior: "Show the selected feature screen; available screens include POS, inventory, patients, lab, reports, settings, and admin."
+    must_preserve: true
+  - source_loc: "app.html:1373"
+    condition: "Browser database opens or requires an upgrade"
+    behavior: "Open IndexedDB database YetuPharmcareDB at version 5 and create the declared data stores when absent."
+    must_preserve: true
+  - source_loc: "sync-queue2.js:144"
+    condition: "Browser is offline or no Supabase client is available"
+    behavior: "Keep locally persisted operations and report offline/local-only sync state rather than sending them."
+    must_preserve: true
+  - source_loc: "app.html:1028"
+    condition: "Browser supports Service Workers"
+    behavior: "Register /sw2.js with root scope and request update activation when a waiting worker exists."
+    must_preserve: true
+  - source_loc: "sync-queue2.js:236"
+    condition: "Sync code forwards the local store/entity name unchanged in the Worker request"
+    behavior: "The Worker rejects unsupported entities, including several camelCase store names and users; the queue records the failure rather than acknowledging the write."
+    must_preserve: true
+error_paths:
+  - source_loc: "app.html:3785"
+    trigger: "Application initialization rejects"
+    outcome: "Log the initialization error and show an error toast."
+    contract: "User-visible toast; no HTTP contract"
+    must_preserve: true
+  - source_loc: "sync-queue2.js:270"
+    trigger: "Missing bearer token, non-OK Worker response, or failed operation result such as an unsupported entity"
+    outcome: "Keep the operation queued and record retry/error state."
+    contract: "Queue retries are bounded by MAX_RETRIES in the sync module."
+    must_preserve: true
+concurrency:
+  model: async

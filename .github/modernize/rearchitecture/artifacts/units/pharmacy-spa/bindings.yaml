@@ -1,0 +1,39 @@
+unit: pharmacy-spa
+bindings:
+  - type: convention
+    name: "data-page navigation buttons and page-{name} sections"
+    source_loc: "app.html:429"
+    target: "SPA screen selection"
+    must_appear_in_target: true
+    notes: "Navigation and page sections are declared in the single HTML document."
+  - type: convention
+    name: "IndexedDB database and object stores"
+    source_loc: "app.html:1373"
+    target: "db.init and db CRUD operations"
+    must_appear_in_target: true
+    notes: "Browser-local persistence is the offline data layer."
+  - type: convention
+    name: "Worker bearer-token API calls"
+    source_loc: "tenant2.js:209"
+    target: "DawaTenant authentication and API methods"
+    must_appear_in_target: true
+    notes: "Tenant module keeps the token and active workspace in localStorage."
+  - type: convention
+    name: "Service Worker registration"
+    source_loc: "app.html:1028"
+    target: "/sw2.js"
+    must_appear_in_target: true
+    notes: "The referenced file exists in dist/ but not at the repository root."
+runtime_config:
+  - key: "YetuPharmcareDB / version 5"
+    source_loc: "app.html:1373"
+    source: code
+    default_value: "version 5"
+    must_appear_in_target: true
+    notes: "IndexedDB database and schema version."
+  - key: "Worker API base URL"
+    source_loc: "tenant2.js:18"
+    source: code
+    default_value: "dawa-smart-api.rashidjumachepkwony.workers.dev"
+    must_appear_in_target: true
+    notes: "Hostname-based selection may choose a production custom domain."

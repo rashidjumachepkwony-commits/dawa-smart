@@ -1,0 +1,136 @@
+contracts:
+  - name: "Worker health and public configuration"
+    unit: worker-api
+    type: rest
+    stability: must_preserve
+    source_loc: "worker.js:63"
+    contract:
+      method: "GET"
+      path: "/api/health and /api/config"
+      request: "No body"
+      response: "Health status/timestamp/environment; public Supabase URL, anon key, environment, and feature flags"
+      error: "JSON error response for unhandled failures"
+      auth: "None"
+    target_contract:
+      method: "Existing GET endpoints remain JSON HTTP endpoints"
+      notes: "No replacement framework or migration target was requested; this records the current observable interface."
+    semantic_divergence: []
+
+  - name: "Local authentication and registration"
+    unit: worker-api
+    type: rest
+    stability: must_preserve
+    source_loc: "worker.js:86"
+    contract:
+      method: "POST"
+      path: "/api/auth/local and /api/auth/register"
+      request: "JSON credentials for local auth; registration fields for account/pharmacy creation"
+      response: "JSON user/pharmacy data and a signed bearer token with expiry"
+      error: "JSON error message with HTTP status"
+      auth: "Public endpoints"
+    target_contract:
+      method: "POST JSON endpoints returning the existing token/user/pharmacy response shape"
+      notes: "Request and response details are implemented in worker.js handlers; no separate OpenAPI schema is present."
+    semantic_divergence: []
+
+  - name: "Pharmacy workspace and invitation management"
+    unit: worker-api
+    type: rest
+    stability: must_preserve
+    source_loc: "worker.js:97"
+    contract:
+      method: "POST /api/pharmacies; GET /api/pharmacy/memberships; POST /api/pharmacy/switch; POST /api/pharmacy/invite; GET /api/invitations; POST /api/invitations/{id}/..."
+      path: "/api/pharmacies, /api/pharmacy/*, /api/invitations"
+      request: "JSON pharmacy, switch, invite, or invitation-action fields"
+      response: "JSON pharmacy, membership, invitation, or signed-token data"
+      error: "JSON error with authorization/validation status"
+      auth: "Bearer Worker JWT, except public auth routes"
+    target_contract:
+      method: "Existing HTTP methods and paths remain as listed"
+      notes: "The invitation action path is matched by prefix in the Worker."
+    semantic_divergence: []
+
+  - name: "Record synchronization"
+    unit: worker-api
+    type: rest
+    stability: must_preserve
+    source_loc: "worker.js:134"
+    contract:
+      method: "POST"
+      path: "/api/sync"
+      request: "JSON {operations:[{id,entity,operation,recordId,payload}]}"
+      response: "JSON {processed,succeeded,failed,errors}"
+      error: "HTTP 400 for malformed operations, 403 for workspace mixing; per-operation errors are returned in the result body"
+      auth: "Bearer Worker JWT; role/entity checks and pharmacy context are applied"
+    target_contract:
+      method: "POST /api/sync with the existing operation and result shapes"
+      notes: "Worker writes through Supabase REST; each operation is processed separately."
+    semantic_divergence: []
+
+  - name: "Developer administration"
+    unit: worker-api
+    type: rest
+    stability: must_preserve
+    source_loc: "worker.js:141"
+    contract:
+      method: "GET"
+      path: "/api/admin/pharmacies and /api/admin/members"
+      request: "No body"
+      response: "JSON lists of pharmacies or members"
+      error: "401 for invalid auth; 403 unless the authenticated role is developer"
+      auth: "Bearer Worker JWT with developer role"
+    target_contract:
+      method: "Existing GET endpoints remain developer-gated"
+      notes: "The role check is in the route dispatcher."
+    semantic_divergence: []
+
+  - name: "M-Pesa configuration and STK operations"
+    unit: worker-api
+    type: rest
+    stability: must_preserve
+    source_loc: "worker.js:160"
+    contract:
+      method: "GET/POST /api/mpesa/config; POST /api/mpesa/config/test; POST /api/mpesa/stk-push; POST /api/mpesa/transaction-status; GET /api/mpesa/transactions"
+      path: "/api/mpesa/*"
+      request: "JSON tenant configuration, phone/amount, or transaction lookup data"
+      response: "JSON sanitized configuration, Daraja result, or transaction list"
+      error: "JSON validation, authorization, provider, or persistence error"
+      auth: "Bearer Worker JWT except callback"
+    target_contract:
+      method: "Existing JSON Worker endpoints and methods remain"
+      notes: "Credentials are read/written server-side; secret/passkey fields are masked in returned configuration."
+    semantic_divergence: []
+
+  - name: "Safaricom Daraja integration"
+    unit: worker-api
+    type: sdk
+    stability: must_preserve
+    source_loc: "worker.js:1057"
+    contract:
+      method: "OAuth client-credentials GET; STK Push POST; STK status POST; callback POST"
+      path: "Safaricom sandbox or production Daraja API; callback at /api/mpesa/callback"
+      request: "Daraja JSON request structures with Basic OAuth credentials and bearer access token"
+      response: "Provider JSON response and asynchronous callback payload"
+      error: "Provider HTTP failures are surfaced through Worker JSON errors; callback status is persisted"
+      auth: "Daraja Basic credentials for OAuth, then provider bearer token; callback endpoint is public"
+    target_contract:
+      method: "Existing Daraja operations and callback payload handling"
+      notes: "Provider contract details are in the Worker handlers; no generated API schema was found."
+    semantic_divergence: []
+
+  - name: "Supabase REST and PostgreSQL"
+    unit: worker-api
+    type: rest
+    stability: must_preserve
+    source_loc: "worker.js:339"
+    contract:
+      method: "GET/POST/PATCH"
+      path: "/rest/v1/{allowed table}"
+      request: "PostgREST filters and JSON records"
+      response: "JSON rows or mutation result"
+      error: "Supabase/PostgREST response is handled by the Worker"
+      auth: "Worker-side Supabase service-role binding; browser client uses anon/publishable key and Worker JWT injection"
+    target_contract:
+      method: "Current PostgREST resource, payload, and response semantics"
+      notes: "Table names and row fields are defined by the SQL migrations."
+    semantic_divergence: []

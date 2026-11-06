@@ -1,0 +1,39 @@
+unit: offline-pwa-worker
+bindings:
+  - type: listener
+    name: "install"
+    source_loc: "dist/sw2.js:44"
+    target: "Application-shell cache population"
+    must_appear_in_target: true
+    notes: "Uses event.waitUntil and cache.addAll."
+  - type: listener
+    name: "activate"
+    source_loc: "dist/sw2.js:72"
+    target: "Old-cache cleanup and client claim"
+    must_appear_in_target: true
+    notes: "Cache names use the dawa-smart-sw- prefix."
+  - type: listener
+    name: "fetch"
+    source_loc: "dist/sw2.js:96"
+    target: "Network/cache response routing"
+    must_appear_in_target: true
+    notes: "Separate HTML, static asset, CDN, and dynamic request strategies."
+  - type: listener
+    name: "sync"
+    source_loc: "dist/sw2.js:191"
+    target: "Background sync client notification"
+    must_appear_in_target: true
+    notes: "Handles the dawa-smart-sync tag."
+  - type: listener
+    name: "message"
+    source_loc: "dist/sw2.js:209"
+    target: "Skip waiting and version response"
+    must_appear_in_target: true
+    notes: "Recognizes SKIP_WAITING and GET_VERSION messages."
+runtime_config:
+  - key: "CACHE_VERSION"
+    source_loc: "dist/sw2.js:14"
+    source: code
+    default_value: "v7"
+    must_appear_in_target: true
+    notes: "Determines the cache name and update cleanup behavior."

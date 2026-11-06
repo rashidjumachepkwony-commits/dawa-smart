@@ -1,0 +1,65 @@
+units:
+  - name: marketing-site
+    trigger: page
+    trigger_detail: "Static site at /; links to app.html"
+    source_anchors:
+      - path: index.html
+      - path: landing.css
+    exported_signature: []
+    dynamic_entrypoints: []
+    depends_on:
+      - unit: pharmacy-spa
+        via: "Open App links to app.html"
+    shared_refs: []
+
+  - name: pharmacy-spa
+    trigger: page
+    trigger_detail: "Pharmacy application at /app and app.html"
+    source_anchors:
+      - path: app.html
+        line: 348
+      - path: tenant2.js
+      - path: sync-queue2.js
+      - path: supabase2.js
+      - path: dist/license2.js
+    exported_signature: []
+    dynamic_entrypoints:
+      - target: "ServiceWorker /sw2.js"
+        mechanism: convention
+        source_loc: "app.html:1028"
+    depends_on:
+      - unit: worker-api
+        via: "Bearer-token HTTP calls to /api/auth, /api/pharmacy, and /api/sync"
+      - unit: offline-pwa-worker
+        via: "Service Worker registration, Background Sync, and client messages"
+    shared_refs: []
+
+  - name: worker-api
+    trigger: api
+    trigger_detail: "Cloudflare Worker routes under /api/*"
+    source_anchors:
+      - path: worker.js
+        line: 34
+    exported_signature:
+      - method: "fetch(request, env, ctx) -> Promise<Response>"
+        source_loc: "worker.js:34"
+        stability: must_preserve
+    dynamic_entrypoints: []
+    depends_on: []
+    shared_refs: []
+
+  - name: offline-pwa-worker
+    trigger: handler
+    trigger_detail: "Service Worker install, activate, fetch, sync, and message events"
+    source_anchors:
+      - path: dist/sw2.js
+        line: 1
+    exported_signature: []
+    dynamic_entrypoints:
+      - target: "ServiceWorker lifecycle event listeners"
+        mechanism: convention
+        source_loc: "dist/sw2.js:35"
+    depends_on:
+      - unit: pharmacy-spa
+        via: "Client messaging and the dawa-smart-sync Background Sync tag"
+    shared_refs: []
