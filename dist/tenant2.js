@@ -13,9 +13,8 @@
   'use strict';
 
   var WORKER_API_URL = 'https://dawa-smart-api.rashidjumachepkwony.workers.dev';
-  var PRODUCTION_API_URL = 'https://dawa-api.startechafrica.co.ke';
   var apiBase = window.location && window.location.hostname.includes('startechafrica.co.ke')
-    ? PRODUCTION_API_URL
+    ? window.location.origin
     : WORKER_API_URL;
 
   function api(path) {

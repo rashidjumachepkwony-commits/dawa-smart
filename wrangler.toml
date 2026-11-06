@@ -23,10 +23,15 @@ SUPABASE_URL = "https://eooyeeanaojkrtyjswtw.supabase.co"
 #   - SUPABASE_ANON_KEY     — Supabase anonymous key (publishable)
 #   - SUPABASE_SERVICE_ROLE — Supabase service_role key (NEVER expose to browser!)
 #   - JWT_SECRET            — secret for signing auth tokens (already configured)
+#   - MPESA_CONFIG_ENCRYPTION_KEY — base64-encoded random 32-byte AES-GCM key
 #
 # Set secrets with:
 #   wrangler secret put SUPABASE_ANON_KEY
 #   wrangler secret put SUPABASE_SERVICE_ROLE
+#   node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+#   wrangler secret put MPESA_CONFIG_ENCRYPTION_KEY
+# Keep this encryption key backed up securely; rotating it requires re-encrypting
+# every pharmacy's stored M-Pesa credentials before deploying the new key.
 #
 # ------------------------------------------------------------
 # Routes (optional — configure if using a custom domain)
@@ -42,5 +47,7 @@ SUPABASE_URL = "https://eooyeeanaojkrtyjswtw.supabase.co"
 # 3. wrangler secret put SUPABASE_ANON_KEY
 # 4. wrangler secret put SUPABASE_SERVICE_ROLE
 # 5. wrangler secret put JWT_SECRET
-# 6. wrangler deploy
+# 6. Generate and securely back up a base64-encoded random 32-byte key.
+# 7. wrangler secret put MPESA_CONFIG_ENCRYPTION_KEY
+# 8. wrangler deploy
 # ------------------------------------------------------------

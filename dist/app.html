@@ -518,11 +518,11 @@
 
           <div id="mpesaPrompt" class="mpesa-prompt">
             <div class="row"><span class="label">📱 M-Pesa STK Push</span></div>
-            <div class="row"><span class="label">Till Number:</span><span class="value">4776548</span></div>
+            <div class="row"><span class="label">Payment:</span><span class="value">Secure M-Pesa STK Push</span></div>
             <div class="row"><span class="label">Amount:</span><span class="value" id="mpesaAmount">KES 0.00</span></div>
             <div class="row"><span class="label">Customer:</span><input type="text" id="mpesaCustomer" placeholder="Phone number (e.g. 0712345678)" style="flex:1;padding:6px 10px;border:2px solid #e2e8f0;border-radius:8px;font-size:12px;min-width:140px;"></div>
-            <button class="btn-mpesa" onclick="triggerMpesaSTK()"><i class="fas fa-bolt"></i> Send STK Push</button>
-            <div style="font-size:10px;color:#64748b;margin-top:4px;">Simulated STK push – customer receives prompt on phone</div>
+            <button id="mpesaStkButton" class="btn-mpesa" onclick="triggerMpesaSTK()"><i class="fas fa-bolt"></i> Send STK Push</button>
+            <div style="font-size:10px;color:#64748b;margin-top:4px;">The sale is recorded only after Safaricom confirms payment.</div>
           </div>
           <div style="margin-top:4px;">
             <div class="form-group" style="margin-bottom:4px;"><input type="text" id="posCustomer" placeholder="👤 Customer name" style="padding:6px 10px;font-size:12px;"></div>
@@ -870,6 +870,7 @@
            <h3 style="font-size:14px;color:#0f172a;margin-bottom:8px;"><i class="fas fa-mobile-alt" style="color:#0b6e4f;"></i> M-Pesa Payment Settings</h3>
            <div id="mpesaSettingsContainer" style="font-size:12px;color:#64748b;">
              <p style="margin-bottom:8px;">Configure M-Pesa STK Push for accepting payments.</p>
+             <p style="margin-bottom:10px;">Each pharmacy uses its own Daraja credentials. Credentials are encrypted by the Worker, never returned to the browser, and require the Worker encryption secret to be configured.</p>
              <div class="form-group" style="margin-bottom:12px;">
                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
                  <input type="checkbox" id="mpesaEnabled" style="width:18px;height:18px;accent-color:#0b6e4f;">
@@ -908,15 +909,15 @@
              </div>
              <div class="form-group" style="margin-bottom:12px;">
                <label>Consumer Key *</label>
-               <input type="text" id="mpesaConsumerKey" placeholder="Consumer Key from Daraja Portal" style="width:100%;max-width:500px;padding:8px 12px;border:2px solid #e2e8f0;border-radius:10px;font-size:12px;">
+               <input type="text" id="mpesaConsumerKey" autocomplete="off" placeholder="Enter Daraja Consumer Key; leave blank to keep saved value" style="width:100%;max-width:500px;padding:8px 12px;border:2px solid #e2e8f0;border-radius:10px;font-size:12px;">
              </div>
              <div class="form-group" style="margin-bottom:12px;">
                <label>Consumer Secret *</label>
-               <input type="password" id="mpesaConsumerSecret" placeholder="Consumer Secret from Daraja Portal" style="width:100%;max-width:500px;padding:8px 12px;border:2px solid #e2e8f0;border-radius:10px;font-size:12px;">
+               <input type="password" id="mpesaConsumerSecret" autocomplete="new-password" placeholder="Enter Daraja Consumer Secret; leave blank to keep saved value" style="width:100%;max-width:500px;padding:8px 12px;border:2px solid #e2e8f0;border-radius:10px;font-size:12px;">
              </div>
              <div class="form-group" style="margin-bottom:12px;">
                <label>Passkey *</label>
-               <input type="password" id="mpesaPasskey" placeholder="Passkey from Daraja Portal" style="width:100%;max-width:500px;padding:8px 12px;border:2px solid #e2e8f0;border-radius:10px;font-size:12px;">
+               <input type="password" id="mpesaPasskey" autocomplete="new-password" placeholder="Enter Daraja Passkey; leave blank to keep saved value" style="width:100%;max-width:500px;padding:8px 12px;border:2px solid #e2e8f0;border-radius:10px;font-size:12px;">
              </div>
              <div class="form-row" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
                <div class="form-group" style="flex:1;min-width:200px;">
@@ -1664,6 +1665,9 @@ let batches = [];
 let customSaleDate = null;
 let revenueInsightVisible = false;
 let negotiatedPrices = {};
+let mpesaCheckout = null;
+let pendingMpesaPayment = null;
+let mpesaStatusRequestActive = false;
 
 function generateId(){return 'id_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,10);}
 function formatCurrency(value){const amount=Number(value)||0; return 'KES '+amount.toLocaleString('en-KE',{minimumFractionDigits:2,maximumFractionDigits:2});}
@@ -2143,9 +2147,9 @@ async function loadMpesaConfig() {
             document.getElementById('mpesaPaybillNumber').value = c.paybill_number || '';
             document.getElementById('mpesaTillNumber').value = c.till_number || '';
             document.getElementById('mpesaShortcode').value = c.business_shortcode || '';
-            document.getElementById('mpesaConsumerKey').value = c.consumer_key || '';
-            document.getElementById('mpesaConsumerSecret').value = c.consumer_secret === '***' ? '' : (c.consumer_secret || '');
-            document.getElementById('mpesaPasskey').value = c.passkey === '***' ? '' : (c.passkey || '');
+            document.getElementById('mpesaConsumerKey').value = '';
+            document.getElementById('mpesaConsumerSecret').value = '';
+            document.getElementById('mpesaPasskey').value = '';
             document.getElementById('mpesaMinAmount').value = c.min_amount || 1;
             document.getElementById('mpesaMaxAmount').value = c.max_amount || 70000;
             
@@ -2153,9 +2157,11 @@ async function loadMpesaConfig() {
             statusEl.style.display = 'block';
             statusEl.style.background = '#dcfce7';
             statusEl.style.color = '#166534';
-            statusEl.innerHTML = '<i class="fas fa-check-circle"></i> Configuration loaded successfully';
+            statusEl.textContent = c.credentials_configured
+                ? 'Configuration loaded. Credentials are stored securely and were not returned to the browser.'
+                : 'Configuration is incomplete. Enter the Daraja credentials for this pharmacy.';
             setTimeout(() => { statusEl.style.display = 'none'; }, 3000);
-            showToast('M-Pesa config loaded','success');
+            showToast('M-Pesa config loaded. Saved credentials remain hidden.','success');
         } else {
             showToast('No M-Pesa config found','info');
         }
@@ -2177,21 +2183,14 @@ async function saveMpesaConfig() {
         consumer_key: document.getElementById('mpesaConsumerKey').value,
         consumer_secret: document.getElementById('mpesaConsumerSecret').value,
         passkey: document.getElementById('mpesaPasskey').value,
-        environment: document.getElementById('mpesaEnvironment').value,
         is_enabled: document.getElementById('mpesaEnabled').checked,
         min_amount: parseInt(document.getElementById('mpesaMinAmount').value) || 1,
-        max_amount: parseInt(document.getElementById('mpesaMaxAmount').value) || 70000,
-        paybill_number: document.getElementById('mpesaPaybillNumber').value || null,
-        till_number: document.getElementById('mpesaTillNumber').value || null,
-        business_shortcode: document.getElementById('mpesaShortcode').value,
-        consumer_key: document.getElementById('mpesaConsumerKey').value,
-        consumer_secret: document.getElementById('mpesaConsumerSecret').value,
-        passkey: document.getElementById('mpesaPasskey').value
+        max_amount: parseInt(document.getElementById('mpesaMaxAmount').value) || 70000
     };
     
     // Validate
-    if (!payload.business_shortcode || !payload.consumer_key || !payload.consumer_secret || !payload.passkey) {
-        showToast('Please fill all required fields','error');
+    if (!payload.business_shortcode) {
+        showToast('Please enter the business shortcode','error');
         return;
     }
     if (!['PAYBILL', 'BUY_GOODS'].includes(payload.account_type)) {
@@ -2219,7 +2218,10 @@ async function saveMpesaConfig() {
             throw new Error(err.error || 'Failed to save config');
         }
         
-        showToast('M-Pesa configuration saved!','success');
+        showToast('M-Pesa configuration saved securely!','success');
+        document.getElementById('mpesaConsumerKey').value = '';
+        document.getElementById('mpesaConsumerSecret').value = '';
+        document.getElementById('mpesaPasskey').value = '';
     } catch (e) {
         console.error('Save M-Pesa config error:', e);
         showToast('Failed to save config: ' + e.message, 'error');
@@ -2665,78 +2667,122 @@ function renderCart(){
     updateRevenueInsight();
 }
 
-function clearCart(){if(cart.length===0)return;if(!confirm('Clear cart?'))return;cart=[];negotiatedPrices={};document.getElementById('negotiationControls').classList.remove('show');document.getElementById('creditCustomerForm').classList.remove('show');renderCart();showToast('Cart cleared');}
-function holdTransaction(){if(cart.length===0){showToast('Cart empty','error');return;}const holds=JSON.parse(localStorage.getItem('yetu_holds')||'[]');holds.push({id:'HOLD-'+Date.now().toString(36).toUpperCase(),cart:JSON.parse(JSON.stringify(cart)),negotiatedPrices:JSON.parse(JSON.stringify(negotiatedPrices)),customer:document.getElementById('posCustomer').value||'Walk-in',timestamp:new Date().toISOString()});localStorage.setItem('yetu_holds',JSON.stringify(holds));cart=[];negotiatedPrices={};document.getElementById('negotiationControls').classList.remove('show');renderCart();document.getElementById('posCustomer').value='';showToast('Transaction held','success');}
+function clearCart(){if(mpesaCheckout){showToast('Check or resolve the pending M-Pesa request before clearing this cart','warning');return;}if(cart.length===0)return;if(!confirm('Clear cart?'))return;cart=[];negotiatedPrices={};document.getElementById('negotiationControls').classList.remove('show');document.getElementById('creditCustomerForm').classList.remove('show');renderCart();showToast('Cart cleared');}
+function holdTransaction(){if(mpesaCheckout){showToast('Check or resolve the pending M-Pesa request before holding this cart','warning');return;}if(cart.length===0){showToast('Cart empty','error');return;}const holds=JSON.parse(localStorage.getItem('yetu_holds')||'[]');holds.push({id:'HOLD-'+Date.now().toString(36).toUpperCase(),cart:JSON.parse(JSON.stringify(cart)),negotiatedPrices:JSON.parse(JSON.stringify(negotiatedPrices)),customer:document.getElementById('posCustomer').value||'Walk-in',timestamp:new Date().toISOString()});localStorage.setItem('yetu_holds',JSON.stringify(holds));cart=[];negotiatedPrices={};document.getElementById('negotiationControls').classList.remove('show');renderCart();document.getElementById('posCustomer').value='';showToast('Transaction held','success');}
 function showMpesaPrompt(){ const method = document.getElementById('paymentMethod')?.value; const prompt = document.getElementById('mpesaPrompt'); if (method === 'mpesa' && cart.length > 0) { const total = calculateCartTotal(); document.getElementById('mpesaAmount').textContent = formatCurrency(total); prompt.classList.add('show'); } else { prompt.classList.remove('show'); } }
-function triggerMpesaSTK(){
-    const customer = document.getElementById('mpesaCustomer').value.trim();
-    if (!customer || customer.length < 10) { showToast('Please enter a valid phone number (e.g. 0712345678)','error'); return; }
-    const total = calculateCartTotal();
-    
-    // Show processing indicator
-    const btn = event.target.closest('button');
+function mpesaPendingStorageKey() {
+    const pharmacyId = window.DawaTenant?.getCurrentPharmacyId?.();
+    return pharmacyId ? 'dawa_mpesa_pending_' + pharmacyId : null;
+}
+
+function restoreMpesaCheckout() {
+    const storageKey = mpesaPendingStorageKey();
+    if (!storageKey) return;
+    try {
+        const localValue = localStorage.getItem(storageKey);
+        const stored = JSON.parse(localValue || sessionStorage.getItem(storageKey) || 'null');
+        mpesaCheckout = stored && typeof stored.requestId === 'string' ? stored : null;
+        if (!localValue && mpesaCheckout) persistMpesaCheckout();
+    } catch (error) {
+        console.error('Could not restore pending M-Pesa request:', error);
+    }
+}
+
+function persistMpesaCheckout() {
+    const storageKey = mpesaPendingStorageKey();
+    if (!storageKey) return;
+    if (mpesaCheckout) localStorage.setItem(storageKey, JSON.stringify(mpesaCheckout));
+    else localStorage.removeItem(storageKey);
+    sessionStorage.removeItem(storageKey);
+}
+
+async function triggerMpesaSTK() {
+    restoreMpesaCheckout();
+    const btn = document.getElementById('mpesaStkButton');
     const originalText = btn.innerHTML;
+    const token = window.DawaTenant?.getToken?.();
+    const apiBase = window.DawaTenant?.apiBase;
+
+    if (!cart.length) { showToast('Cart empty','error'); return; }
+    if (typeof isDemo === 'function' && isDemo()) {
+        showToast('M-Pesa payments are unavailable in Demo Mode','error');
+        return;
+    }
+    if (!token || !apiBase) {
+        showToast('Secure payment service is unavailable. No payment was taken.','error');
+        return;
+    }
+
+    if (mpesaCheckout?.checkoutRequestId) {
+        showMpesaWaitingModal(mpesaCheckout.checkoutRequestId);
+        await pollMpesaStatus(mpesaCheckout.checkoutRequestId);
+        return;
+    }
+
+    const customer = document.getElementById('mpesaCustomer').value.trim();
+    if (!customer || customer.length < 10) {
+        showToast('Please enter a valid phone number (e.g. 0712345678)','error');
+        return;
+    }
+
+    const amount = Math.ceil(calculateCartTotal());
+    if (!mpesaCheckout) {
+        mpesaCheckout = { requestId: generateId(), amount: amount };
+        persistMpesaCheckout();
+    } else if (mpesaCheckout.amount !== amount) {
+        showToast('A previous payment request is unresolved. Resolve it before changing the cart or amount.','warning');
+        return;
+    }
+
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
     btn.disabled = true;
-    
-    // Initiate real STK Push via Worker
-    if (window.DawaTenant && window.DawaTenant.getToken()) {
-        const token = window.DawaTenant.getToken();
-        const apiBase = window.DawaTenant.apiBase || 'https://dawa-smart-api.rashidjumachepkwony.workers.dev';
-        
-        fetch(window.DawaTenant.apiBase + '/api/mpesa/stk-push', {
+    let keepRequest = true;
+    try {
+        const response = await fetch(apiBase + '/api/mpesa/stk-push', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer ' + token
             },
             body: JSON.stringify({
+                request_id: mpesaCheckout.requestId,
                 phone_number: customer,
-                amount: calculateCartTotal(),
-                sale_id: null // Will be linked after payment
+                amount: amount
             })
-        })
-        .then(res => res.json())
-        .then(data => {
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-            
-            if (data.success) {
-                document.getElementById('mpesaPrompt').classList.remove('show');
-                showToast('📱 STK Push sent to ' + customer, 'success');
-                
-                // Show waiting modal
-                showMpesaWaitingModal(data.checkout_request_id);
-            } else {
-                showToast('❌ ' + (data.error || 'STK Push failed'), 'error');
-            }
-        })
-        .catch(e => {
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-            console.error('STK Push error:', e);
-            showToast('❌ STK Push failed: ' + e.message, 'error');
         });
-    } else {
-        // Fallback to mock if no Worker available
-        setTimeout(() => {
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-            if (confirm('📱 STK Push sent to ' + customer + ' for ' + formatCurrency(total) + '\n\nClick OK if customer completed payment.')) {
-                processPayment();
-            } else {
-                showToast('Payment cancelled or pending.','warning');
-            }
-        }, 3000);
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            keepRequest = Boolean(data.request_pending);
+            throw new Error(data.error || data.message || 'STK Push could not be started');
+        }
+        if (!data.success || !data.checkout_request_id) {
+            keepRequest = Boolean(data.request_pending);
+            throw new Error(data.error || data.message || 'Safaricom did not return a payment request ID');
+        }
+
+        mpesaCheckout.checkoutRequestId = data.checkout_request_id;
+        mpesaCheckout.amount = amount;
+        persistMpesaCheckout();
+        document.getElementById('mpesaPrompt').classList.remove('show');
+        showToast('STK Push sent. Waiting for Safaricom confirmation.','success');
+        showMpesaWaitingModal(data.checkout_request_id);
+    } catch (error) {
+        if (!keepRequest) {
+            mpesaCheckout = null;
+            persistMpesaCheckout();
+        }
+        console.error('STK Push request failed:', error);
+        showToast(error.message,'error');
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
     }
 }
 
-// ─── M-Pesa Waiting Modal & Polling ───
 function showMpesaWaitingModal(checkoutRequestId) {
-    // Remove existing modal if any
     const existing = document.getElementById('mpesaWaitingModal');
     if (existing) existing.remove();
-    
+
     const modal = document.createElement('div');
     modal.id = 'mpesaWaitingModal';
     modal.className = 'modal show';
@@ -2744,35 +2790,49 @@ function showMpesaWaitingModal(checkoutRequestId) {
         <div class="modal-content" style="max-width:400px;text-align:center;">
             <div style="font-size:48px;color:#16a34a;margin-bottom:16px;"><i class="fas fa-mobile-alt fa-spin"></i></div>
             <h3 style="margin:0 0 8px;font-size:18px;color:#0f172a;">Waiting for Payment</h3>
-            <p style="color:#64748b;margin-bottom:24px;">Customer received STK Push on their phone.<br>Please wait for them to enter their M-Pesa PIN.</p>
+            <p style="color:#64748b;margin-bottom:24px;">Customer received an STK Push.<br>The sale is recorded only after payment is confirmed.</p>
             <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:16px;margin-bottom:16px;">
                 <div style="font-size:12px;color:#15803d;">Checkout Request ID</div>
-                <div style="font-family:monospace;font-size:11px;color:#0f172a;word-break:break-all;">${checkoutRequestId}</div>
+                <div id="mpesaCheckoutRequestId" style="font-family:monospace;font-size:11px;color:#0f172a;word-break:break-all;"></div>
             </div>
             <div style="display:flex;gap:8px;justify-content:center;">
-                <button class="btn btn-warning" onclick="pollMpesaStatus('${checkoutRequestId}')"><i class="fas fa-sync"></i> Check Status</button>
-                <button class="btn" onclick="document.getElementById('mpesaWaitingModal').remove()"><i class="fas fa-times"></i> Cancel</button>
+                <button id="mpesaCheckStatusButton" class="btn btn-warning"><i class="fas fa-sync"></i> Check Status</button>
+                <button id="mpesaCloseWaitingButton" class="btn"><i class="fas fa-times"></i> Close</button>
             </div>
-            <p style="font-size:11px;color:#94a3b8;margin-top:12px;">This will auto-check every 10 seconds.</p>
+            <p style="font-size:11px;color:#94a3b8;margin-top:12px;">Status is checked automatically every 10 seconds.</p>
         </div>
     `;
     document.body.appendChild(modal);
-    
-    // Auto-poll every 10 seconds
-    window.mpesaPollInterval = setInterval(() => {
-        pollMpesaStatus(checkoutRequestId);
-    }, 10000);
+    document.getElementById('mpesaCheckoutRequestId').textContent = checkoutRequestId;
+    document.getElementById('mpesaCheckStatusButton').addEventListener('click', () => pollMpesaStatus(checkoutRequestId, false));
+    document.getElementById('mpesaCloseWaitingButton').addEventListener('click', () => {
+        clearInterval(window.mpesaPollInterval);
+        modal.remove();
+    });
+
+    clearInterval(window.mpesaPollInterval);
+    window.mpesaPollInterval = setInterval(() => pollMpesaStatus(checkoutRequestId, true), 10000);
 }
 
-async function pollMpesaStatus(checkoutRequestId) {
-    if (!window.DawaTenant || !window.DawaTenant.getToken()) {
-        console.log('No auth token for polling');
+async function pollMpesaStatus(checkoutRequestId, silent) {
+    restoreMpesaCheckout();
+    if (mpesaCheckout?.checkoutRequestId === checkoutRequestId && mpesaCheckout.saleProcessing) {
+        clearInterval(window.mpesaPollInterval);
+        document.getElementById('mpesaWaitingModal')?.remove();
+        pendingMpesaPayment = null;
+        if (!silent) {
+            showToast('Payment was confirmed but this sale needs recovery. Do not retry it or send another payment; contact support.','error');
+        }
         return;
     }
-    
+    if (mpesaStatusRequestActive || !window.DawaTenant?.getToken?.()) return;
+    const token = window.DawaTenant.getToken();
+    const apiBase = window.DawaTenant.apiBase;
+    if (!apiBase) return;
+
+    mpesaStatusRequestActive = true;
     try {
-        const token = window.DawaTenant.getToken();
-        const response = await fetch(window.DawaTenant.apiBase + '/api/mpesa/transaction-status', {
+        const response = await fetch(apiBase + '/api/mpesa/transaction-status', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -2780,30 +2840,50 @@ async function pollMpesaStatus(checkoutRequestId) {
             },
             body: JSON.stringify({ checkout_request_id: checkoutRequestId })
         });
-        
-        const data = await response.json();
-        
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || 'Could not verify M-Pesa payment');
+
         if (data.payment_status === 'SUCCESS') {
+            const amount = Number(data.amount);
+            if (!Number.isFinite(amount) || amount < calculateCartTotal()) {
+                clearInterval(window.mpesaPollInterval);
+                showToast('Confirmed payment amount does not cover this cart; contact support before completing the sale.','error');
+                return;
+            }
+            pendingMpesaPayment = { amount: amount, checkoutRequestId: checkoutRequestId };
+            document.getElementById('paymentMethod').value = 'mpesa';
+            document.getElementById('paymentAmount').value = String(amount);
+            if (mpesaCheckout?.checkoutRequestId === checkoutRequestId) {
+                mpesaCheckout.saleProcessing = true;
+                persistMpesaCheckout();
+            }
+            const completed = await processPayment();
+            if (completed) {
+                clearInterval(window.mpesaPollInterval);
+                document.getElementById('mpesaWaitingModal')?.remove();
+                showToast('M-Pesa payment confirmed' + (data.mpesa_receipt_number ? ' · Receipt ' + data.mpesa_receipt_number : ''),'success');
+            } else {
+                clearInterval(window.mpesaPollInterval);
+                document.getElementById('mpesaWaitingModal')?.remove();
+                pendingMpesaPayment = null;
+                showToast('Payment was confirmed, but the sale could not finish. Do not retry it or send another payment; contact support.','error');
+            }
+        } else if (['CANCELLED','FAILED','TIMEOUT'].includes(data.payment_status)) {
             clearInterval(window.mpesaPollInterval);
             document.getElementById('mpesaWaitingModal')?.remove();
-            showToast('✅ Payment successful! Receipt: ' + (data.mpesa_receipt_number || 'N/A'), 'success');
-            processPayment(); // Complete the sale
-        } else if (data.payment_status === 'CANCELLED') {
-            clearInterval(window.mpesaPollInterval);
-            document.getElementById('mpesaWaitingModal')?.remove();
-            showToast('❌ Payment cancelled by customer', 'warning');
-        } else if (data.payment_status === 'FAILED') {
-            clearInterval(window.mpesaPollInterval);
-            document.getElementById('mpesaWaitingModal')?.remove();
-            showToast('❌ Payment failed: ' + (data.result_description || 'Unknown error'), 'error');
-        } else if (data.payment_status === 'TIMEOUT') {
-            clearInterval(window.mpesaPollInterval);
-            document.getElementById('mpesaWaitingModal')?.remove();
-            showToast('⏱️ Payment timed out', 'warning');
+            mpesaCheckout = null;
+            pendingMpesaPayment = null;
+            persistMpesaCheckout();
+            showToast(data.payment_status === 'CANCELLED' ? 'Payment cancelled by customer' :
+                data.payment_status === 'TIMEOUT' ? 'M-Pesa payment timed out' :
+                'M-Pesa payment failed: ' + (data.result_description || 'Unknown error'),
+                data.payment_status === 'FAILED' ? 'error' : 'warning');
         }
-        // If still PENDING, continue polling
-    } catch (e) {
-        console.error('Polling error:', e);
+    } catch (error) {
+        console.error('M-Pesa status check failed:', error);
+        if (!silent) showToast(error.message,'error');
+    } finally {
+        mpesaStatusRequestActive = false;
     }
 }
 function updateSelectedCustomerInfo(){ /* same */ }
@@ -2825,8 +2905,9 @@ function getOriginalCartTotal(){
 
 // ===== PAYMENT PROCESSING =====
 function processPayment(){
-    if(cart.length===0){showToast('Cart empty','error');return;}
-    if(!currentUser){showToast('Please login','error');return;}
+    if(cart.length===0){showToast('Cart empty','error');return Promise.resolve(false);}
+    if(!currentUser){showToast('Please login','error');return Promise.resolve(false);}
+    restoreMpesaCheckout();
     
     let actualSubtotal = 0;
     let originalSubtotal = 0;
@@ -2846,6 +2927,25 @@ function processPayment(){
     const total = actualSubtotal + vat;
     
     const method=document.getElementById('paymentMethod').value;
+    if (mpesaCheckout && !pendingMpesaPayment) {
+        showToast('Confirm or resolve the pending M-Pesa request before completing this sale','warning');
+        return Promise.resolve(false);
+    }
+    if (pendingMpesaPayment && method !== 'mpesa') {
+        showToast('This cart has a confirmed M-Pesa payment; complete it as an M-Pesa sale','error');
+        return Promise.resolve(false);
+    }
+    if (method === 'mpesa') {
+        if (!pendingMpesaPayment) {
+            showToast('Send an STK Push and confirm payment before completing an M-Pesa sale','error');
+            return Promise.resolve(false);
+        }
+        if (pendingMpesaPayment.amount < Math.ceil(total)) {
+            showToast('Confirmed M-Pesa amount does not cover this sale','error');
+            return Promise.resolve(false);
+        }
+        document.getElementById('paymentAmount').value = String(pendingMpesaPayment.amount);
+    }
     let customerName=document.getElementById('posCustomer').value.trim();
     const customerSelect=document.getElementById('customerSelect');
     const customerId=customerSelect?customerSelect.value:'';
@@ -2932,7 +3032,7 @@ function processPayment(){
         db.add('patients',patient).then(p=>{ sale.customerId = p.id; });
     }
     
-    db.add('sales',{
+    return db.add('sales',{
         id:sale.id,
         date:sale.date,
         customer:sale.customer,
@@ -3021,8 +3121,14 @@ function processPayment(){
         updateProductGrid();
         updatePricingDashboard();
         document.getElementById('mpesaPrompt').classList.remove('show');
+        if (pendingMpesaPayment) {
+            pendingMpesaPayment = null;
+            mpesaCheckout = null;
+            persistMpesaCheckout();
+        }
+        return true;
     })
-    .catch(e=>showToast('Error: '+e.message,'error'));
+    .catch(e=>{showToast('Error: '+e.message,'error');return false;});
 }
 
 function getNextReceiptNumber(){const last=localStorage.getItem('yetu_receipt')||'0001';const num=String(parseInt(last)+1).padStart(4,'0');localStorage.setItem('yetu_receipt',num);return num;}

@@ -8,6 +8,7 @@
    - SUPABASE_ANON_KEY       — Supabase anonymous key (publishable)
    - SUPABASE_SERVICE_ROLE   — Supabase service_role key (NEVER expose to browser)
    - JWT_SECRET              — Secret for signing auth tokens
+   - MPESA_CONFIG_ENCRYPTION_KEY — base64-encoded random 32-byte AES-GCM key
 
    Environment:
    - ENV: 'production' | 'development'
@@ -16,7 +17,6 @@
 const ALLOWED_ENTITIES = new Set([
   'products', 'batches', 'sales', 'sale_items',
   'patients', 'lab_tests', 'expenses', 'controlled_logs',
-  'mpesa_configs', 'mpesa_transactions'
 ]);
 
 const ALLOWED_OPERATIONS = new Set(['create', 'update', 'delete']);
@@ -72,8 +72,6 @@ const ROLE_PERMISSIONS = {
   lab_tests: { owner: true, admin: true, manager: true, pharmacist: false, cashier: false, lab: true, doctor: true, demo: true },
   expenses: { owner: true, admin: true, manager: true, pharmacist: false, cashier: false, lab: false, doctor: false, demo: false },
   controlled_logs: { owner: true, admin: true, manager: false, pharmacist: true, cashier: false, lab: false, doctor: false, demo: false },
-  mpesa_configs: { owner: true, admin: true, manager: true, pharmacist: false, cashier: false, lab: false, doctor: false, demo: false },
-  mpesa_transactions: { owner: true, admin: true, manager: true, pharmacist: true, cashier: true, lab: false, doctor: false, demo: false }
 };
 
 const PROTECTED_COLUMNS = new Set([
@@ -207,24 +205,36 @@ export default {
       if (path === '/api/mpesa/config' && method === 'POST') {
         const auth = await requireAuth(request, env);
         if (auth.error) return jsonErrorResponse(auth.error, auth.status, corsHeaders);
+        if (!['owner', 'admin'].includes(auth.user.role)) {
+          return jsonErrorResponse('Only pharmacy owners and admins can change M-Pesa settings', 403, corsHeaders);
+        }
         return await handleSaveMpesaConfig(request, auth, env, corsHeaders);
       }
 
       if (path === '/api/mpesa/config/test' && method === 'POST') {
         const auth = await requireAuth(request, env);
         if (auth.error) return jsonErrorResponse(auth.error, auth.status, corsHeaders);
+        if (!['owner', 'admin'].includes(auth.user.role)) {
+          return jsonErrorResponse('Only pharmacy owners and admins can test M-Pesa settings', 403, corsHeaders);
+        }
         return await handleTestMpesaConfig(request, auth, env, corsHeaders);
       }
 
       if (path === '/api/mpesa/stk-push' && method === 'POST') {
         const auth = await requireAuth(request, env);
         if (auth.error) return jsonErrorResponse(auth.error, auth.status, corsHeaders);
+        if (!['owner', 'admin', 'manager', 'pharmacist', 'cashier'].includes(auth.user.role)) {
+          return jsonErrorResponse('Your role cannot initiate M-Pesa payments', 403, corsHeaders);
+        }
         return await handleStkPush(request, auth, env, corsHeaders);
       }
 
       if (path === '/api/mpesa/transaction-status' && method === 'POST') {
         const auth = await requireAuth(request, env);
         if (auth.error) return jsonErrorResponse(auth.error, auth.status, corsHeaders);
+        if (!['owner', 'admin', 'manager', 'pharmacist', 'cashier'].includes(auth.user.role)) {
+          return jsonErrorResponse('Your role cannot check M-Pesa payment status', 403, corsHeaders);
+        }
         return await handleTransactionStatus(request, auth, env, corsHeaders);
       }
 
@@ -235,6 +245,9 @@ export default {
       if (path === '/api/mpesa/transactions' && method === 'GET') {
         const auth = await requireAuth(request, env);
         if (auth.error) return jsonErrorResponse(auth.error, auth.status, corsHeaders);
+        if (!['owner', 'admin', 'manager', 'pharmacist', 'cashier'].includes(auth.user.role)) {
+          return jsonErrorResponse('Your role cannot view M-Pesa transactions', 403, corsHeaders);
+        }
         return await handleListMpesaTransactions(request, auth, env, corsHeaders);
       }
 
@@ -1093,14 +1106,89 @@ async function handleListAllMembers(auth, env, corsHeaders) {
 // M-Pesa STK Push Handlers
 // ═══════════════════════════════════════════════════════════
 
+const MPESA_CREDENTIAL_PREFIX = 'enc:v1:';
+const MPESA_CREDENTIAL_FIELDS = ['consumer_key', 'consumer_secret', 'passkey'];
+
+function bytesToBase64(bytes) {
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
+}
+
+function base64ToBytes(value) {
+  return Uint8Array.from(atob(value), (char) => char.charCodeAt(0));
+}
+
+async function getMpesaEncryptionKey(env) {
+  if (!env.MPESA_CONFIG_ENCRYPTION_KEY) {
+    throw new Error('MPESA_CONFIG_ENCRYPTION_KEY is required for M-Pesa credential encryption');
+  }
+  const encodedKey = env.MPESA_CONFIG_ENCRYPTION_KEY;
+  if (!/^[A-Za-z0-9+/]{43}=$/.test(encodedKey)) {
+    throw new Error('MPESA_CONFIG_ENCRYPTION_KEY must be a valid base64-encoded 32-byte key');
+  }
+  const rawKey = base64ToBytes(encodedKey);
+  return crypto.subtle.importKey('raw', rawKey, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+}
+
+async function encryptMpesaCredential(value, env) {
+  const key = await getMpesaEncryptionKey(env);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ciphertext = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    new TextEncoder().encode(value)
+  );
+  return MPESA_CREDENTIAL_PREFIX + bytesToBase64(iv) + ':' + bytesToBase64(new Uint8Array(ciphertext));
+}
+
+async function decryptMpesaCredential(value, env) {
+  if (!value || !value.startsWith(MPESA_CREDENTIAL_PREFIX)) return value;
+  const [encodedIv, encodedCiphertext] = value.slice(MPESA_CREDENTIAL_PREFIX.length).split(':');
+  if (!encodedIv || !encodedCiphertext) throw new Error('Stored M-Pesa credential has an invalid encrypted format');
+
+  const key = await getMpesaEncryptionKey(env);
+  const plaintext = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv: base64ToBytes(encodedIv) },
+    key,
+    base64ToBytes(encodedCiphertext)
+  );
+  return new TextDecoder().decode(plaintext);
+}
+
 // ─── Helper: Get M-Pesa Config ──────────────────────────────────
 async function getMpesaConfig(env, pharmacyId) {
-  const config = await supabaseFetch(env,
+  const configs = await supabaseFetch(env,
     `/rest/v1/mpesa_configs?pharmacy_id=eq.${pharmacyId}&select=*`,
     { headers: { 'Accept': 'application/json' } }
-  ).catch(() => []);
-  
-  return config && config.length > 0 ? config[0] : null;
+  );
+  if (!configs || configs.length === 0) return null;
+
+  const storedConfig = configs[0];
+  const legacyCredentials = MPESA_CREDENTIAL_FIELDS.filter((field) =>
+    storedConfig[field] && !storedConfig[field].startsWith(MPESA_CREDENTIAL_PREFIX)
+  );
+
+  if (legacyCredentials.length > 0 && !env.MPESA_CONFIG_ENCRYPTION_KEY) {
+    throw new Error('MPESA_CONFIG_ENCRYPTION_KEY is required to secure existing pharmacy credentials');
+  }
+  if (legacyCredentials.length > 0) {
+    const encryptedCredentials = {};
+    for (const field of legacyCredentials) {
+      encryptedCredentials[field] = await encryptMpesaCredential(storedConfig[field], env);
+    }
+    await supabaseFetch(env,
+      `/rest/v1/mpesa_configs?pharmacy_id=eq.${encodeURIComponent(pharmacyId)}`,
+      { method: 'PATCH', body: JSON.stringify(encryptedCredentials) }
+    );
+    Object.assign(storedConfig, encryptedCredentials);
+  }
+
+  const config = { ...storedConfig };
+  for (const field of MPESA_CREDENTIAL_FIELDS) {
+    config[field] = await decryptMpesaCredential(config[field], env);
+  }
+  return config;
 }
 
 // ─── Helper: Generate OAuth Token ───────────────────────────────
@@ -1125,14 +1213,78 @@ async function generateMpesaOAuthToken(config) {
   }
   
   const data = await response.json();
+  if (!data.access_token) {
+    throw new Error('OAuth response did not include an access token');
+  }
   return data.access_token;
 }
 
 // ─── Helper: Generate STK Password & Timestamp ──────────────────
 function generateStkPassword(shortcode, passkey) {
-  const timestamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\..+/, '');
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Africa/Nairobi',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23'
+  }).formatToParts(new Date()).reduce((result, part) => {
+    if (part.type !== 'literal') result[part.type] = part.value;
+    return result;
+  }, {});
+  const timestamp = parts.year + parts.month + parts.day + parts.hour + parts.minute + parts.second;
   const password = btoa(`${shortcode}${passkey}${timestamp}`);
   return { password, timestamp };
+}
+
+function getMpesaPaymentStatus(resultCode) {
+  if (resultCode === undefined || resultCode === null || resultCode === '') return 'PENDING';
+  const code = String(resultCode);
+  if (code === '0') return 'SUCCESS';
+  if (code === '1032') return 'CANCELLED';
+  if (code === '1037') return 'TIMEOUT';
+  if (code.startsWith('500.')) return 'PENDING';
+  return 'FAILED';
+}
+
+function safeMpesaError(error, fallback) {
+  const message = error && error.message ? error.message : '';
+  return message.includes('MPESA_CONFIG_ENCRYPTION_KEY') ? message : fallback;
+}
+
+async function queryMpesaStatus(config, checkoutRequestId) {
+  const shortcode = config.account_type === 'PAYBILL'
+    ? (config.paybill_number || config.business_shortcode)
+    : (config.till_number || config.business_shortcode);
+  const { password, timestamp } = generateStkPassword(shortcode, config.passkey);
+  const baseUrl = config.environment === 'PRODUCTION'
+    ? 'https://api.safaricom.co.ke'
+    : 'https://sandbox.safaricom.co.ke';
+  const token = await generateMpesaOAuthToken(config);
+  const response = await fetch(`${baseUrl}/mpesa/stkpushquery/v1/query`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      BusinessShortCode: shortcode,
+      Password: password,
+      Timestamp: timestamp,
+      CheckoutRequestID: checkoutRequestId
+    })
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(result.errorMessage || 'Safaricom status query failed');
+  }
+  if ((result.ResultCode === undefined || result.ResultCode === null || result.ResultCode === '') &&
+      String(result.ResponseCode) !== '0') {
+    throw new Error(result.errorMessage || result.ResponseDescription || 'Safaricom status query was not accepted');
+  }
+  return result;
 }
 
 // ─── Helper: Format Phone Number ────────────────────────────────
@@ -1160,16 +1312,24 @@ async function handleGetMpesaConfig(request, auth, env, corsHeaders) {
     }
     
     const safeConfig = {
-      ...config,
-      consumer_secret: config.consumer_secret ? '***' : null,
-      passkey: config.passkey ? '***' : null,
+      account_type: config.account_type,
+      environment: config.environment,
+      paybill_number: config.paybill_number,
+      till_number: config.till_number,
+      business_shortcode: config.business_shortcode,
+      is_enabled: config.is_enabled,
+      min_amount: config.min_amount,
+      max_amount: config.max_amount,
+      credentials_configured: MPESA_CREDENTIAL_FIELDS.every((field) => Boolean(config[field])),
       configured: true
     };
     
     return jsonResponse(200, { config: safeConfig, configured: true }, corsHeaders);
   } catch (e) {
-    console.error('[Worker] Get M-Pesa config error:', e);
-    return jsonErrorResponse('Failed to get M-Pesa config', 500, corsHeaders);
+    console.error('[Worker] Get M-Pesa config error:', e.message);
+    return jsonErrorResponse(safeMpesaError(e, 'Failed to get M-Pesa config'),
+      String(e.message || '').includes('MPESA_CONFIG_ENCRYPTION_KEY') ? 503 : 500,
+      corsHeaders);
   }
 }
 
@@ -1177,11 +1337,7 @@ async function handleGetMpesaConfig(request, auth, env, corsHeaders) {
 async function handleSaveMpesaConfig(request, auth, env, corsHeaders) {
   try {
     const body = await request.json();
-    
-    if (!body.account_type || !body.business_shortcode || !body.consumer_key || !body.consumer_secret || !body.passkey) {
-      return jsonErrorResponse('Missing required fields', 400, corsHeaders);
-    }
-    
+
     if (!['PAYBILL', 'BUY_GOODS'].includes(body.account_type)) {
       return jsonErrorResponse('Invalid account type', 400, corsHeaders);
     }
@@ -1196,6 +1352,36 @@ async function handleSaveMpesaConfig(request, auth, env, corsHeaders) {
     if (body.till_number && !/^[0-9]{5,10}$/.test(body.till_number)) {
       return jsonErrorResponse('Invalid till number', 400, corsHeaders);
     }
+
+    if (!body.business_shortcode || !/^[0-9]{5,10}$/.test(body.business_shortcode)) {
+      return jsonErrorResponse('A valid M-Pesa business shortcode is required', 400, corsHeaders);
+    }
+
+    const minAmount = Number(body.min_amount ?? 1);
+    const maxAmount = Number(body.max_amount ?? 70000);
+    if (!Number.isFinite(minAmount) || !Number.isFinite(maxAmount) ||
+        minAmount < 1 || maxAmount < minAmount || maxAmount > 70000) {
+      return jsonErrorResponse('Invalid minimum or maximum payment amount', 400, corsHeaders);
+    }
+
+    const existing = await getMpesaConfig(env, auth.user.pharmacyId);
+    const credentials = {};
+    for (const field of MPESA_CREDENTIAL_FIELDS) {
+      const submittedValue = typeof body[field] === 'string' ? body[field].trim() : '';
+      credentials[field] = submittedValue || (existing && existing[field]) || '';
+      if (!credentials[field]) {
+        return jsonErrorResponse('Enter all M-Pesa credentials before saving this pharmacy configuration', 400, corsHeaders);
+      }
+    }
+
+    if (!env.MPESA_CONFIG_ENCRYPTION_KEY) {
+      return jsonErrorResponse('Worker is missing MPESA_CONFIG_ENCRYPTION_KEY; credentials were not saved', 503, corsHeaders);
+    }
+
+    const encryptedCredentials = {};
+    for (const field of MPESA_CREDENTIAL_FIELDS) {
+      encryptedCredentials[field] = await encryptMpesaCredential(credentials[field], env);
+    }
     
     const configData = {
       pharmacy_id: auth.user.pharmacyId,
@@ -1203,41 +1389,37 @@ async function handleSaveMpesaConfig(request, auth, env, corsHeaders) {
       till_number: body.till_number || null,
       account_type: body.account_type,
       business_shortcode: body.business_shortcode,
-      consumer_key: body.consumer_key,
-      consumer_secret: body.consumer_secret,
-      passkey: body.passkey,
       environment: body.environment || 'SANDBOX',
-      callback_url: body.callback_url || null,
+      ...encryptedCredentials,
       result_url: body.result_url || null,
       timeout_url: body.timeout_url || null,
       is_enabled: body.is_enabled !== undefined ? body.is_enabled : false,
-      min_amount: body.min_amount || 1,
-      max_amount: body.max_amount || 70000,
-      created_by: auth.user.id,
+      min_amount: minAmount,
+      max_amount: maxAmount,
       updated_at: new Date().toISOString()
     };
     
-    const existing = await getMpesaConfig(env, auth.user.pharmacyId);
-    
     if (existing) {
       await supabaseFetch(env,
-        `/rest/v1/mpesa_configs?pharmacy_id=eq.${auth.user.pharmacyId}`,
+        `/rest/v1/mpesa_configs?pharmacy_id=eq.${encodeURIComponent(auth.user.pharmacyId)}`,
         {
           method: 'PATCH',
-          body: JSON.stringify({ ...configData, updated_at: new Date().toISOString() })
+          body: JSON.stringify(configData)
         }
       );
-      return jsonResponse(200, { message: 'M-Pesa configuration updated', config: { ...configData, consumer_secret: '***', passkey: '***' } }, corsHeaders);
+      return jsonResponse(200, { message: 'M-Pesa configuration updated', configured: true }, corsHeaders);
     } else {
       await supabaseFetch(env, '/rest/v1/mpesa_configs', {
         method: 'POST',
         body: JSON.stringify(configData)
       });
-      return jsonResponse(200, { message: 'M-Pesa configuration saved', config: { ...configData, consumer_secret: '***', passkey: '***' } }, corsHeaders);
+      return jsonResponse(200, { message: 'M-Pesa configuration saved', configured: true }, corsHeaders);
     }
   } catch (e) {
-    console.error('[Worker] Save M-Pesa config error:', e);
-    return jsonErrorResponse('Failed to save M-Pesa config: ' + e.message, 500, corsHeaders);
+    console.error('[Worker] Save M-Pesa config error:', e.message);
+    return jsonErrorResponse(safeMpesaError(e, 'Failed to save M-Pesa config. Check the Worker encryption secret and database configuration.'),
+      String(e.message || '').includes('MPESA_CONFIG_ENCRYPTION_KEY') ? 503 : 500,
+      corsHeaders);
   }
 }
 
@@ -1255,31 +1437,45 @@ async function handleTestMpesaConfig(request, auth, env, corsHeaders) {
     }
     
     try {
-      const token = await generateMpesaOAuthToken(config);
+      await generateMpesaOAuthToken(config);
       return jsonResponse(200, { 
         success: true, 
-        message: 'M-Pesa configuration test successful',
-        token_preview: token.substring(0, 10) + '...'
+        message: 'M-Pesa configuration test successful'
       }, corsHeaders);
     } catch (e) {
       return jsonErrorResponse('M-Pesa test failed: ' + e.message, 400, corsHeaders);
     }
   } catch (e) {
-    console.error('[Worker] Test M-Pesa config error:', e);
-    return jsonErrorResponse('Failed to test M-Pesa config: ' + e.message, 500, corsHeaders);
+    console.error('[Worker] Test M-Pesa config error:', e.message);
+    return jsonErrorResponse(safeMpesaError(e, 'Failed to test M-Pesa config'),
+      String(e.message || '').includes('MPESA_CONFIG_ENCRYPTION_KEY') ? 503 : 500,
+      corsHeaders);
   }
 }
 
 // ─── Initiate STK Push ──────────────────────────────────────────
 async function handleStkPush(request, auth, env, corsHeaders) {
+  let requestId = null;
+  let transactionInsertAttempted = false;
+  let transactionRecorded = false;
+  let stkSubmitted = false;
   try {
     const body = await request.json();
-    
-    if (!body.phone_number || !body.amount) {
+
+    requestId = typeof body.request_id === 'string' ? body.request_id.trim() : '';
+    if (!/^[A-Za-z0-9_-]{8,100}$/.test(requestId)) {
+      return jsonErrorResponse('A valid request_id is required', 400, corsHeaders);
+    }
+    if (typeof body.phone_number !== 'string' || !body.phone_number.trim() ||
+        body.amount === undefined || body.amount === null || body.amount === '') {
       return jsonErrorResponse('Phone number and amount are required', 400, corsHeaders);
     }
     
-    const amount = Math.round(Number(body.amount));
+    const requestedAmount = Number(body.amount);
+    if (!Number.isFinite(requestedAmount)) {
+      return jsonErrorResponse('Amount must be a valid number', 400, corsHeaders);
+    }
+    const amount = Math.ceil(requestedAmount);
     if (amount < 1 || amount > 70000) {
       return jsonErrorResponse('Amount must be between 1 and 70,000', 400, corsHeaders);
     }
@@ -1298,37 +1494,82 @@ async function handleStkPush(request, auth, env, corsHeaders) {
     if (amount < config.min_amount || amount > config.max_amount) {
       return jsonErrorResponse(`Amount must be between ${config.min_amount} and ${config.max_amount}`, 400, corsHeaders);
     }
+
+    const encodedPharmacyId = encodeURIComponent(auth.user.pharmacyId);
+    const encodedRequestId = encodeURIComponent(requestId);
+    const previous = await supabaseFetch(env,
+      `/rest/v1/mpesa_transactions?pharmacy_id=eq.${encodedPharmacyId}&client_request_id=eq.${encodedRequestId}&select=id,checkout_request_id,merchant_request_id,payment_status&limit=1`,
+      { headers: { 'Accept': 'application/json' } }
+    );
+    if (previous && previous.length > 0) {
+      const previousTransaction = previous[0];
+      if (previousTransaction.checkout_request_id) {
+        return jsonResponse(200, {
+          success: true,
+          reused: true,
+          message: 'Existing M-Pesa request found',
+          checkout_request_id: previousTransaction.checkout_request_id,
+          merchant_request_id: previousTransaction.merchant_request_id
+        }, corsHeaders);
+      }
+      if (previousTransaction.payment_status === 'FAILED') {
+        return jsonResponse(409, {
+          success: false,
+          request_pending: false,
+          message: 'The previous request failed before a tracking ID was created. Start a new payment request.'
+        }, corsHeaders);
+      }
+      return jsonResponse(409, {
+        success: false,
+        request_pending: true,
+        message: 'This request may already have reached Safaricom. Check its status before starting another payment.'
+      }, corsHeaders);
+    }
+
+    transactionInsertAttempted = true;
+    const transactionRows = await supabaseFetch(env, '/rest/v1/mpesa_transactions', {
+      method: 'POST',
+      headers: { 'Prefer': 'return=representation' },
+      body: JSON.stringify({
+        pharmacy_id: auth.user.pharmacyId,
+        client_request_id: requestId,
+        phone_number: phoneNumber,
+        amount,
+        payment_status: 'PENDING'
+      })
+    });
+    const transaction = Array.isArray(transactionRows) ? transactionRows[0] : null;
+    if (!transaction || !transaction.id) {
+      return jsonErrorResponse('Could not create a safe payment record; no STK request was sent', 503, corsHeaders);
+    }
+    transactionRecorded = true;
     
     const token = await generateMpesaOAuthToken(config);
-    const { password, timestamp } = generateStkPassword(config.business_shortcode, config.passkey);
-    
-    const shortcode = config.account_type === 'PAYBILL' 
-      ? config.paybill_number 
-      : config.till_number || config.business_shortcode;
+    const shortcode = config.account_type === 'PAYBILL'
+      ? (config.paybill_number || config.business_shortcode)
+      : (config.till_number || config.business_shortcode);
+    const { password, timestamp } = generateStkPassword(shortcode, config.passkey);
     
     const baseUrl = config.environment === 'PRODUCTION' 
       ? 'https://api.safaricom.co.ke' 
       : 'https://sandbox.safaricom.co.ke';
     
     const stkPayload = {
-      BusinessShortCode: config.business_shortcode,
+      BusinessShortCode: shortcode,
       Password: password,
       Timestamp: timestamp,
-      TransactionType: 'CustomerPayBillOnline',
+      TransactionType: config.account_type === 'PAYBILL' ? 'CustomerPayBillOnline' : 'CustomerBuyGoodsOnline',
       Amount: amount,
       PartyA: phoneNumber,
-      PartyB: config.business_shortcode,
+      PartyB: shortcode,
       PhoneNumber: phoneNumber,
-      CallBackURL: config.callback_url || `${env.SUPABASE_URL}/functions/v1/mpesa-callback`,
-      AccountReference: `SALE-${Date.now()}`,
-      TransactionDesc: 'Pharmacy Payment'
+      CallBackURL: `${new URL(request.url).origin}/api/mpesa/callback`,
+      AccountReference: `DAWA${requestId.slice(-8)}`,
+      TransactionDesc: 'Pharmacy Sale'
     };
     
-    const baseUrlApi = config.environment === 'PRODUCTION' 
-      ? 'https://api.safaricom.co.ke' 
-      : 'https://sandbox.safaricom.co.ke';
-    
-    const response = await fetch(`${baseUrlApi}/mpesa/stkpush/v1/processrequest`, {
+    stkSubmitted = true;
+    const response = await fetch(`${baseUrl}/mpesa/stkpush/v1/processrequest`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -1337,31 +1578,51 @@ async function handleStkPush(request, auth, env, corsHeaders) {
       body: JSON.stringify(stkPayload)
     });
     
-    const responseData = await response.json();
+    const responseData = await response.json().catch(() => ({}));
     
-    if (!response.ok) {
-      console.error('[Worker] STK Push failed:', responseData);
-      return jsonErrorResponse(responseData.errorMessage || 'STK Push failed', 400, corsHeaders);
+    if (!response.ok || String(responseData.ResponseCode) !== '0') {
+      await supabaseFetch(env,
+        `/rest/v1/mpesa_transactions?id=eq.${encodeURIComponent(transaction.id)}&pharmacy_id=eq.${encodedPharmacyId}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({
+            payment_status: 'FAILED',
+            result_description: responseData.errorMessage || responseData.ResponseDescription || 'Safaricom rejected the STK request',
+            transaction_metadata: { response: responseData }
+          })
+        }
+      );
+      return jsonErrorResponse(responseData.errorMessage || responseData.ResponseDescription || 'Safaricom rejected the STK request', 502, corsHeaders);
     }
-    
-    const transactionData = {
-      pharmacy_id: auth.user.pharmacyId,
-      sale_id: body.sale_id || null,
-      phone_number: phoneNumber,
-      amount: amount,
-      merchant_request_id: responseData.MerchantRequestID,
-      checkout_request_id: responseData.CheckoutRequestID,
-      payment_status: 'PENDING',
-      transaction_metadata: {
-        request: stkPayload,
-        response: responseData
-      }
-    };
-    
-    await supabaseFetch(env, '/rest/v1/mpesa_transactions', {
-      method: 'POST',
-      body: JSON.stringify(transactionData)
-    });
+
+    if (!responseData.CheckoutRequestID || !responseData.MerchantRequestID) {
+      return jsonResponse(503, {
+        success: false,
+        request_pending: true,
+        message: 'Safaricom accepted the request without tracking IDs. Do not retry; contact support.'
+      }, corsHeaders);
+    }
+
+    try {
+      await supabaseFetch(env,
+        `/rest/v1/mpesa_transactions?id=eq.${encodeURIComponent(transaction.id)}&pharmacy_id=eq.${encodedPharmacyId}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({
+            merchant_request_id: responseData.MerchantRequestID,
+            checkout_request_id: responseData.CheckoutRequestID,
+            transaction_metadata: { response: responseData }
+          })
+        }
+      );
+    } catch (error) {
+      console.error('[Worker] Accepted STK request could not be linked to its transaction:', error.message);
+      return jsonResponse(503, {
+        success: false,
+        request_pending: true,
+        message: 'Safaricom may have sent the payment prompt, but the transaction record could not be updated. Do not retry this request; contact support.'
+      }, corsHeaders);
+    }
     
     return jsonResponse(200, {
       success: true,
@@ -1374,8 +1635,43 @@ async function handleStkPush(request, auth, env, corsHeaders) {
     }, corsHeaders);
     
   } catch (e) {
-    console.error('[Worker] STK Push error:', e);
-    return jsonErrorResponse('STK Push failed: ' + e.message, 500, corsHeaders);
+    console.error('[Worker] STK Push error:', e.message);
+    if (transactionRecorded) {
+      if (!stkSubmitted) {
+        try {
+          await supabaseFetch(env,
+            `/rest/v1/mpesa_transactions?pharmacy_id=eq.${encodeURIComponent(auth.user.pharmacyId)}&client_request_id=eq.${encodeURIComponent(requestId)}`,
+            {
+              method: 'PATCH',
+              body: JSON.stringify({
+                payment_status: 'FAILED',
+                result_description: 'Could not authenticate with Safaricom'
+              })
+            }
+          );
+        } catch (updateError) {
+          console.error('[Worker] Could not mark unauthenticated STK request as failed:', updateError.message);
+        }
+        return jsonErrorResponse('Could not authenticate with Safaricom. Check the Daraja credentials and try again.', 502, corsHeaders);
+      }
+      return jsonResponse(503, {
+        success: false,
+        request_pending: true,
+        request_id: requestId,
+        message: 'The payment request may be processing. Do not start another request until its status is checked.'
+      }, corsHeaders);
+    }
+    if (transactionInsertAttempted) {
+      return jsonResponse(503, {
+        success: false,
+        request_pending: true,
+        request_id: requestId,
+        message: 'The payment record could not be confirmed. Retry only with this same request; do not start a new payment.'
+      }, corsHeaders);
+    }
+    return jsonErrorResponse(safeMpesaError(e, 'STK Push could not be completed. Check the M-Pesa configuration and try again.'),
+      String(e.message || '').includes('MPESA_CONFIG_ENCRYPTION_KEY') ? 503 : 500,
+      corsHeaders);
   }
 }
 
@@ -1384,78 +1680,75 @@ async function handleTransactionStatus(request, auth, env, corsHeaders) {
   try {
     const body = await request.json();
     
-    if (!body.checkout_request_id) {
+    if (typeof body.checkout_request_id !== 'string' || !body.checkout_request_id.trim()) {
       return jsonErrorResponse('CheckoutRequestID is required', 400, corsHeaders);
     }
-    
+
+    const checkoutRequestId = body.checkout_request_id.trim();
+    const encodedCheckoutId = encodeURIComponent(checkoutRequestId);
+    const encodedPharmacyId = encodeURIComponent(auth.user.pharmacyId);
+    const transactions = await supabaseFetch(env,
+      `/rest/v1/mpesa_transactions?checkout_request_id=eq.${encodedCheckoutId}&pharmacy_id=eq.${encodedPharmacyId}&select=id,merchant_request_id,amount,mpesa_receipt_number,payment_status&limit=1`,
+      { headers: { 'Accept': 'application/json' } }
+    );
+    if (!transactions || transactions.length === 0) {
+      return jsonErrorResponse('M-Pesa transaction was not found for this pharmacy', 404, corsHeaders);
+    }
+    const transaction = transactions[0];
+
+    if (transaction.payment_status && transaction.payment_status !== 'PENDING') {
+      return jsonResponse(200, {
+        payment_status: transaction.payment_status,
+        mpesa_receipt_number: transaction.mpesa_receipt_number,
+        amount: transaction.amount
+      }, corsHeaders);
+    }
+
     const config = await getMpesaConfig(env, auth.user.pharmacyId);
     
     if (!config) {
       return jsonErrorResponse('M-Pesa not configured', 400, corsHeaders);
     }
-    
-    const { password, timestamp } = generateStkPassword(config.business_shortcode, config.passkey);
-    
-    const queryPayload = {
-      BusinessShortCode: config.business_shortcode,
-      Password: password,
-      Timestamp: timestamp,
-      CheckoutRequestID: body.checkout_request_id
-    };
-    
-    const baseUrl = config.environment === 'PRODUCTION' 
-      ? 'https://api.safaricom.co.ke' 
-      : 'https://sandbox.safaricom.co.ke';
-    
-    const token = await generateMpesaOAuthToken(config);
-    
-    const response = await fetch(`${baseUrl}/mpesa/stkpushquery/v1/query`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(queryPayload)
-    });
-    
-    const responseData = await response.json();
-    
-    if (!response.ok) {
-      return jsonErrorResponse(responseData.errorMessage || 'Status query failed', 400, corsHeaders);
-    }
-    
+    const responseData = await queryMpesaStatus(config, checkoutRequestId);
     const resultCode = responseData.ResultCode;
-    let paymentStatus = 'PENDING';
-    if (resultCode === '0') paymentStatus = 'SUCCESS';
-    else if (resultCode === '1032' || resultCode === '1037' || resultCode === '1') paymentStatus = 'CANCELLED';
-    else if (resultCode === '1037') paymentStatus = 'TIMEOUT';
-    else paymentStatus = 'FAILED';
-    
-    await supabaseFetch(env,
-      `/rest/v1/mpesa_transactions?checkout_request_id=eq.${body.checkout_request_id}&pharmacy_id=eq.${auth.user.pharmacyId}`,
-      {
-        method: 'PATCH',
-        body: JSON.stringify({
-          result_code: resultCode,
-          result_description: responseData.ResultDesc,
-          payment_status: paymentStatus,
-          mpesa_receipt_number: responseData.MpesaReceiptNumber || null,
-          transaction_date: paymentStatus === 'SUCCESS' ? new Date().toISOString() : null,
-          transaction_metadata: responseData
-        })
-      }
+    const paymentStatus = getMpesaPaymentStatus(resultCode);
+    const receiptNumber = responseData.MpesaReceiptNumber || transaction.mpesa_receipt_number || null;
+    if (paymentStatus !== 'PENDING') {
+      await supabaseFetch(env,
+        `/rest/v1/mpesa_transactions?id=eq.${encodeURIComponent(transaction.id)}&pharmacy_id=eq.${encodedPharmacyId}&payment_status=eq.PENDING`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({
+            result_code: String(resultCode),
+            result_description: responseData.ResultDesc || null,
+            payment_status: paymentStatus,
+            mpesa_receipt_number: receiptNumber,
+            transaction_date: paymentStatus === 'SUCCESS' ? new Date().toISOString() : null,
+            transaction_metadata: { status_query: responseData }
+          })
+        }
+      );
+    }
+
+    const refreshedTransactions = await supabaseFetch(env,
+      `/rest/v1/mpesa_transactions?id=eq.${encodeURIComponent(transaction.id)}&pharmacy_id=eq.${encodedPharmacyId}&select=payment_status,mpesa_receipt_number,amount&limit=1`,
+      { headers: { 'Accept': 'application/json' } }
     );
+    const refreshed = refreshedTransactions && refreshedTransactions[0] ? refreshedTransactions[0] : transaction;
     
     return jsonResponse(200, {
-      result_code: resultCode,
+      result_code: responseData.ResultCode,
       result_description: responseData.ResultDesc,
-      payment_status: paymentStatus,
-      mpesa_receipt_number: responseData.MpesaReceiptNumber || null
+      payment_status: refreshed.payment_status || paymentStatus,
+      mpesa_receipt_number: refreshed.mpesa_receipt_number || receiptNumber,
+      amount: refreshed.amount
     }, corsHeaders);
     
   } catch (e) {
-    console.error('[Worker] Transaction status error:', e);
-    return jsonErrorResponse('Failed to check transaction status: ' + e.message, 500, corsHeaders);
+    console.error('[Worker] Transaction status error:', e.message);
+    return jsonErrorResponse(safeMpesaError(e, 'Failed to check M-Pesa transaction status'),
+      String(e.message || '').includes('MPESA_CONFIG_ENCRYPTION_KEY') ? 503 : 500,
+      corsHeaders);
   }
 }
 
@@ -1463,22 +1756,26 @@ async function handleTransactionStatus(request, auth, env, corsHeaders) {
 async function handleMpesaCallback(request, env, corsHeaders) {
   try {
     const callbackData = await request.json();
-    console.log('[Worker] M-Pesa callback received:', JSON.stringify(callbackData));
+    console.log('[Worker] M-Pesa callback received');
     
     const stkCallback = callbackData.Body?.stkCallback;
     if (!stkCallback) {
       return jsonResponse(200, { ResultCode: 0, ResultDesc: 'Accepted' }, corsHeaders);
     }
     
-    const checkoutRequestId = stkCallback.CheckoutRequestID;
-    const merchantRequestId = stkCallback.MerchantRequestID;
-    const resultCode = stkCallback.ResultCode;
-    const resultDesc = stkCallback.ResultDesc;
-    
+    const checkoutRequestId = typeof stkCallback.CheckoutRequestID === 'string'
+      ? stkCallback.CheckoutRequestID
+      : '';
+    const merchantRequestId = typeof stkCallback.MerchantRequestID === 'string'
+      ? stkCallback.MerchantRequestID
+      : '';
+    if (!checkoutRequestId) {
+      return jsonErrorResponse('Missing CheckoutRequestID', 400, corsHeaders);
+    }
     const transactions = await supabaseFetch(env,
-      `/rest/v1/mpesa_transactions?checkout_request_id=eq.${checkoutRequestId}&select=*`,
+      `/rest/v1/mpesa_transactions?checkout_request_id=eq.${encodeURIComponent(checkoutRequestId)}&select=id,pharmacy_id,merchant_request_id,payment_status`,
       { headers: { 'Accept': 'application/json' } }
-    ).catch(() => []);
+    );
     
     if (!transactions || transactions.length === 0) {
       console.error('[Worker] Callback: Transaction not found for', checkoutRequestId);
@@ -1486,44 +1783,37 @@ async function handleMpesaCallback(request, env, corsHeaders) {
     }
     
     const transaction = transactions[0];
-    
-    let paymentStatus = 'PENDING';
-    if (resultCode === '0') paymentStatus = 'SUCCESS';
-    else if (resultCode === '1032' || resultCode === '1037' || resultCode === '1') paymentStatus = 'CANCELLED';
-    else if (resultCode === '1037') paymentStatus = 'TIMEOUT';
-    else paymentStatus = 'FAILED';
-    
+    if (transaction.merchant_request_id && merchantRequestId &&
+        transaction.merchant_request_id !== merchantRequestId) {
+      console.error('[Worker] Callback merchant request ID did not match');
+      return jsonResponse(200, { ResultCode: 0, ResultDesc: 'Accepted' }, corsHeaders);
+    }
+
+    const config = await getMpesaConfig(env, transaction.pharmacy_id);
+    if (!config) {
+      return jsonErrorResponse('M-Pesa configuration was not found for callback transaction', 503, corsHeaders);
+    }
+    const verifiedResult = await queryMpesaStatus(config, checkoutRequestId);
+    const verifiedCode = verifiedResult.ResultCode;
+    const paymentStatus = getMpesaPaymentStatus(verifiedCode);
     let mpesaReceiptNumber = null;
     if (stkCallback.CallbackMetadata?.Item) {
       const receiptItem = stkCallback.CallbackMetadata.Item.find(item => item.Name === 'MpesaReceiptNumber');
       if (receiptItem) mpesaReceiptNumber = receiptItem.Value;
     }
     
-    await supabaseFetch(env,
-      `/rest/v1/mpesa_transactions?checkout_request_id=eq.${checkoutRequestId}`,
-      {
-        method: 'PATCH',
-        body: JSON.stringify({
-          result_code: resultCode.toString(),
-          result_description: stkCallback.ResultDesc,
-          payment_status: paymentStatus === 'SUCCESS' ? 'SUCCESS' : (paymentStatus === 'CANCELLED' ? 'CANCELLED' : 'FAILED'),
-          mpesa_receipt_number: mpesaReceiptNumber,
-          transaction_date: resultCode === '0' ? new Date().toISOString() : null,
-          transaction_metadata: stkCallback
-        })
-      }
-    );
-    
-    if (paymentStatus === 'SUCCESS' && transaction.sale_id) {
+    if (paymentStatus !== 'PENDING' && transaction.payment_status === 'PENDING') {
       await supabaseFetch(env,
-        `/rest/v1/sales?id=eq.${transaction.sale_id}&pharmacy_id=eq.${transaction.pharmacy_id}`,
+        `/rest/v1/mpesa_transactions?id=eq.${encodeURIComponent(transaction.id)}&pharmacy_id=eq.${encodeURIComponent(transaction.pharmacy_id)}&payment_status=eq.PENDING`,
         {
           method: 'PATCH',
           body: JSON.stringify({
-            method: 'mpesa',
-            payment: transaction.amount,
-            change_amount: 0,
-            mpesa_receipt_number: mpesaReceiptNumber
+            result_code: String(verifiedCode),
+            result_description: verifiedResult.ResultDesc || stkCallback.ResultDesc || null,
+            payment_status: paymentStatus,
+            mpesa_receipt_number: verifiedResult.MpesaReceiptNumber || mpesaReceiptNumber,
+            transaction_date: paymentStatus === 'SUCCESS' ? new Date().toISOString() : null,
+            transaction_metadata: { callback: stkCallback, status_query: verifiedResult }
           })
         }
       );
@@ -1532,8 +1822,8 @@ async function handleMpesaCallback(request, env, corsHeaders) {
     return jsonResponse(200, { ResultCode: 0, ResultDesc: 'Accepted' }, corsHeaders);
     
   } catch (e) {
-    console.error('[Worker] M-Pesa callback error:', e);
-    return jsonResponse(200, { ResultCode: 0, ResultDesc: 'Accepted' }, corsHeaders);
+    console.error('[Worker] M-Pesa callback error:', e.message);
+    return jsonErrorResponse('Could not process M-Pesa callback', 500, corsHeaders);
   }
 }
 

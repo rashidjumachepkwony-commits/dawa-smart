@@ -9,7 +9,7 @@
   <meta property="og:title" content="DAWA SMART — Smart Pharmacy Management">
   <meta property="og:description" content="Manage pharmacy sales, stock, expenses, customers, staff and lab tests from one powerful system.">
   <meta property="og:image" content="assets/icon-512.png">
-  <meta property="og:url" content="https://rashidjumachepkwony-commits.github.io/dawa-smart/">
+  <meta property="og:url" content="https://dawa.startechafrica.co.ke/">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Dawa Smart">
 
@@ -25,7 +25,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="landing.css?v=4">
+  <link rel="stylesheet" href="landing.css?v=5">
 
   <title>DAWA SMART — Smart Pharmacy Management</title>
 </head>
@@ -34,34 +34,35 @@
   <!-- ===== Navigation ===== -->
   <nav class="nav" id="topNav">
     <div class="container">
-      <a href="#" class="logo">
+      <a href="#hero" class="logo" aria-label="Dawa Smart home">
         <i class="fas fa-prescription-bottle-medical"></i>
         <span>Dawa Smart</span>
       </a>
       <div class="nav-links" id="navLinks">
-        <a href="#" class="nav-link active">Home</a>
+        <a href="#hero" class="nav-link active">Home</a>
         <a href="#features" class="nav-link">Features</a>
         <a href="#how-it-works" class="nav-link">How It Works</a>
         <a href="#benefits" class="nav-link">Benefits</a>
         <a href="#faq" class="nav-link">FAQ</a>
         <a href="#contact" class="nav-link">Contact</a>
+        <a href="app.html#login" class="nav-link mobile-app-link">Open App</a>
       </div>
       <div class="cta-buttons">
         <a href="#contact" class="btn btn-outline">Request Demo</a>
         <a href="app.html#login" class="btn btn-primary">Open App</a>
       </div>
-      <div class="hamburger" id="hamburger">
+      <button type="button" class="hamburger" id="hamburger" aria-label="Open navigation menu" aria-controls="navLinks" aria-expanded="false">
         <span></span>
         <span></span>
         <span></span>
-      </div>
+      </button>
     </div>
   </nav>
 
   <!-- ===== Hero ===== -->
-  <section class="hero">
+  <section class="hero" id="hero">
     <div class="container">
-      <div class="hero-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center;">
+      <div class="hero-grid">
         <div class="hero-content">
           <div class="hero-badge">
             <i class="fas fa-star"></i> 14-Day Free Demo
@@ -69,19 +70,18 @@
           <h1>Run Your Pharmacy Smarter.</h1>
           <p class="hero-text">DAWA SMART helps pharmacies manage sales, stock, expenses, customers, staff and daily operations from one powerful system.</p>
           <div class="hero-buttons">
-            <a href="app.html#login" class="btn btn-gold"><i class="fas fa-rocket"></i> Explore Dawa Smart</a>
+            <a href="app.html#login" class="btn btn-gold"><i class="fas fa-rocket"></i> Try the Free Demo</a>
             <a href="#contact" class="btn btn-gold"><i class="fab fa-whatsapp"></i> Request a Demo</a>
-            <a href="app.html#login" class="btn btn-gold">Open App</a>
           </div>
           <div class="hero-tags">
             <span class="hero-tag gold-tag"><i class="fas fa-wifi-slash"></i> Offline-First</span>
-            <span class="hero-tag gold-tag"><i class="fas fa-file-invoice"></i> eTIMS Compliant</span>
+            <span class="hero-tag gold-tag"><i class="fas fa-file-invoice"></i> Tax-ready receipts</span>
             <span class="hero-tag gold-tag"><i class="fas fa-mobile-alt"></i> PWA Ready</span>
           </div>
         </div>
         <div class="hero-image">
           <div class="dash-header">
-            <div class="dash-title"><span class="dot"></span> Dawa Smart Dashboard</div>
+            <div class="dash-title"><span class="dot"></span> Sample Dashboard Preview</div>
             <div class="dash-title" style="font-size:12px;color:#64748b;">Today</div>
           </div>
           <div class="dash-grid">
@@ -116,6 +116,7 @@
             </div>
             <div class="chart-label"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span></div>
           </div>
+          <div class="dash-preview-note">Illustrative sample figures — not live pharmacy data</div>
         </div>
       </div>
     </div>
@@ -126,11 +127,11 @@
     <div class="container">
       <div class="trust-grid">
         <div class="trust-item"><i class="fas fa-check-circle"></i> Offline-first PWA</div>
-        <div class="trust-item"><i class="fas fa-check-circle"></i> No internet required</div>
-        <div class="trust-item"><i class="fas fa-check-circle"></i> eTIMS compliant receipts</div>
-        <div class="trust-item"><i class="fas fa-check-circle"></i> KRA ready reports</div>
-        <div class="trust-item"><i class="fas fa-check-circle"></i> SHA/NHIF integration</div>
-        <div class="trust-item"><i class="fas fa-check-circle"></i> M-Pesa payments</div>
+        <div class="trust-item"><i class="fas fa-check-circle"></i> Offline-first POS</div>
+        <div class="trust-item"><i class="fas fa-check-circle"></i> Batch &amp; expiry tracking</div>
+        <div class="trust-item"><i class="fas fa-check-circle"></i> Printable pharmacy receipts</div>
+        <div class="trust-item"><i class="fas fa-check-circle"></i> Daily to yearly reports</div>
+        <div class="trust-item"><i class="fas fa-check-circle"></i> Tenant-configured M-Pesa STK</div>
       </div>
     </div>
   </div>
@@ -211,18 +212,18 @@
         </div>
         <div class="feature-card">
           <div class="feature-icon"><i class="fas fa-file-invoice"></i></div>
-          <h3>eTIMS Receipts</h3>
-          <p>KRA-compliant tax invoices with QR-ready formatting.</p>
+          <h3>Printable Receipts</h3>
+          <p>Generate receipts with configurable tax details for your pharmacy records.</p>
         </div>
         <div class="feature-card">
           <div class="feature-icon"><i class="fas fa-mobile-alt"></i></div>
           <h3>M-Pesa Payments</h3>
-          <p>Accept M-Pesa and card payments directly from the POS.</p>
+          <p>Send tenant-configured M-Pesa STK Push requests from the POS.</p>
         </div>
         <div class="feature-card">
           <div class="feature-icon"><i class="fas fa-database"></i></div>
           <h3>Drug Database</h3>
-          <p>500+ Kenyan drugs searchable by name, generic or category.</p>
+          <p>Search the built-in drug database by name, generic or category.</p>
         </div>
         <div class="feature-card">
           <div class="feature-icon"><i class="fas fa-cloud-download-alt"></i></div>
@@ -302,7 +303,7 @@
         <div class="how-step">
           <div class="step-number">2</div>
           <h3>Add Products &amp; Stock</h3>
-          <p>Import or search 500+ Kenyan drugs. Add stock with batch numbers, quantities and expiry dates.</p>
+          <p>Search the built-in drug database or add stock with batch numbers, quantities and expiry dates.</p>
         </div>
         <div class="how-step">
           <div class="step-number">3</div>
@@ -399,18 +400,18 @@
     </div>
    </section>
 
-  <!-- ===== TRANSPARENT LICENSING ===== -->
+  <!-- ===== LICENSING ===== -->
   <section class="section licensing">
     <div class="container">
       <div class="section-header">
         <h2 class="section-title">Simple, Transparent Licensing</h2>
-        <p class="section-subtitle">No hidden fees. No automated locks. Pay directly and we activate your account instantly.</p>
+        <p class="section-subtitle">Ask our team about current plans, payment options and account activation.</p>
       </div>
       <div class="licensing-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:24px;">
         <div class="licensing-step" style="text-align:center;padding:32px;background:rgba(255,255,255,0.03);border-radius:20px;border:1px solid rgba(255,255,255,0.08);">
           <div style="width:56px;height:56px;background:#D9A10B;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:24px;">1</div>
           <h3 style="font-size:16px;font-weight:700;margin-bottom:8px;">Choose a Plan</h3>
-          <p style="font-size:13px;color:rgba(255,255,255,0.7);">Select the monthly or annual plan that fits your pharmacy's needs.</p>
+          <p style="font-size:13px;color:rgba(255,255,255,0.7);">Contact our team for current plan options and pricing.</p>
         </div>
         <div class="licensing-step" style="text-align:center;padding:32px;background:rgba(255,255,255,0.03);border-radius:20px;border:1px solid rgba(255,255,255,0.08);">
           <div style="width:56px;height:56px;background:#D9A10B;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:24px;">2</div>
@@ -420,14 +421,13 @@
         <div class="licensing-step" style="text-align:center;padding:32px;background:rgba(255,255,255,0.03);border-radius:20px;border:1px solid rgba(255,255,255,0.08);">
           <div style="width:56px;height:56px;background:#D9A10B;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:24px;">3</div>
           <h3 style="font-size:16px;font-weight:700;margin-bottom:8px;">Admin Activates</h3>
-          <p style="font-size:13px;color:rgba(255,255,255,0.7);">Our admin team manually verifies payment and activates your account — full transparency, no automated locks.</p>
+          <p style="font-size:13px;color:rgba(255,255,255,0.7);">Our team verifies your payment before applying the license to your account.</p>
         </div>
       </div>
       <div class="licensing-note" style="text-align:center;margin-top:32px;padding:20px;background:rgba(255,255,255,0.05);border-radius:16px;border:1px solid rgba(255,255,255,0.1);">
         <i class="fas fa-shield-check" style="color:#22c55e;font-size:20px;margin-bottom:8px;"></i>
         <p style="font-size:13px;color:rgba(255,255,255,0.8);margin:0;">
-          Every payment is verified manually by our team. You'll receive a confirmation and your account will be activated immediately.
-          <strong style="color:#D9A10B;">No automated expiry. No hidden penalties. Direct human verification.</strong>
+          Payments are verified by our team. Contact us for confirmation and help with your account.
         </p>
       </div>
     </div>
@@ -439,8 +439,8 @@
       <h2>Ready to Take Your Pharmacy Digital?</h2>
       <p class="cta-text">See how Dawa Smart can help you organize your pharmacy operations. Try the 14-day free demo — no credit card required.</p>
       <div class="cta-buttons">
-        <a href="app.html#login" class="btn btn-primary">Explore Dawa Smart</a>
-        <a href="https://wa.me/254759324463?text=Hello%2C%20I%20am%20interested%20in%20Dawa%20Smart%20Pharmacy%20Management%20System.%20I%20would%20like%20to%20see%20a%20demo%20and%20learn%20more." class="btn btn-outline">Talk to Us</a>
+        <a href="app.html#login" class="btn btn-primary">Try the Free Demo</a>
+        <a href="https://wa.me/254759324463?text=Hello%2C%20I%20am%20interested%20in%20Dawa%20Smart%20Pharmacy%20Management%20System.%20I%20would%20like%20to%20see%20a%20demo%20and%20learn%20more." target="_blank" rel="noopener noreferrer" class="btn btn-outline">Talk to Us</a>
       </div>
     </div>
   </section>
@@ -453,7 +453,7 @@
       </div>
       <div class="faq-grid">
         <div class="faq-item">
-          <div class="faq-question">
+          <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
             What is Dawa Smart? <i class="fas fa-chevron-down"></i>
           </div>
           <div class="faq-answer">
@@ -461,7 +461,7 @@
           </div>
         </div>
         <div class="faq-item">
-          <div class="faq-question">
+          <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
             Who can use Dawa Smart? <i class="fas fa-chevron-down"></i>
           </div>
           <div class="faq-answer">
@@ -469,7 +469,7 @@
           </div>
         </div>
         <div class="faq-item">
-          <div class="faq-question">
+          <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
             What can I manage with Dawa Smart? <i class="fas fa-chevron-down"></i>
           </div>
           <div class="faq-answer">
@@ -477,7 +477,7 @@
           </div>
         </div>
         <div class="faq-item">
-          <div class="faq-question">
+          <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
             Can I manage pharmacy stock? <i class="fas fa-chevron-down"></i>
           </div>
           <div class="faq-answer">
@@ -485,7 +485,7 @@
           </div>
         </div>
         <div class="faq-item">
-          <div class="faq-question">
+          <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
             Can I track sales and expenses? <i class="fas fa-chevron-down"></i>
           </div>
           <div class="faq-answer">
@@ -493,7 +493,7 @@
           </div>
         </div>
         <div class="faq-item">
-          <div class="faq-question">
+          <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
             Can I manage staff? <i class="fas fa-chevron-down"></i>
           </div>
           <div class="faq-answer">
@@ -501,7 +501,7 @@
           </div>
         </div>
         <div class="faq-item">
-          <div class="faq-question">
+          <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
             Can I generate reports? <i class="fas fa-chevron-down"></i>
           </div>
           <div class="faq-answer">
@@ -509,51 +509,51 @@
           </div>
         </div>
         <div class="faq-item">
-          <div class="faq-question">
+          <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
             How do I get started? <i class="fas fa-chevron-down"></i>
           </div>
           <div class="faq-answer">
-            Click "Open App" or "Explore Dawa Smart", then log in with the DEMO credentials. A 14-day free trial starts when you make your first sale. No installation required — it runs in your browser.
+            Open the app and choose the DEMO account. Its 14-day trial begins after the first completed demo sale. No installation is required.
           </div>
         </div>
         <div class="faq-item">
-          <div class="faq-question">
+          <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
             Does Dawa Smart require internet? <i class="fas fa-chevron-down"></i>
           </div>
           <div class="faq-answer">
-            Dawa Smart works offline. Data is stored in your browser using IndexedDB. An internet connection is only needed for the initial page load or exporting data.
+            Dawa Smart is offline-first and stores records locally for continued work. Cloud sync, account features and online payments need an internet connection.
           </div>
         </div>
         <div class="faq-item">
-          <div class="faq-question">
+          <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
             Is my data secure? <i class="fas fa-chevron-down"></i>
           </div>
           <div class="faq-answer">
-            All data stays in your browser. Dawa Smart does not send data to external servers, and license/trial information is stored separately and excluded from backups.
+            Records are stored locally for offline use and synced to your pharmacy's configured cloud service when connected. Keep your devices secure and make regular backups.
           </div>
         </div>
         <div class="faq-item">
-          <div class="faq-question">
+          <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
             What is the 14-day demo? <i class="fas fa-chevron-down"></i>
           </div>
           <div class="faq-answer">
-            The 14-day demo gives you full access to try every feature. The trial starts on your first sale, not on login. Each browser/device gets its own independent trial. If it expires, you can reset it to start fresh.
+            The DEMO trial lasts 14 days and starts after the first completed demo sale. Trial status is kept separately for each browser/device.
           </div>
         </div>
         <div class="faq-item">
-          <div class="faq-question">
+          <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
             How do I get a licensed account? <i class="fas fa-chevron-down"></i>
           </div>
           <div class="faq-answer">
-            Pay directly via M-Pesa or bank transfer, then share your receipt with us on WhatsApp (0759 324 463). Our admin team manually verifies your payment and activates your account instantly. <strong>No automated locks. No hidden fees. Direct human verification.</strong>
+            Contact our team for current payment details, then share your receipt on WhatsApp (0759 324 463). We verify the payment before applying a license.
           </div>
         </div>
         <div class="faq-item">
-          <div class="faq-question">
+          <div class="faq-question" role="button" tabindex="0" aria-expanded="false">
             Does Dawa Smart support M-Pesa? <i class="fas fa-chevron-down"></i>
           </div>
           <div class="faq-answer">
-            Yes. Dawa Smart supports M-Pesa, Airtel Money, card and cash payment methods, plus credit sales with customer ledger tracking.
+            Cash and credit sales are available. M-Pesa STK Push can be enabled by a pharmacy owner or admin after entering that pharmacy's Daraja credentials.
           </div>
         </div>
       </div>
@@ -571,13 +571,13 @@
         <div class="contact-info">
           <h3>Contact Information</h3>
           <ul class="contact-list">
-            <li><i class="fab fa-whatsapp"></i> WhatsApp: <a href="https://wa.me/254759324463?text=Hello%2C%20I%20am%20interested%20in%20Dawa%20Smart%20Pharmacy%20Management%20System.%20I%20would%20like%20to%20see%20a%20demo%20and%20learn%20more." target="_blank">0759 324 463</a></li>
+            <li><i class="fab fa-whatsapp"></i> WhatsApp: <a href="https://wa.me/254759324463?text=Hello%2C%20I%20am%20interested%20in%20Dawa%20Smart%20Pharmacy%20Management%20System.%20I%20would%20like%20to%20see%20a%20demo%20and%20learn%20more." target="_blank" rel="noopener noreferrer">0759 324 463</a></li>
             <li><i class="fas fa-phone"></i> Phone: 0759 324 463</li>
             <li><i class="fas fa-envelope"></i> Email: <a href="mailto:sales@dawasmartz.co.ke?subject=Dawa%20Smart%20Inquiry">sales@dawasmartz.co.ke</a></li>
             <li><i class="fas fa-map-marker-alt"></i> 7 Cheptais, Kenya</li>
           </ul>
           <p class="contact-note" style="font-size:12px;color:#94a3b8;margin-top:20px;">
-            Or simply open Dawa Smart and start using the 14-day demo. No signup required.
+            Open Dawa Smart and choose the DEMO account to get started. Demo trial timing is described in the FAQ above.
           </p>
           <div style="margin-top:20px;">
             <a href="app.html#login" class="btn btn-primary" style="padding:12px 24px;">Open Dawa Smart Now</a>
@@ -585,16 +585,16 @@
         </div>
         <div class="contact-form-container">
           <div class="form-group">
-            <input type="text" id="leadName" placeholder="Your name">
+            <input type="text" id="leadName" placeholder="Your name" aria-label="Your name">
           </div>
           <div class="form-group">
-            <input type="tel" id="leadPhone" placeholder="Phone number (optional)">
+            <input type="tel" id="leadPhone" placeholder="Phone number (optional)" aria-label="Phone number (optional)">
           </div>
           <div class="form-group">
-            <input type="email" id="leadEmail" placeholder="Email address (optional)">
+            <input type="email" id="leadEmail" placeholder="Email address (optional)" aria-label="Email address (optional)">
           </div>
           <div class="form-group">
-            <textarea id="leadMessage" placeholder="Your message" rows="4" style="resize:vertical;"></textarea>
+            <textarea id="leadMessage" placeholder="Your message" rows="4" aria-label="Your message" style="resize:vertical;"></textarea>
           </div>
           <button class="btn-submit" onclick="sendLeadInquiry()">Send via WhatsApp</button>
           <p class="contact-note">This form sends your inquiry to our WhatsApp number. We do not store your details.</p>
@@ -604,7 +604,7 @@
   </section>
 
   <!-- ===== WhatsApp Float ===== -->
-  <a href="https://wa.me/254759324463?text=Hello%2C%20I%20am%20interested%20in%20Dawa%20Smart%20Pharmacy%20Management%20System.%20I%20would%20like%20to%20see%20a%20demo%20and%20learn%20more." class="whatsapp-float" target="_blank">
+  <a href="https://wa.me/254759324463?text=Hello%2C%20I%20am%20interested%20in%20Dawa%20Smart%20Pharmacy%20Management%20System.%20I%20would%20like%20to%20see%20a%20demo%20and%20learn%20more." class="whatsapp-float" target="_blank" rel="noopener noreferrer" aria-label="Contact Dawa Smart on WhatsApp">
     <i class="fab fa-whatsapp"></i>
   </a>
 
@@ -635,9 +635,10 @@
           </ul>
         </div>
         <div class="footer-col">
-          <h4>Legal</h4>
+          <h4>Contact</h4>
           <ul>
-            <li><a href="LICENSE">License</a></li>
+            <li><a href="tel:+254759324463">Call 0759 324 463</a></li>
+            <li><a href="https://wa.me/254759324463?text=Hello%2C%20I%20am%20interested%20in%20Dawa%20Smart%20Pharmacy%20Management%20System.%20I%20would%20like%20to%20see%20a%20demo%20and%20learn%20more." target="_blank" rel="noopener noreferrer">WhatsApp us</a></li>
           </ul>
         </div>
       </div>
@@ -656,11 +657,22 @@
 
     // Mobile menu toggle
     var hamburger = document.getElementById('hamburger');
-    var navLinks = document.getElementById('navLinks');
+    var navLinksPanel = document.getElementById('navLinks');
     if (hamburger) {
       hamburger.addEventListener('click', function() {
-        navLinks.classList.toggle('open');
-        this.classList.toggle('open');
+        var isOpen = navLinksPanel.classList.toggle('open');
+        this.classList.toggle('open', isOpen);
+        this.setAttribute('aria-expanded', String(isOpen));
+        this.setAttribute('aria-label', isOpen ? 'Close navigation menu' : 'Open navigation menu');
+      });
+      document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape' && navLinksPanel.classList.contains('open')) {
+          navLinksPanel.classList.remove('open');
+          hamburger.classList.remove('open');
+          hamburger.setAttribute('aria-expanded', 'false');
+          hamburger.setAttribute('aria-label', 'Open navigation menu');
+          hamburger.focus();
+        }
       });
     }
 
@@ -668,9 +680,13 @@
     var navLinksList = document.querySelectorAll('.nav-link, .cta-buttons a');
     navLinksList.forEach(function(link) {
       link.addEventListener('click', function() {
-        if (navLinks && navLinks.classList.contains('open')) {
-          navLinks.classList.remove('open');
-          if (hamburger) hamburger.classList.remove('open');
+        if (navLinksPanel && navLinksPanel.classList.contains('open')) {
+          navLinksPanel.classList.remove('open');
+          if (hamburger) {
+            hamburger.classList.remove('open');
+            hamburger.setAttribute('aria-expanded', 'false');
+            hamburger.setAttribute('aria-label', 'Open navigation menu');
+          }
         }
       });
     });
@@ -680,20 +696,28 @@
     faqQuestions.forEach(function(q) {
       q.addEventListener('click', function() {
         var item = this.parentElement;
-        item.classList.toggle('active');
+        var isOpen = item.classList.toggle('active');
+        this.setAttribute('aria-expanded', String(isOpen));
         // Close others
         faqQuestions.forEach(function(other) {
           if (other !== q) {
             other.parentElement.classList.remove('active');
+            other.setAttribute('aria-expanded', 'false');
           }
         });
+      });
+      q.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          this.click();
+        }
       });
     });
 
     // Highlight active nav link
     var currentHash = window.location.hash || '#hero';
-    var navLinks = document.querySelectorAll('.nav-link');
-    navLinks.forEach(function(link) {
+    var navLinkItems = document.querySelectorAll('.nav-link');
+    navLinkItems.forEach(function(link) {
       var href = link.getAttribute('href');
       if (href === currentHash) {
         link.classList.add('active');
@@ -721,7 +745,7 @@
       if (message) text += ' Message: ' + message + '.';
 
       var url = 'https://wa.me/254759324463?text=' + encodeURIComponent(text);
-      window.open(url, '_blank');
+      window.open(url, '_blank', 'noopener,noreferrer');
     }
 
     // Dashboard animation: animate chart bars on load
@@ -747,14 +771,14 @@
 
     // Active section highlighting
     var sections = document.querySelectorAll('section[id]');
-    var navLinks = document.querySelectorAll('.nav-link');
-    if (sections.length && navLinks.length) {
+    var navLinkItems = document.querySelectorAll('.nav-link');
+    if (sections.length && navLinkItems.length) {
       var observer = new IntersectionObserver(function(entries) {
         entries.forEach(function(entry) {
           var id = entry.target.getAttribute('id');
           var link = document.querySelector('.nav-link[href="#' + id + '"]');
           if (entry.isIntersecting && link) {
-            navLinks.forEach(function(l) { l.classList.remove('active'); });
+            navLinkItems.forEach(function(l) { l.classList.remove('active'); });
             link.classList.add('active');
           }
         });
