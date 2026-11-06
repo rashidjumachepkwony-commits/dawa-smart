@@ -388,7 +388,7 @@
 
     <!-- LOGIN FORM -->
     <div style="background:#f8fafc;border-radius:16px;padding:24px;border:1px solid #e2e8f0">
-      <div id="loginError" class="error-msg"></div>
+      <div id="loginError" class="error-msg" role="alert" aria-live="assertive"></div>
       <div id="loginForm">
         <div class="demo-badge-container" style="background:#f0fdf4;border:2px solid #16a34a;border-radius:16px;padding:14px 16px;margin:14px 0;text-align:center;">
           <div style="font-size:13px;font-weight:700;color:#15803d">14-DAY FREE DEMO</div>
@@ -1639,7 +1639,7 @@ function formatCurrency(value){const amount=Number(value)||0; return 'KES '+amou
 function formatDate(value){if(!value)return '—';const d=new Date(value);if(Number.isNaN(d.getTime()))return value;return d.toLocaleDateString('en-KE',{year:'numeric',month:'short',day:'numeric'});}
 function formatShortDate(value){if(!value)return '—';const d=new Date(value);if(Number.isNaN(d.getTime()))return value;return d.toLocaleDateString('en-KE',{day:'2-digit',month:'short',year:'2-digit'});}
 function showToast(message,type='info'){ const toast=document.getElementById('toast'); const messageEl=document.getElementById('toastMessage'); if(!toast||!messageEl){return;} messageEl.textContent=message; toast.className='toast show ' + (type || 'info'); clearTimeout(showToast.timer); showToast.timer=setTimeout(()=>{toast.className='toast';},2600); }
-function findUser(u,p){return users.find(user => user.username === u && user.password === p && user.status === 'active');}
+function findUser(u,p){const username=String(u||'').trim().toUpperCase();return users.find(user => String(user.username||'').trim().toUpperCase() === username && user.password === p && user.status === 'active');}
 
 // ===== NEGOTIATION CONTROLS =====
 function toggleNegotiation() {
@@ -1823,29 +1823,33 @@ async function handleLogin(){
     errorEl.className='error-msg';
     if(!username || !password){errorEl.textContent='Please enter both fields';errorEl.className='error-msg show';return;}
 
-    // Authenticate via Worker API (uses hashed credentials server-side)
+    // Prefer Worker authentication; locally managed users are checked below
+    // because they may not exist in the Worker legacy credential allowlist.
     var authResult = null;
     if (typeof window.DawaTenant !== 'undefined' && window.DawaTenant.authenticate) {
         authResult = await window.DawaTenant.authenticate(username, password);
-        if (!authResult.success) {
-            loginAttempts++;
-            errorEl.textContent='❌ '+authResult.error+'. Attempt '+loginAttempts+'/5';
-            errorEl.className='error-msg show';
-            if(loginAttempts>=5){ errorEl.textContent='Too many attempts. Locked 30s.'; document.getElementById('loginUsername').disabled = true; document.getElementById('loginPassword').disabled = true; setTimeout(()=>{document.getElementById('loginUsername').disabled=false;document.getElementById('loginPassword').disabled=false;loginAttempts=0;errorEl.textContent='';errorEl.className='error-msg';},30000); }
-            return;
+    }
+
+    // Fall back to the users stored on this device when the Worker does not
+    // recognize an account created through the local user-management screen.
+    var user = authResult && authResult.success ? authResult.user : findUser(username,password);
+    if(!user || user.status !== 'active'){
+        loginAttempts++;
+        errorEl.textContent='Wrong username or password. Please check your credentials and try again. Attempt '+loginAttempts+'/5';
+        errorEl.className='error-msg show';
+        if(loginAttempts>=5){
+            errorEl.textContent='Too many attempts. Login is locked for 30 seconds.';
+            document.getElementById('loginUsername').disabled = true;
+            document.getElementById('loginPassword').disabled = true;
+            setTimeout(()=>{
+                document.getElementById('loginUsername').disabled=false;
+                document.getElementById('loginPassword').disabled=false;
+                loginAttempts=0;
+                errorEl.textContent='';
+                errorEl.className='error-msg';
+            },30000);
         }
-    }
-
-    // Fallback to local-only auth if offline / no Worker configured
-    var user = findUser(username,password);
-    if(!user && (!authResult || !authResult.success)){
-        loginAttempts++; errorEl.textContent='❌ Wrong username or password. Attempt '+loginAttempts+'/5'; errorEl.className='error-msg show'; if(loginAttempts>=5){ errorEl.textContent='Too many attempts. Locked 30s.'; document.getElementById('loginUsername').disabled = true; document.getElementById('loginPassword').disabled = true; setTimeout(()=>{document.getElementById('loginUsername').disabled=false;document.getElementById('loginPassword').disabled=false;loginAttempts=0;errorEl.textContent='';errorEl.className='error-msg';},30000); }
         return;
-    }
-
-    // Use auth result if available (for token + pharmacy context)
-    if (authResult && authResult.success) {
-        user = authResult.user;
     }
 
     if(!user.verified){errorEl.textContent='⚠️ Account not verified. Contact developer.';errorEl.className='error-msg show';return;}
