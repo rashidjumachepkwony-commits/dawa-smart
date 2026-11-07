@@ -234,8 +234,84 @@
       };
     } catch (e) {
       console.error('[DawaSmart Tenant] Auth error:', e);
+      logout();
       return { success: false, error: e.message };
     }
+  }
+
+  async function staffUsersRequest(method, body) {
+    const res = await fetch(api('/api/pharmacy/staff-users'), {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      },
+      body: body ? JSON.stringify(body) : undefined
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || 'Staff account request failed');
+    }
+    return data;
+  }
+
+  async function listStaffUsers() {
+    const data = await staffUsersRequest('GET');
+    return data.users || [];
+  }
+
+  async function syncStaffUsers(users) {
+    const allowedRoles = ['admin', 'manager', 'pharmacist', 'cashier', 'lab', 'doctor'];
+    const staffUsers = (users || [])
+      .filter(user => user && allowedRoles.includes(user.role))
+      .map(user => ({
+        id: user.serverId,
+        username: user.username,
+        fullName: user.fullName,
+        email: user.email,
+        phone: user.phone,
+        password: user.password,
+        role: user.role,
+        status: user.status,
+        verified: user.verified,
+        pharmacy: user.pharmacy
+      }));
+    if (staffUsers.length === 0) return [];
+    const data = await staffUsersRequest('POST', { users: staffUsers });
+    return data.users || [];
+  }
+
+  async function deleteStaffUser(identifier) {
+    return staffUsersRequest('DELETE', { id: identifier });
+  }
+
+  async function getPharmacySettings() {
+    const res = await fetch(api('/api/pharmacy/settings'), {
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      }
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Failed to load pharmacy settings');
+    return data.settings;
+  }
+
+  async function savePharmacySettings(settings) {
+    const res = await fetch(api('/api/pharmacy/settings'), {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      },
+      body: JSON.stringify(settings)
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Failed to save pharmacy settings');
+    if (data.settings && currentPharmacy && data.settings.id === currentPharmacy.id) {
+      saveCurrentPharmacy({ ...currentPharmacy, name: data.settings.name });
+    }
+    return data.settings;
   }
 
   async function register(email, password, fullName, pharmacyName) {
@@ -309,6 +385,11 @@
     getMemberships,
     fetchMemberships,
     switchPharmacy,
+    listStaffUsers,
+    syncStaffUsers,
+    deleteStaffUser,
+    getPharmacySettings,
+    savePharmacySettings,
     getToken,
     getAuthHeaders,
     isDemoMode,

@@ -62,16 +62,18 @@ function normalizePayloadKeys(payload) {
   return normalized;
 }
 
-// Role-to-permission mapping for operations
-const ROLE_PERMISSIONS = {
-  products: { owner: true, admin: true, manager: true, pharmacist: true, cashier: false, lab: false, doctor: false, demo: true },
-  batches: { owner: true, admin: true, manager: true, pharmacist: true, cashier: false, lab: false, doctor: false, demo: false },
-  sales: { owner: true, admin: true, manager: true, pharmacist: true, cashier: true, lab: false, doctor: false, demo: true },
-  sale_items: { owner: true, admin: true, manager: true, pharmacist: true, cashier: true, lab: false, doctor: false, demo: true },
-  patients: { owner: true, admin: true, manager: true, pharmacist: true, cashier: false, lab: false, doctor: true, demo: true },
-  lab_tests: { owner: true, admin: true, manager: true, pharmacist: false, cashier: false, lab: true, doctor: true, demo: true },
-  expenses: { owner: true, admin: true, manager: true, pharmacist: false, cashier: false, lab: false, doctor: false, demo: false },
-  controlled_logs: { owner: true, admin: true, manager: false, pharmacist: true, cashier: false, lab: false, doctor: false, demo: false },
+// Staff roles share business-data access; demo remains explicitly restricted.
+const STAFF_USER_ROLES = new Set(['admin', 'manager', 'pharmacist', 'cashier', 'lab', 'doctor']);
+const BUSINESS_DATA_ROLES = new Set(['owner', 'developer', ...STAFF_USER_ROLES]);
+const DEMO_ENTITY_PERMISSIONS = {
+  products: true,
+  batches: false,
+  sales: true,
+  sale_items: true,
+  patients: true,
+  lab_tests: true,
+  expenses: false,
+  controlled_logs: false
 };
 
 const PROTECTED_COLUMNS = new Set([
@@ -155,6 +157,27 @@ export default {
         const auth = await requireAuth(request, env);
         if (auth.error) return jsonErrorResponse(auth.error, auth.status, corsHeaders);
         return await handleInviteMember(request, auth, env, corsHeaders);
+      }
+
+      if (path === '/api/pharmacy/staff-users' && ['GET', 'POST', 'DELETE'].includes(method)) {
+        const auth = await requireAuth(request, env);
+        if (auth.error) return jsonErrorResponse(auth.error, auth.status, corsHeaders);
+        if (!['owner', 'admin', 'developer'].includes(auth.user.role)) {
+          return jsonErrorResponse('Only owners and admins can manage staff accounts', 403, corsHeaders);
+        }
+        if (method === 'GET') return await handleListStaffUsers(auth, env, corsHeaders);
+        if (method === 'POST') return await handleSyncStaffUsers(request, auth, env, corsHeaders);
+        return await handleDeleteStaffUser(request, auth, env, corsHeaders);
+      }
+
+      if (path === '/api/pharmacy/settings' && ['GET', 'PATCH'].includes(method)) {
+        const auth = await requireAuth(request, env);
+        if (auth.error) return jsonErrorResponse(auth.error, auth.status, corsHeaders);
+        if (method === 'GET') return await handleGetPharmacySettings(auth, env, corsHeaders);
+        if (!BUSINESS_DATA_ROLES.has(auth.user.role)) {
+          return jsonErrorResponse('An active pharmacy member is required to customize settings', 403, corsHeaders);
+        }
+        return await handleSavePharmacySettings(request, auth, env, corsHeaders);
       }
 
       if (path === '/api/invitations' && method === 'GET') {
@@ -335,6 +358,27 @@ async function hashPassword(password, salt) {
     keyMaterial, 256
   );
   return btoa(String.fromCharCode(...new Uint8Array(derived)));
+}
+
+async function createStoredPasswordHash(password) {
+  const saltBytes = crypto.getRandomValues(new Uint8Array(16));
+  const salt = btoa(String.fromCharCode(...saltBytes));
+  return `pbkdf2-sha256$100000$${salt}$${await hashPassword(password, salt)}`;
+}
+
+async function verifyStoredPasswordHash(password, storedHash) {
+  const [algorithm, iterations, salt, expectedHash] = String(storedHash || '').split('$');
+  if (algorithm !== 'pbkdf2-sha256' || iterations !== '100000' || !salt || !expectedHash) {
+    return false;
+  }
+
+  const actualHash = await hashPassword(password, salt);
+  if (actualHash.length !== expectedHash.length) return false;
+  let mismatch = 0;
+  for (let i = 0; i < actualHash.length; i++) {
+    mismatch |= actualHash.charCodeAt(i) ^ expectedHash.charCodeAt(i);
+  }
+  return mismatch === 0;
 }
 
 // ─── Auth Guard ─────────────────────────────────────────────
@@ -538,6 +582,7 @@ async function handleLocalAuth(request, env, corsHeaders) {
   if (!username || !password) {
     return jsonErrorResponse('Missing credentials', 400, corsHeaders);
   }
+  const normalizedUsername = String(username).trim().toUpperCase();
 
   // Legacy user password hash verification (PBKDF2)
   // Passwords are NOT stored in source — only their base64-encoded hash
@@ -561,9 +606,9 @@ async function handleLocalAuth(request, env, corsHeaders) {
     }
   };
 
-  const user = LEGACY_USER_CREDENTIALS[username.toUpperCase()];
+  const user = LEGACY_USER_CREDENTIALS[normalizedUsername];
   if (!user) {
-    return jsonErrorResponse('Invalid credentials', 401, corsHeaders);
+    return await handleStaffLocalAuth(normalizedUsername, password, env, corsHeaders);
   }
 
   // Verify password using PBKDF2
@@ -571,7 +616,327 @@ async function handleLocalAuth(request, env, corsHeaders) {
   if (providedHash !== user.passwordHash) {
     return jsonErrorResponse('Invalid credentials', 401, corsHeaders);
   }
+  return await handleLegacyLocalAuth(normalizedUsername, user, env, corsHeaders);
+}
 
+async function handleStaffLocalAuth(username, password, env, corsHeaders) {
+    const normalizedUsername = String(username || '').trim().toUpperCase();
+    const records = await supabaseFetch(env,
+      `/rest/v1/users?username=eq.${encodeURIComponent(normalizedUsername)}&status=eq.active&select=id,username,password_hash,full_name,email,role,pharmacy_id,verified&limit=1`,
+      { headers: { 'Accept': 'application/json' } }
+    );
+    const user = records && records[0];
+    if (!user || !await verifyStoredPasswordHash(password, user.password_hash)) {
+      return jsonErrorResponse('Invalid credentials', 401, corsHeaders);
+    }
+
+    const memberships = await supabaseFetch(env,
+      `/rest/v1/pharmacy_members?auth_user_id=eq.${encodeURIComponent(user.id)}&pharmacy_id=eq.${encodeURIComponent(user.pharmacy_id)}&status=eq.active&select=role,status,pharmacy:pharmacies(id,name,slug,status)`,
+      { headers: { 'Accept': 'application/json' } }
+    );
+    const membership = memberships && memberships[0];
+    if (!membership || !membership.pharmacy || !STAFF_USER_ROLES.has(membership.role)) {
+      return jsonErrorResponse('Invalid credentials', 401, corsHeaders);
+    }
+
+    const normalizedRole = membership.role;
+    const token = await createJWT({
+      sub: user.id,
+      email: user.email,
+      username: user.username,
+      role: normalizedRole,
+      pharmacy_id: user.pharmacy_id,
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60)
+    }, env.JWT_SECRET);
+
+    return jsonResponse(200, {
+      token,
+      token_type: 'Bearer',
+      expires_in: 86400,
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.full_name,
+        role: normalizedRole,
+        username: user.username,
+        verified: user.verified !== false,
+        status: 'active'
+      },
+      pharmacy: membership.pharmacy
+    }, corsHeaders);
+  }
+
+async function handleListStaffUsers(auth, env, corsHeaders) {
+    const staffUsers = await supabaseFetch(env,
+      `/rest/v1/users?pharmacy_id=eq.${encodeURIComponent(auth.user.pharmacyId)}&select=id,username,full_name,email,phone,role,status,verified,pharmacy&order=username.asc`,
+      { headers: { 'Accept': 'application/json' } }
+    );
+
+    return jsonResponse(200, {
+      users: (staffUsers || []).filter(user => STAFF_USER_ROLES.has(user.role))
+    }, corsHeaders);
+  }
+
+async function handleSyncStaffUsers(request, auth, env, corsHeaders) {
+    const body = await request.json().catch(() => null);
+    if (!body || !Array.isArray(body.users) || body.users.length > 200) {
+      return jsonErrorResponse('Expected a users array with at most 200 accounts', 400, corsHeaders);
+    }
+
+    const usernames = new Set();
+    const savedUsers = [];
+    for (const input of body.users) {
+      const username = String(input && input.username || '').trim().toUpperCase();
+      if (!username || username.length > 100) {
+        return jsonErrorResponse('Each staff account needs a valid username', 400, corsHeaders);
+      }
+      if (username === 'RASHID' || username === 'DEMO') continue;
+      if (usernames.has(username)) {
+        return jsonErrorResponse('Duplicate username in staff account list: ' + username, 400, corsHeaders);
+      }
+      usernames.add(username);
+
+      const role = String(input.role || '');
+      if (!STAFF_USER_ROLES.has(role)) {
+        return jsonErrorResponse('Invalid staff role for ' + username, 400, corsHeaders);
+      }
+      const status = ['active', 'inactive', 'pending'].includes(input.status) ? input.status : null;
+      if (!status) {
+        return jsonErrorResponse('Invalid status for ' + username, 400, corsHeaders);
+      }
+
+      const serverId = String(input.id || '').trim();
+      if (serverId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(serverId)) {
+        return jsonErrorResponse('Invalid staff account id for ' + username, 400, corsHeaders);
+      }
+      let existing = null;
+      if (serverId) {
+        const ownedUsers = await supabaseFetch(env,
+          `/rest/v1/users?id=eq.${encodeURIComponent(serverId)}&pharmacy_id=eq.${encodeURIComponent(auth.user.pharmacyId)}&select=id,pharmacy_id,username&limit=1`,
+          { headers: { 'Accept': 'application/json' } }
+        );
+        existing = ownedUsers && ownedUsers[0];
+        if (!existing) return jsonErrorResponse('Staff account not found in this pharmacy', 404, corsHeaders);
+      }
+
+      const usernameMatches = await supabaseFetch(env,
+        `/rest/v1/users?username=eq.${encodeURIComponent(username)}&select=id,pharmacy_id&limit=1`,
+        { headers: { 'Accept': 'application/json' } }
+      );
+      const usernameMatch = usernameMatches && usernameMatches[0];
+      if (usernameMatch && existing && usernameMatch.id !== existing.id) {
+        return jsonErrorResponse('Username is already in use: ' + username, 409, corsHeaders);
+      }
+      if (usernameMatch && !existing) existing = usernameMatch;
+      if (existing && existing.pharmacy_id !== auth.user.pharmacyId) {
+        return jsonErrorResponse('Username is already used by another pharmacy: ' + username, 409, corsHeaders);
+      }
+
+      const suppliedPassword = typeof input.password === 'string' ? input.password : '';
+      if (!existing && suppliedPassword.length < 8) {
+        return jsonErrorResponse('A password of at least 8 characters is required for ' + username, 400, corsHeaders);
+      }
+      if (suppliedPassword && suppliedPassword.length < 8) {
+        return jsonErrorResponse('A password of at least 8 characters is required for ' + username, 400, corsHeaders);
+      }
+
+      const record = {
+        username,
+        full_name: String(input.fullName || username).trim(),
+        email: String(input.email || '').trim() || null,
+        phone: String(input.phone || '').trim() || null,
+        role,
+        status,
+        verified: input.verified !== false,
+        pharmacy: String(input.pharmacy || '').trim() || null,
+        pharmacy_id: auth.user.pharmacyId
+      };
+      if (suppliedPassword) {
+        record.password_hash = await createStoredPasswordHash(suppliedPassword);
+      }
+
+      const saved = existing
+        ? await supabaseFetch(env,
+          `/rest/v1/users?id=eq.${encodeURIComponent(existing.id)}&pharmacy_id=eq.${encodeURIComponent(auth.user.pharmacyId)}`,
+          {
+            method: 'PATCH',
+            headers: { 'Prefer': 'return=representation' },
+            body: JSON.stringify(record)
+          }
+        )
+        : await supabaseFetch(env, '/rest/v1/users', {
+          method: 'POST',
+          headers: { 'Prefer': 'return=representation' },
+          body: JSON.stringify(record)
+        });
+      const savedUser = Array.isArray(saved) ? saved[0] : null;
+      if (!savedUser || !savedUser.id) {
+        throw new Error('Failed to save staff account ' + username);
+      }
+
+      const membershipStatus = status === 'active' ? 'active' : status === 'pending' ? 'pending' : 'suspended';
+      const memberships = await supabaseFetch(env,
+        `/rest/v1/pharmacy_members?auth_user_id=eq.${encodeURIComponent(savedUser.id)}&pharmacy_id=eq.${encodeURIComponent(auth.user.pharmacyId)}&select=id`,
+        { headers: { 'Accept': 'application/json' } }
+      );
+      const membership = {
+        pharmacy_id: auth.user.pharmacyId,
+        auth_user_id: savedUser.id,
+        email: record.email,
+        role,
+        status: membershipStatus,
+      };
+      if (memberships && memberships[0]) {
+        await supabaseFetch(env,
+          `/rest/v1/pharmacy_members?id=eq.${encodeURIComponent(memberships[0].id)}`,
+          { method: 'PATCH', body: JSON.stringify(membership) }
+        );
+      } else {
+        await supabaseFetch(env, '/rest/v1/pharmacy_members', {
+          method: 'POST',
+          body: JSON.stringify(membership)
+        });
+      }
+
+      savedUsers.push({
+        id: savedUser.id,
+        username: savedUser.username,
+        fullName: savedUser.full_name,
+        email: savedUser.email,
+        phone: savedUser.phone,
+        role: savedUser.role,
+        status: savedUser.status,
+        verified: savedUser.verified,
+        pharmacy: savedUser.pharmacy
+      });
+    }
+
+    return jsonResponse(200, { users: savedUsers }, corsHeaders);
+  }
+
+async function handleDeleteStaffUser(request, auth, env, corsHeaders) {
+    const body = await request.json().catch(() => null);
+    const identifier = String(body && (body.id || body.username) || '').trim();
+    if (!identifier) return jsonErrorResponse('Missing staff account id or username', 400, corsHeaders);
+
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(identifier);
+    const filter = isUuid
+      ? `id=eq.${encodeURIComponent(identifier)}`
+      : `username=eq.${encodeURIComponent(identifier.toUpperCase())}`;
+    const matches = await supabaseFetch(env,
+      `/rest/v1/users?${filter}&pharmacy_id=eq.${encodeURIComponent(auth.user.pharmacyId)}&select=id,role&limit=1`,
+      { headers: { 'Accept': 'application/json' } }
+    );
+    const user = matches && matches[0];
+    if (!user) return jsonResponse(200, { success: true, deleted: false }, corsHeaders);
+    if (!STAFF_USER_ROLES.has(user.role)) return jsonErrorResponse('Staff account not found', 404, corsHeaders);
+    if (user.id === auth.user.id) {
+      return jsonErrorResponse('You cannot delete your own account', 400, corsHeaders);
+    }
+
+    await supabaseFetch(env,
+      `/rest/v1/pharmacy_members?auth_user_id=eq.${encodeURIComponent(user.id)}&pharmacy_id=eq.${encodeURIComponent(auth.user.pharmacyId)}`,
+      { method: 'DELETE' }
+    );
+    await supabaseFetch(env,
+      `/rest/v1/users?id=eq.${encodeURIComponent(user.id)}&pharmacy_id=eq.${encodeURIComponent(auth.user.pharmacyId)}`,
+      { method: 'DELETE' }
+    );
+
+    return jsonResponse(200, { success: true }, corsHeaders);
+  }
+
+  function formatPharmacySettings(pharmacy) {
+    return {
+      id: pharmacy.id,
+      name: pharmacy.name || '',
+      address: pharmacy.address || '',
+      phone: pharmacy.phone || '',
+      kraPin: pharmacy.kra_pin || '',
+      branding: pharmacy.branding && typeof pharmacy.branding === 'object' ? pharmacy.branding : {}
+    };
+  }
+
+  async function handleGetPharmacySettings(auth, env, corsHeaders) {
+    const pharmacies = await supabaseFetch(env,
+      `/rest/v1/pharmacies?id=eq.${encodeURIComponent(auth.user.pharmacyId)}&select=id,name,address,phone,kra_pin,branding&limit=1`,
+      { headers: { 'Accept': 'application/json' } }
+    );
+    if (!pharmacies || !pharmacies[0]) {
+      return jsonErrorResponse('Pharmacy not found', 404, corsHeaders);
+    }
+    return jsonResponse(200, { settings: formatPharmacySettings(pharmacies[0]) }, corsHeaders);
+  }
+
+  async function handleSavePharmacySettings(request, auth, env, corsHeaders) {
+    const body = await request.json().catch(() => null);
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return jsonErrorResponse('Invalid pharmacy settings', 400, corsHeaders);
+    }
+
+    const name = typeof body.name === 'string' ? body.name.trim() : '';
+    const address = typeof body.address === 'string' ? body.address.trim() : '';
+    const phone = typeof body.phone === 'string' ? body.phone.trim() : '';
+    const kraPin = typeof body.kraPin === 'string' ? body.kraPin.trim() : '';
+    if (!name || name.length > 120 || address.length > 300 || phone.length > 40 || kraPin.length > 40) {
+      return jsonErrorResponse('Enter valid pharmacy details before saving', 400, corsHeaders);
+    }
+
+    const requestedBranding = body.branding;
+    if (!requestedBranding || typeof requestedBranding !== 'object' || Array.isArray(requestedBranding)) {
+      return jsonErrorResponse('Invalid pharmacy branding settings', 400, corsHeaders);
+    }
+    const footer = typeof requestedBranding.footer === 'string' ? requestedBranding.footer.trim() : '';
+    const vatRate = Number(requestedBranding.vatRate);
+    const logo = requestedBranding.logo === null ? null : requestedBranding.logo;
+    if (footer.length > 250 || !Number.isFinite(vatRate) || vatRate < 0 || vatRate > 100) {
+      return jsonErrorResponse('Enter a valid receipt footer and VAT rate between 0 and 100', 400, corsHeaders);
+    }
+    if (logo !== null && (typeof logo !== 'string' ||
+        !/^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(logo) ||
+        logo.length > 512 * 1024)) {
+      return jsonErrorResponse('Logo must be a PNG, JPEG, or WebP image smaller than 375 KB', 400, corsHeaders);
+    }
+
+    const current = await supabaseFetch(env,
+      `/rest/v1/pharmacies?id=eq.${encodeURIComponent(auth.user.pharmacyId)}&select=id,branding&limit=1`,
+      { headers: { 'Accept': 'application/json' } }
+    );
+    if (!current || !current[0]) {
+      return jsonErrorResponse('Pharmacy not found', 404, corsHeaders);
+    }
+
+    const currentBranding = current[0].branding && typeof current[0].branding === 'object'
+      ? current[0].branding
+      : {};
+    const branding = {
+      ...currentBranding,
+      footer,
+      vatRate,
+      logo
+    };
+    const updated = await supabaseFetch(env,
+      `/rest/v1/pharmacies?id=eq.${encodeURIComponent(auth.user.pharmacyId)}`,
+      {
+        method: 'PATCH',
+        headers: { 'Prefer': 'return=representation' },
+        body: JSON.stringify({
+          name,
+          address: address || null,
+          phone: phone || null,
+          kra_pin: kraPin || null,
+          branding
+        })
+      }
+    );
+    if (!updated || !updated[0]) {
+      return jsonErrorResponse('Pharmacy settings could not be saved', 500, corsHeaders);
+    }
+    return jsonResponse(200, { settings: formatPharmacySettings(updated[0]) }, corsHeaders);
+  }
+
+  async function handleLegacyLocalAuth(username, user, env, corsHeaders) {
   // Look up or create pharmacy for this user
   let pharmacy = await supabaseFetch(env,
     `/rest/v1/pharmacies?slug=eq.${user.pharmacySlug}&select=*`,
@@ -940,14 +1305,18 @@ async function processSyncOperationSecure(env, user, pharmacyId, op) {
   if (!ALLOWED_OPERATIONS.has(operation)) {
     throw new Error('Operation not allowed: ' + operation);
   }
+  if (typeof recordId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(recordId)) {
+    throw new Error('Invalid record ID');
+  }
 
   // 3. Check role permission for this entity
-  const rolePerms = ROLE_PERMISSIONS[entity];
-  if (!rolePerms) {
+  if (!Object.prototype.hasOwnProperty.call(DEMO_ENTITY_PERMISSIONS, entity)) {
     throw new Error('No permissions defined for entity: ' + entity);
   }
 
-  const hasPermission = rolePerms[user.role];
+  const hasPermission = user.role === 'demo'
+    ? DEMO_ENTITY_PERMISSIONS[entity]
+    : BUSINESS_DATA_ROLES.has(user.role);
   if (!hasPermission) {
     throw new Error('Role ' + user.role + ' cannot ' + operation + ' on ' + entity);
   }
@@ -961,12 +1330,16 @@ async function processSyncOperationSecure(env, user, pharmacyId, op) {
   });
 
   // 5. Force-set pharmacy_id (ignore client value)
+  cleanPayload.id = recordId;
   cleanPayload.pharmacy_id = pharmacyId;
 
   // 6. Validate child record parent belongs to same workspace
   if (entity === 'sale_items' && cleanPayload.sale_id) {
+    if (typeof cleanPayload.sale_id !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(cleanPayload.sale_id)) {
+      throw new Error('Invalid parent sale ID');
+    }
     const sale = await supabaseFetch(env,
-      `/rest/v1/sales?id=eq.${cleanPayload.sale_id}&select=pharmacy_id`,
+      `/rest/v1/sales?id=eq.${encodeURIComponent(cleanPayload.sale_id)}&select=pharmacy_id`,
       { headers: { 'Accept': 'application/json' } }
     ).catch(() => []);
 
@@ -980,8 +1353,11 @@ async function processSyncOperationSecure(env, user, pharmacyId, op) {
   }
 
   if (entity === 'batches' && cleanPayload.product_id) {
+    if (typeof cleanPayload.product_id !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(cleanPayload.product_id)) {
+      throw new Error('Invalid parent product ID');
+    }
     const product = await supabaseFetch(env,
-      `/rest/v1/products?id=eq.${cleanPayload.product_id}&select=pharmacy_id`,
+      `/rest/v1/products?id=eq.${encodeURIComponent(cleanPayload.product_id)}&select=pharmacy_id`,
       { headers: { 'Accept': 'application/json' } }
     ).catch(() => []);
 
@@ -997,20 +1373,20 @@ async function processSyncOperationSecure(env, user, pharmacyId, op) {
   }
 
   // 7. Process operation
-  const baseUrl = `${env.SUPABASE_URL}/rest/v1/${entity}`;
+  const baseUrl = `/rest/v1/${entity}`;
 
   switch (operation) {
     case 'create':
       // Use idempotent insert; check if record already exists
       const existing = await supabaseFetch(env,
-        `${baseUrl}?id=eq.${recordId}&select=id`,
+        `${baseUrl}?id=eq.${encodeURIComponent(recordId)}&select=id`,
         { headers: { 'Accept': 'application/json' } }
       ).catch(() => []);
 
       if (existing && existing.length > 0) {
         // Update instead
         await supabaseFetch(env,
-          `${baseUrl}?id=eq.${recordId}`,
+          `${baseUrl}?id=eq.${encodeURIComponent(recordId)}`,
           {
             method: 'PATCH',
             body: JSON.stringify({
@@ -1030,7 +1406,7 @@ async function processSyncOperationSecure(env, user, pharmacyId, op) {
     case 'update':
       // Verify ownership before updating
       const record = await supabaseFetch(env,
-        `${baseUrl}?id=eq.${recordId}&select=pharmacy_id`,
+        `${baseUrl}?id=eq.${encodeURIComponent(recordId)}&select=pharmacy_id`,
         { headers: { 'Accept': 'application/json' } }
       ).catch(() => []);
 
@@ -1039,7 +1415,7 @@ async function processSyncOperationSecure(env, user, pharmacyId, op) {
       }
 
       await supabaseFetch(env,
-        `${baseUrl}?id=eq.${recordId}`,
+        `${baseUrl}?id=eq.${encodeURIComponent(recordId)}`,
         {
           method: 'PATCH',
           body: JSON.stringify({
@@ -1054,7 +1430,7 @@ async function processSyncOperationSecure(env, user, pharmacyId, op) {
     case 'delete':
       // Verify ownership before deleting
       const verify = await supabaseFetch(env,
-        `${baseUrl}?id=eq.${recordId}&select=pharmacy_id`,
+        `${baseUrl}?id=eq.${encodeURIComponent(recordId)}&select=pharmacy_id`,
         { headers: { 'Accept': 'application/json' } }
       ).catch(() => []);
 
@@ -1063,7 +1439,7 @@ async function processSyncOperationSecure(env, user, pharmacyId, op) {
       }
 
       await supabaseFetch(env,
-        `${baseUrl}?id=eq.${recordId}`,
+        `${baseUrl}?id=eq.${encodeURIComponent(recordId)}`,
         {
           method: 'PATCH',
           body: JSON.stringify({ deleted_at: new Date().toISOString() })
