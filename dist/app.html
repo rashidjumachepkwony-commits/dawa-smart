@@ -856,8 +856,29 @@
            <button class="btn btn-success" onclick="exportData()"><i class="fas fa-download"></i> Backup</button>
            <button class="btn btn-warning" onclick="document.getElementById('restoreInput').click()"><i class="fas fa-upload"></i> Restore</button>
            <input type="file" id="restoreInput" accept=".json" style="display:none;" onchange="restoreData(event)">
+         </div>
+         <div id="managerDataClearActions" style="display:none;margin-top:10px;">
+           <div style="display:flex;gap:8px;flex-wrap:wrap;">
            <button class="btn btn-blue" onclick="startFreshTransactions()" id="startFreshBtn"><i class="fas fa-rotate-left"></i> Start Fresh</button>
            <button class="btn btn-danger" onclick="clearAllData()" id="clearAllBtn"><i class="fas fa-trash"></i> Clear All</button>
+           </div>
+           <div class="form-group" style="margin-top:10px;">
+             <label for="clearDataSection">Clear a specific section</label>
+             <div style="display:flex;gap:8px;flex-wrap:wrap;">
+               <select id="clearDataSection" style="flex:1;min-width:220px;">
+                 <option value="sales">Sales and sale items</option>
+                 <option value="reports">Saved reports</option>
+                 <option value="inventory">Products, batches, and controlled logs</option>
+                 <option value="patients">Patients</option>
+                 <option value="labTests">Lab tests</option>
+                 <option value="expenses">Expenses</option>
+               </select>
+               <button class="btn btn-danger" onclick="clearSelectedSectionData()"><i class="fas fa-trash"></i> Clear Section</button>
+             </div>
+           </div>
+           <small style="color:#64748b;">Clear actions are available to active owners, admins, developers, and managers. Pharmacy settings, staff accounts, and license data are never cleared.</small>
+         </div>
+         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
            <button class="btn btn-purple" onclick="resetDemoData()" id="resetDemoBtn" style="display:none;"><i class="fas fa-redo"></i> Reset Demo Data</button>
          </div>
          <div class="restore-area" style="margin-top:8px;font-size:12px;color:#64748b;">
@@ -1625,6 +1646,7 @@ function isDeveloper() { return currentUser && currentUser.role === 'developer';
 function isDemo() { return currentUser && currentUser.role === 'demo'; }
 var STAFF_DATA_ROLES = ['owner', 'admin', 'developer', 'manager', 'pharmacist', 'cashier', 'lab', 'doctor'];
 var STAFF_ACCOUNT_ROLES = ['admin', 'manager', 'pharmacist', 'cashier', 'lab', 'doctor'];
+var MANAGER_ONLY_ACTIONS = ['clear all data', 'start fresh', 'clear section data'];
 var BUSINESS_DATA_ACTIONS = [
   'add batch', 'add drug from database', 'add product', 'add/edit product',
   'adjust credit', 'delete expense', 'delete lab test', 'delete patient',
@@ -1642,7 +1664,7 @@ function isEditor() {
 // Actions restricted in Demo Mode
 var DEMO_RESTRICTED_ACTIONS = [
   'manage users', 'save user', 'delete user',
-  'restore data', 'save settings', 'clear all data', 'start fresh',
+  'restore data', 'save settings', ...MANAGER_ONLY_ACTIONS,
   'activate license', 'change license'
 ];
 
@@ -1655,6 +1677,9 @@ function checkAdminPermission(action) {
     }
     return true;
   }
+  if (currentUser && currentUser.status === 'active' &&
+      ['owner', 'admin', 'developer', 'manager'].indexOf(currentUser.role) >= 0 &&
+      MANAGER_ONLY_ACTIONS.indexOf(action) >= 0) return true;
   if (isEditor() && BUSINESS_DATA_ACTIONS.indexOf(action) >= 0) return true;
   showToast('⛔ Admin permission required for ' + action, 'error');
   return false;
@@ -1936,6 +1961,7 @@ async function handleLogin(){
      }
 
     loginAttempts=0; currentUser = user;
+    updateDataManagementUI();
     document.getElementById('loginPage').style.display='none';
     document.getElementById('appContainer').className='app-container show';
     document.getElementById('currentUserDisplay').textContent=user.fullName;
@@ -1962,6 +1988,7 @@ async function handleLogin(){
 
 function handleLogout(){
     currentUser=null;
+    updateDataManagementUI();
     if (typeof window.DawaTenant !== 'undefined' && window.DawaTenant.logout) {
         window.DawaTenant.logout();
     }
@@ -1973,6 +2000,14 @@ function handleLogout(){
     if (switcher) { switcher.style.display='none'; switcher.innerHTML=''; }
      showToast('Logged out');
   }
+
+function updateDataManagementUI() {
+    const actions = document.getElementById('managerDataClearActions');
+    if (!actions) return;
+    const canClear = isAdmin() || (currentUser && currentUser.status === 'active' &&
+        ['owner', 'manager'].indexOf(currentUser.role) >= 0);
+    actions.style.display = canClear ? 'block' : 'none';
+}
 
 // ===== DEMO UI HELPERS =====
 function updateDemoUI(){
@@ -4320,16 +4355,82 @@ function updateStats(){
     }).catch(e => console.error('updateStats error:', e)); 
 }
 
-// ===== CLEAR ALL DATA =====
-function clearAllData(){ if(!adminGuard('clear all data')) return; if(!confirm('⚠️ Delete ALL data?'))return; if(!confirm('⚠️ FINAL: Type "CONFIRM"'))return; showToast('Clearing...','warning'); const stores=['products','sales','saleItems','patients','batches','labTests','expenses']; const promises=stores.map(store=>db.getAll(store).then(items=>{const deletes=items.map(item=>db.delete(store,item.id));return Promise.all(deletes);})); Promise.all(promises).then(()=>{showToast('All data cleared!','success');loadProducts();loadPatients();loadCustomers();loadProductSearch();updateStats();updateProductGrid();updatePricingDashboard();loadLabTests();}).catch(()=>showToast('Error clearing','error')); }
+// ===== CLEAR BUSINESS DATA =====
+const CLEARABLE_DATA_SECTIONS = {
+  sales: { label: 'Sales and sale items', stores: ['sales', 'saleItems'] },
+  reports: { label: 'Saved reports', stores: ['reportArchives'] },
+  inventory: { label: 'Products, batches, and controlled logs', stores: ['products', 'batches', 'controlledLogs'] },
+  patients: { label: 'Patients', stores: ['patients'] },
+  labTests: { label: 'Lab tests', stores: ['labTests'] },
+  expenses: { label: 'Expenses', stores: ['expenses'] }
+};
+const ALL_CLEARABLE_DATA_STORES = ['products', 'sales', 'saleItems', 'patients', 'batches', 'controlledLogs', 'labTests', 'expenses', 'reportArchives'];
+
+function clearDataStores(stores) {
+  const pharmacyId = window.DawaTenant && window.DawaTenant.getCurrentPharmacyId
+    ? window.DawaTenant.getCurrentPharmacyId() : null;
+  return Promise.all(stores.map(store => db.getAll(store).then(items => {
+    let records = items;
+    if (store === 'reportArchives' && pharmacyId) {
+      records = items.filter(item => item.pharmacy_id === pharmacyId || item.pharmacyId === pharmacyId);
+    }
+    return Promise.all(records.map(item => {
+      if (store === 'reportArchives') {
+        item.is_deleted = true;
+        item.updated_at = new Date().toISOString();
+        item.revision = (item.revision || 0) + 1;
+        return db.update(store, item);
+      }
+      return db.delete(store, item.id);
+    }));
+  })));
+}
+
+function refreshAfterDataClear() {
+  loadProducts(); loadPatients(); loadCustomers(); loadProductSearch();
+  updateStats(); updateProductGrid(); updatePricingDashboard(); loadLabTests();
+  loadCreditDashboard(); loadProfessionalAnalysis('daily'); generateCustomReport();
+}
+
+function clearAllData() {
+  if (!adminGuard('clear all data')) return;
+  if (!confirm('Delete all pharmacy business data, including sales, inventory, patients, lab tests, expenses, and saved reports? Staff accounts, pharmacy settings, and license data will be kept.')) return;
+  if (!confirm('FINAL: Permanently clear all business sections for this pharmacy?')) return;
+  showToast('Clearing all business data...', 'warning');
+  clearDataStores(ALL_CLEARABLE_DATA_STORES)
+    .then(() => { refreshAfterDataClear(); showToast('All pharmacy business data cleared.', 'success'); })
+    .catch(error => {
+      console.error('[Data Management] Clear all failed:', error);
+      showToast('Could not clear all business data: ' + error.message, 'error');
+    });
+}
+
+function clearSelectedSectionData() {
+  if (!adminGuard('clear section data')) return;
+  const selector = document.getElementById('clearDataSection');
+  const section = selector && CLEARABLE_DATA_SECTIONS[selector.value];
+  if (!section) { showToast('Choose a valid data section to clear.', 'error'); return; }
+  if (!confirm('Clear ' + section.label + ' for this pharmacy? This cannot be undone.')) return;
+  if (!confirm('FINAL: Clear ' + section.label + '?')) return;
+  showToast('Clearing ' + section.label + '...', 'warning');
+  clearDataStores(section.stores)
+    .then(() => { refreshAfterDataClear(); showToast(section.label + ' cleared.', 'success'); })
+    .catch(error => {
+      console.error('[Data Management] Section clear failed:', error);
+      showToast('Could not clear ' + section.label + ': ' + error.message, 'error');
+    });
+}
 
 function startFreshTransactions(){
   if(!adminGuard('start fresh')) return;
   if(!confirm('This will remove all sales, sale items, and expenses. Continue?')) return;
   const stores = ['sales', 'saleItems', 'expenses'];
-  Promise.all(stores.map(store => db.getAll(store).then(items => Promise.all(items.map(item => db.delete(store, item.id))))))
-    .then(() => { showToast('Sales and expenses cleared. Ready for fresh records.','success'); updateStats(); loadProfessionalAnalysis('daily'); generateCustomReport(); })
-    .catch(() => showToast('Could not start fresh','error'));
+  clearDataStores(stores)
+    .then(() => { showToast('Sales and expenses cleared. Ready for fresh records.','success'); refreshAfterDataClear(); })
+    .catch(error => {
+      console.error('[Data Management] Start fresh failed:', error);
+      showToast('Could not start fresh: ' + error.message,'error');
+    });
 }
 
 function clearTransactionsForFreshInstall(){
