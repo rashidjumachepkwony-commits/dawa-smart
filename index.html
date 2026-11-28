@@ -1518,6 +1518,9 @@ function handleLogin(){
     loginAttempts=0; currentUser = user;
     document.getElementById('loginPage').style.display='none';
     document.getElementById('appContainer').className='app-container show';
+    // Hide splash screen after login
+    var splash = document.getElementById('splash');
+    if (splash) splash.classList.add('hidden');
     document.getElementById('currentUserDisplay').textContent=user.fullName;
     document.getElementById('currentRoleDisplay').textContent=user.role.charAt(0).toUpperCase()+user.role.slice(1);
     loadPharmacySettings(); updatePharmacyDisplay();
